@@ -256,7 +256,7 @@ void NPU::_parse_tuple(std::vector<int>& shape, const std::string& sh )
 std::string NPU::check(const char* path) 
 {
     std::stringstream ss ; 
-    ss << "python -c \"import numpy as np ; print np.load('" ; 
+    ss << "python -c \"import numpy as np ; print np.load('" 
        << path 
        << "') \" && xxd " 
        << path 
@@ -272,22 +272,6 @@ std::string NPU::_make_header(const std::vector<int>& shape, const char* descr )
     return header ; 
 }
 
-std::string NPU::_make_tuple( const std::vector<int>& shape )
-{
-    int ndim = shape.size() ;
-
-    std::stringstream ss ; 
-    ss << "(" ; 
-
-    if( ndim == 1 )
-        ss << shape[0] << "," ; 
-    else
-        for(int i=0 ; i < ndim ; i++ ) ss << shape[i] << ", " ; 
-
-    ss << "), " ;
-    return ss.str(); 
-}
-
 std::string NPU::_make_dict(const std::vector<int>& shape, const char* descr )
 {
     std::stringstream ss ; 
@@ -296,12 +280,21 @@ std::string NPU::_make_dict(const std::vector<int>& shape, const char* descr )
     ss << "'fortran_order': " << ( fortran_order ? "True" : "False" ) << ", " ; 
     ss << "'shape': " ; 
     ss << _make_tuple( shape ) ; 
-
-
     ss << "}" ;  
-
     return ss.str(); 
 } 
+
+std::string NPU::_make_tuple( const std::vector<int>& shape )
+{
+    int ndim = shape.size() ;
+    std::stringstream ss ; 
+    ss << "(" ; 
+    for(int i=0 ; i < ndim ; i++ ) ss << shape[i] << ( i == ndim - 1 ? "" : ", " )  ; 
+    ss << "), " ;
+    return ss.str(); 
+}
+
+
 
 std::string NPU::_little_endian_short_string( uint16_t dlen )
 {

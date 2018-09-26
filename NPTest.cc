@@ -3,38 +3,38 @@
 
 #include "NP.hh"
 
-int main(int argc, char** argv)
+
+NP<float>* make_test_array(int ni, int nj)
 {
-    // define float array shape (10,4)   (up to 5 dimensions implemented)
+    NP<float>* a = new NP<float>(ni, nj)  ;  
 
-    int ni = 10 ; 
-    int nj = 4 ; 
-
-    NP<float> a(ni, nj)  ;  
-    std::cout << "a " << a.desc() << std::endl; 
+    std::cout << "a " << a->desc() << std::endl; 
 
     for(int i=0 ; i < ni ; i++ )
     {
         for(int j=0 ; j < nj ; j++ )
         {
             int index = i*nj + j ;           // 2d indices -> 1d 
-            a.data[index] = float(index) ;   // fill vector with dummy value  
+            a->data[index] = float(index) ;   // fill vector with dummy value  
         }        
     }
+    return a ; 
+}
 
-    const char* path = "/tmp/c.npy" ; 
 
-    a.save(path) ; 
+int main(int argc, char** argv)
+{
+    const char* path = argc > 1 ? argv[1] : "/tmp/c.npy" ; 
+
+    NP<float>* a = make_test_array(10, 4 ); 
+    a->save(path) ; 
+
     std::cout << NPU::check(path) << std::endl ; 
 
+    NP<float>* b = NP<float>::Load(path) ; 
+    std::cout << "b " << b->desc() << std::endl; 
 
-    NP<float> b ; 
-    b.load(path); 
-
-    std::cout << "b " << b.desc() << std::endl; 
-
-    b.dump(0,9); 
-
+    b->dump(0,9); 
 
     return 0 ; 
 }

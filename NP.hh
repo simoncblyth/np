@@ -9,6 +9,8 @@
 template<typename T>
 struct NP
 {
+    static NP<T>* Load(const char* path); 
+
     NP(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
     void load(const char* path);   
@@ -36,6 +38,16 @@ std::string NP<T>::desc() const
     ss << "NP " << NPS::desc(shape) ;
     return ss.str(); 
 }
+
+
+template<typename T>
+NP<T>* NP<T>::Load(const char* path)
+{
+    NP<T>* a = new NP<T>() ; 
+    a->load(path) ; 
+    return a ; 
+}
+
 
 template<typename T>
 void NP<T>::load(const char* path)

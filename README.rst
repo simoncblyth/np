@@ -11,4 +11,32 @@ Documentation of the NPY serialization format
 
 
 
+::
+
+    clang NPTest.cc -lc++ -o /tmp/NPTest 
+    gcc NPTest.cc -lstdc++ -o /tmp/NPTest 
+       ## build test executable using your compiler, 
+       ## implementation is entirely in headers NP.hh and NPU.hh
+
+    /tmp/NPTest /tmp/a.npy  
+       ## run test executable writing a test NumPy array to the path given
+
+    python -c "import numpy as np ; np.save('/tmp/b.npy', np.linspace(0,39,40,dtype=np.float32).reshape(-1,4) ) " 
+       ## do the same thing from python using NumPy
+
+    ls -l /tmp/a.npy /tmp/b.npy
+       ## check the byte sizes are the same 
+
+    diff /tmp/a.npy /tmp/b.npy
+        ## check for a match 
+
+    xxd /tmp/a.npy
+    xxd /tmp/b.npy
+        ## hexdump if there are differences 
+
+    python -c "import numpy as np ; print np.load('/tmp/a.npy') " 
+       ## load and print the C++ written NumPy array  
+
+    python -c "import numpy as np ; print np.load('/tmp/b.npy') " 
+       ## load and print the python written NumPy array  
 
