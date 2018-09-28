@@ -11,6 +11,9 @@ Documentation of the NPY serialization format
 
 
 
+Build and test 
+-----------------
+
 ::
 
     clang NPTest.cc -lc++ -o /tmp/NPTest 
@@ -39,4 +42,18 @@ Documentation of the NPY serialization format
 
     python -c "import numpy as np ; print np.load('/tmp/b.npy') " 
        ## load and print the python written NumPy array  
+
+
+
+
+A few references
+-------------------
+
+* https://github.com/diana-hep/c2numpy
+
+* https://jcastellssala.com/2014/02/01/npy-in-c/
+
+* https://github.com/onai/npio
+
+
 
