@@ -14,30 +14,25 @@ struct NP
 
     NP(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
-    void load(const char* path);   
-    void load(const char* dir, const char* name);   
+    int load(const char* path);   
+    int load(const char* dir, const char* name);   
+    static std::string form_path(const char* dir, const char* name);   
+
     void save(const char* path);   
     void dump(int i0, int i1) const ;   
     std::string desc() const ; 
 
-    T* values() const ; 
+    T* values() ; 
+    int num_values() const ; 
     int num_bytes() const ; 
 
     std::vector<T> data ; 
     std::vector<int> shape ; 
 };
 
-template<typename T>
-T* NP<T>::values() const
-{
-    return data.data() ; 
-}
-
-template<typename T>
-int NP<T>::num_bytes() const
-{
-    return data.size()*sizeof(T)  ; 
-}
+template<typename T> T*  NP<T>::values() { return data.data() ;  } 
+template<typename T> int NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
+template<typename T> int NP<T>::num_values() const { return data.size() ;  }
 
 
 template<typename T>
@@ -61,32 +56,42 @@ template<typename T>
 NP<T>* NP<T>::Load(const char* path)
 {
     NP<T>* a = new NP<T>() ; 
-    a->load(path) ; 
-    return a ; 
+    int rc = a->load(path) ; 
+    return rc == 0 ? a  : NULL ; 
 }
 
 template<typename T>
 NP<T>* NP<T>::Load(const char* dir, const char* name)
 {
-    NP<T>* a = new NP<T>() ; 
-    a->load(dir, name) ; 
-    return a ; 
+    std::string path = form_path(dir, name); 
+    return Load(path.c_str());
 }
 
 template<typename T>
-void NP<T>::load(const char* dir, const char* name)
+std::string NP<T>::form_path(const char* dir, const char* name)
 {
     std::stringstream ss ; 
     ss << dir << "/" << name ; 
-    std::string path = ss.str(); 
-    load(path.c_str()); 
+    return ss.str(); 
+}
+
+template<typename T>
+int NP<T>::load(const char* dir, const char* name)
+{
+    std::string path = form_path(dir, name); 
+    return load(path.c_str()); 
 }
 
 
 template<typename T>
-void NP<T>::load(const char* path)
+int NP<T>::load(const char* path)
 {
     std::ifstream stream(path, std::ios::in|std::ios::binary);
+    if(stream.fail())
+    {
+        std::cerr << "Failed to load from path " << path << std::endl ; 
+        return 1 ; 
+    }
 
     std::string header(128, ' '); 
     stream.read(&header[0], 128 ); 
@@ -108,6 +113,8 @@ void NP<T>::load(const char* path)
     data.resize(total_items);
 
     stream.read(reinterpret_cast<char*>(&data[0]), total_bytes );
+
+    return 0 ; 
 }
 
 template<typename T>
