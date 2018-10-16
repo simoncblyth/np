@@ -19,6 +19,7 @@ struct NP
     static std::string form_path(const char* dir, const char* name);   
 
     void save(const char* path);   
+    void save(const char* dir, const char* name);   
     void dump(int i0, int i1) const ;   
     std::string desc() const ; 
 
@@ -135,6 +136,17 @@ void NP<T>::save(const char* path)
     std::cout << " writing " << path << std::endl ; 
 #endif
 }
+
+
+template<typename T>
+void NP<T>::save(const char* dir, const char* name)
+{
+    std::string path = form_path(dir, name); 
+    save(path.c_str()); 
+}
+
+
+
 
 template<typename T>
 void NP<T>::dump(int i0, int i1) const 
