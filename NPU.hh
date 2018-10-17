@@ -192,6 +192,70 @@ std::string NPU::xxdisplay(const std::string& hdr, int width, char non_printable
 
 int NPU::_parse_header_length(const std::string& hdr )
 {
+/*
+Extract from the NPY format specification
+-------------------------------------------
+
+* https://github.com/numpy/numpy/blob/master/doc/neps/nep-0001-npy-format.rst
+   
+1. The first 6 bytes are a magic string: exactly "x93NUMPY".
+2. The next 1 byte is an unsigned byte: the major version number of the file format, e.g. x01.
+3. The next 1 byte is an unsigned byte: the minor version number of the file format, e.g. x00. 
+   Note: the version of the file format is not tied to the version of the numpy package.
+
+4. The next 2 bytes form a little-endian unsigned short int: the length of the header data HEADER_LEN.
+
+The next HEADER_LEN bytes form the header data describing the array's format.
+It is an ASCII string which contains a Python literal expression of a
+dictionary. It is terminated by a newline ('n') and padded with spaces ('x20')
+to make the total length of the magic string + 4 + HEADER_LEN be evenly
+divisible by 16 for alignment purposes.
+
+Example Headers
+----------------
+
+Created by commands like::
+
+    python -c "import numpy as np ; np.save('/tmp/z0.npy', np.zeros((10,4), dtype=np.float64)) "
+
+
+Older NumPy does not add padding::
+
+    epsilon:np blyth$ xxd /tmp/z.npy
+    00000000: 934e 554d 5059 0100 4600 7b27 6465 7363  .NUMPY..F.{'desc
+    00000010: 7227 3a20 273c 6638 272c 2027 666f 7274  r': '<f8', 'fort
+    00000020: 7261 6e5f 6f72 6465 7227 3a20 4661 6c73  ran_order': Fals
+    00000030: 652c 2027 7368 6170 6527 3a20 2831 302c  e, 'shape': (10,
+    00000040: 2034 292c 207d 2020 2020 2020 2020 200a   4), }         .
+    00000050: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+    00000060: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+    00000070: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+
+
+Newer NumPy adds a little padding to the header::
+
+    epsilon:np blyth$ xxd /tmp/z0.npy
+    00000000: 934e 554d 5059 0100 7600 7b27 6465 7363  .NUMPY..v.{'desc
+    00000010: 7227 3a20 273c 6638 272c 2027 666f 7274  r': '<f8', 'fort
+    00000020: 7261 6e5f 6f72 6465 7227 3a20 4661 6c73  ran_order': Fals
+    00000030: 652c 2027 7368 6170 6527 3a20 2831 302c  e, 'shape': (10,
+    00000040: 2034 292c 207d 2020 2020 2020 2020 2020   4), }          
+    00000050: 2020 2020 2020 2020 2020 2020 2020 2020                  
+    00000060: 2020 2020 2020 2020 2020 2020 2020 2020                  
+    00000070: 2020 2020 2020 2020 2020 2020 2020 200a                 .
+    00000080: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+    00000090: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+
+
+Parsing the header
+-------------------
+
+The preamble is first 8 bytes, 6 bytes for the magic then 2 bytes for the version, 
+followed by 2 bytes with the header length : making 10 bytes which are always present.
+The header length does not include these first 10 bytes.  The header is padded with x20
+to make (hlen+10)%16 == 0 and it is terminated with a newline hex:0a dec:10  
+
+*/
     std::string preamble = hdr.substr(0,8) ;  
     std::string PREAMBLE = _make_preamble(); 
     assert( preamble.compare(PREAMBLE) == 0 );  
@@ -200,6 +264,7 @@ int NPU::_parse_header_length(const std::string& hdr )
     char hlen_msb = hdr[9] ;  
     int hlen = hlen_msb << 8 | hlen_lsb ; 
     assert( (hlen+10) % 16 == 0 ) ;  
+    assert( hlen+10 == hdr.size() ) ; 
 
 #ifdef NPU_DEBUG
     std::cout 
@@ -233,15 +298,7 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
 
     char last = dict[dict.size()-1] ; 
     bool ends_with_newline = last == '\n' ;   
-    //assert(ends_with_newline) ; 
-
-    if( !ends_with_newline ) 
-    {
-        std::cout << "header unexpected last char of dict" 
-                  << " dict.size() - 1 " << dict.size()-1
-                  << " last " << std::hex << int(last) 
-                  << std::endl ;  
-    } 
+    assert(ends_with_newline) ; 
     dict[dict.size()-1] = '\0' ; 
 
     std::string::size_type p0 = dict.find("(") + 1; 
