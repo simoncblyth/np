@@ -150,6 +150,7 @@ struct NPU
     static void _parse_tuple(std::vector<int>& shape, const std::string& sh );
 
     static const bool fortran_order ;  
+    static int _parse_header_length(const std::string& hdr );
     static std::string _make_preamble( int major=1, int minor=0 );
     static std::string _make_header(const std::vector<int>& shape, const char* descr="<f4" );
     static std::string _little_endian_short_string( uint16_t dlen ) ; 
@@ -157,6 +158,7 @@ struct NPU
     static std::string _make_dict(const std::vector<int>& shape, const char* descr );
     static std::string _make_header(const std::string& dict);
 
+    static std::string xxdisplay(const std::string& hdr, int width, char non_printable );
     static std::string check(const char* path); 
 
 
@@ -173,8 +175,22 @@ std::string NPU::make_header(const std::vector<int>& shape )
     return _make_header( shape, descr.c_str() ) ; 
 }
 
-template<typename T>
-int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
+
+std::string NPU::xxdisplay(const std::string& hdr, int width, char non_printable)
+{
+    std::stringstream ss ; 
+    for(int i=0 ; i < hdr.size() ; i++) 
+    {   
+        char c = hdr[i] ; 
+        bool printable = c >= ' ' && c <= '~' ;  // https://en.wikipedia.org/wiki/ASCII
+        ss << ( printable ? c : non_printable )  ;
+        if((i+1) % width == 0 ) ss << "\n" ; 
+   }   
+   return ss.str(); 
+}
+
+
+int NPU::_parse_header_length(const std::string& hdr )
 {
     std::string preamble = hdr.substr(0,8) ;  
     std::string PREAMBLE = _make_preamble(); 
@@ -185,8 +201,47 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
     int hlen = hlen_msb << 8 | hlen_lsb ; 
     assert( (hlen+10) % 16 == 0 ) ;  
 
+#ifdef NPU_DEBUG
+    std::cout 
+        << " _parse_header_length  "  << std::endl 
+        << " hdr               " << std::endl << xxdisplay(hdr, 16, '.' ) << std::endl  
+        << " preamble          " << preamble << std::endl 
+        << " hlen_lsb(hex)     " << std::hex << int(hlen_lsb) << std::endl 
+        << " hlen_msb(hex)     " << std::hex << int(hlen_msb) << std::endl 
+        << " hlen(hex)         " << std::hex << hlen << std::endl 
+        << " hlen_lsb(dec)     " << std::dec << int(hlen_lsb) << std::endl 
+        << " hlen_msb(dec)     " << std::dec << int(hlen_msb) << std::endl 
+        << " hlen(dec)         " << std::dec << hlen << std::endl 
+        << " hlen+10(dec)      " << std::dec << hlen+10 << std::endl 
+        << " (hlen+10)%16(dec) " << (hlen+10)%16 << std::endl 
+        << " hdr.size() (dec)  " << std::dec << hdr.size() << std::endl 
+        << " preamble.size()   " << std::dec << preamble.size() << std::endl 
+        << std::endl 
+        ; 
+
+#endif
+    return hlen ; 
+}
+
+
+template<typename T>
+int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
+{
+    int hlen = _parse_header_length( hdr ) ; 
+
     std::string dict = hdr.substr(10,10+hlen) ; 
-    assert( dict[dict.size()-1] == '\n' ) ;   
+
+    char last = dict[dict.size()-1] ; 
+    bool ends_with_newline = last == '\n' ;   
+    //assert(ends_with_newline) ; 
+
+    if( !ends_with_newline ) 
+    {
+        std::cout << "header unexpected last char of dict" 
+                  << " dict.size() - 1 " << dict.size()-1
+                  << " last " << std::hex << int(last) 
+                  << std::endl ;  
+    } 
     dict[dict.size()-1] = '\0' ; 
 
     std::string::size_type p0 = dict.find("(") + 1; 
@@ -200,16 +255,23 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
 
 #ifdef NPU_DEBUG
     std::cout 
-        << " parse_header " << hdr << std::endl 
-        << " preamble " << preamble << std::endl 
-        << " hlen_lsb " << int(hlen_lsb) << std::endl 
-        << " hlen_msb " << int(hlen_msb) << std::endl 
-        << " hlen " << hlen << std::endl 
-        << " dict [" << dict << "]"<< std::endl 
-        << " p0 " << p0 << std::endl
-        << " p1 " << p1 << std::endl
-        << " sh " << sh << std::endl
+        << " parse_header  "  << std::endl 
+        << " hdr               " << std::endl << xxdisplay(hdr, 16, '.' ) << std::endl  
+        << " hlen(hex)         " << std::hex << hlen << std::endl 
+        << " hlen(dec)         " << std::dec << hlen << std::endl 
+        << " hlen+10(dec)      " << std::dec << hlen+10 << std::endl 
+        << " (hlen+10)%16(dec) " << (hlen+10)%16 << std::endl 
+        << " dict [" << xxdisplay(dict,200,'.') << "]"<< std::endl 
+        << " p0( " << p0 << std::endl
+        << " p1) " << p1 << std::endl
+        << " shape " << sh << std::endl
+        << " last(dec)         " << std::dec << int(last) << std::endl 
+        << " newline(dec)      " << std::dec << int('\n') << std::endl 
+        << " hdr.size() (dec)  " << std::dec << hdr.size() << std::endl 
+        << " dict.size() (dec) " << std::dec << dict.size() << std::endl 
+        << std::endl 
         ; 
+
 #endif
 
     return 0 ; 

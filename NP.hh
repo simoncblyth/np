@@ -87,15 +87,21 @@ int NP<T>::load(const char* dir, const char* name)
 template<typename T>
 int NP<T>::load(const char* path)
 {
-    std::ifstream stream(path, std::ios::in|std::ios::binary);
-    if(stream.fail())
+    std::ifstream fp(path, std::ios::in|std::ios::binary);
+    if(fp.fail())
     {
         std::cerr << "Failed to load from path " << path << std::endl ; 
         return 1 ; 
     }
 
-    std::string header(128, ' '); 
-    stream.read(&header[0], 128 ); 
+    // formerly read an arbitrary initial buffer size, 
+    // now reading up to first newline, which marks the 
+    // end of the header, then adding the newline to the 
+    // header string for neatness  
+
+    std::string header ; 
+    std::getline(fp, header );   
+    header += '\n' ; 
 
 #ifdef NP_DEBUG
     std::cout << "NP::load " << path << std::endl ; 
@@ -106,6 +112,11 @@ int NP<T>::load(const char* path)
     int rc = NPU::parse_header<T>( shape, header ) ; 
     assert( rc == 0 ) ; 
 
+    // parsing of the header gives the shape of the
+    // data, so together with the size of the type
+    // know how many bytes can read from the remainder of the stream
+    // following the header
+
     NPS sh(shape) ; 
 
     size_t total_items = sh.size() ;  
@@ -113,7 +124,7 @@ int NP<T>::load(const char* path)
 
     data.resize(total_items);
 
-    stream.read(reinterpret_cast<char*>(&data[0]), total_bytes );
+    fp.read(reinterpret_cast<char*>(&data[0]), total_bytes );
 
     return 0 ; 
 }
