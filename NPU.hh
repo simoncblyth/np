@@ -255,6 +255,14 @@ followed by 2 bytes with the header length : making 10 bytes which are always pr
 The header length does not include these first 10 bytes.  The header is padded with x20
 to make (hlen+10)%16 == 0 and it is terminated with a newline hex:0a dec:10  
 
+
+NumPy np.save / np.load
+-------------------------
+
+* https://github.com/numpy/numpy/blob/master/numpy/lib/npyio.py
+* https://github.com/numpy/numpy/blob/master/numpy/lib/format.py
+
+
 */
     std::string preamble = hdr.substr(0,8) ;  
     std::string PREAMBLE = _make_preamble(); 
