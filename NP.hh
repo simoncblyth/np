@@ -20,7 +20,7 @@ struct NP
 
     void save(const char* path);   
     void save(const char* dir, const char* name);   
-    void dump(int i0, int i1) const ;   
+    void dump(int i0=-1, int i1=-1) const ;   
     std::string desc() const ; 
 
     T* values() ; 
@@ -160,17 +160,25 @@ void NP<T>::save(const char* dir, const char* name)
 
 
 template<typename T>
-void NP<T>::dump(int i0, int i1) const 
+void NP<T>::dump(int i0_, int i1_) const 
 {
     int ni = NPS::ni_(shape) ;
     int nj = NPS::nj_(shape) ;
     int nk = NPS::nk_(shape) ;
+
+    int i0 = i0_ == -1 ? 0 : i0_ ;  
+    int i1 = i1_ == -1 ? std::min(ni, 10) : i1_ ;  
+
     std::cout 
+       << " array dimensions " 
        << " ni " << ni 
        << " nj " << nj 
        << " nk " << nk
-       << std::endl ;  
-
+       << " item range i0:i1 "
+       << " i0 " << i0 
+       << " i1 " << i1 
+       << std::endl 
+       ;  
 
     for(int i=i0 ; i < i1 ; i++){
         std::cout << "[" << i  << "]" << std::endl ;  
