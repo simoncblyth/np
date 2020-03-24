@@ -97,6 +97,19 @@ struct NPS
         return ss.str(); 
     } 
 
+    static std::string json(const std::vector<int>& shape)
+    {
+        std::stringstream ss ; 
+        ss << "["  ; 
+        for(int i=0 ; i < shape.size() ; i++) 
+        {
+            ss << shape[i]  ; 
+            if( i < shape.size() - 1 ) ss << ", " ; 
+        }
+        ss << "]"  ; 
+        return ss.str(); 
+    } 
+
     static int size(const std::vector<int>& shape)
     {
         int sz = 1;
@@ -105,6 +118,7 @@ struct NPS
     }
 
     std::string desc() const { return desc(shape) ; }
+    std::string json() const { return json(shape) ; }
     int size() const { return size(shape) ; }
 
     static int ni_(const std::vector<int>& shape) { return shape.size() > 0 ? shape[0] : 1 ;  }
@@ -136,6 +150,33 @@ struct NPS
 
 
 
+struct U
+{
+    static bool EndsWith( const char* s, const char* q) ; 
+
+    static std::string ChangeExt( const char* s, const char* x1, const char* x2) ; 
+};
+
+bool U::EndsWith( const char* s, const char* q)
+{
+    int pos = strlen(s) - strlen(q) ;
+    return pos > 0 && strncmp(s + pos, q, strlen(q)) == 0 ; 
+}
+
+std::string U::ChangeExt( const char* s, const char* x1, const char* x2)
+{
+    assert( EndsWith(s, x1) ); 
+
+    std::string st = s ; 
+    std::stringstream ss ; 
+
+    ss << st.substr(0, strlen(s) - strlen(x1) ) ; 
+    ss << x2 ;  
+    return ss.str() ; 
+}
+
+
+
 
 struct NPU
 {
@@ -143,6 +184,9 @@ struct NPU
 
     template<typename T>
     static std::string make_header(const std::vector<int>& shape );
+    template<typename T>
+    static std::string make_metadata(const std::vector<int>& shape );
+
 
     template<typename T>
     static int parse_header(std::vector<int>& shape, const std::string& hdr );
@@ -153,10 +197,13 @@ struct NPU
     static int _parse_header_length(const std::string& hdr );
     static std::string _make_preamble( int major=1, int minor=0 );
     static std::string _make_header(const std::vector<int>& shape, const char* descr="<f4" );
+    static std::string _make_metadata(const std::vector<int>& shape, const char* descr="<f4" );
     static std::string _little_endian_short_string( uint16_t dlen ) ; 
-    static std::string _make_tuple(const std::vector<int>& shape );
+    static std::string _make_tuple(const std::vector<int>& shape, bool json );
     static std::string _make_dict(const std::vector<int>& shape, const char* descr );
+    static std::string _make_json(const std::vector<int>& shape, const char* descr );
     static std::string _make_header(const std::string& dict);
+    static std::string _make_metadata(const std::string& json);
 
     static std::string xxdisplay(const std::string& hdr, int width, char non_printable );
     static std::string check(const char* path); 
@@ -174,6 +221,19 @@ std::string NPU::make_header(const std::vector<int>& shape )
     std::string descr = Desc<T>::descr() ; 
     return _make_header( shape, descr.c_str() ) ; 
 }
+
+
+
+
+
+template<typename T>
+std::string NPU::make_metadata(const std::vector<int>& shape )
+{
+    std::string descr = Desc<T>::descr() ; 
+    return _make_metadata( shape, descr.c_str() ) ; 
+}
+
+
 
 
 std::string NPU::xxdisplay(const std::string& hdr, int width, char non_printable)
@@ -399,6 +459,14 @@ std::string NPU::_make_header(const std::vector<int>& shape, const char* descr )
     return header ; 
 }
 
+std::string NPU::_make_metadata(const std::vector<int>& shape, const char* descr )
+{
+    std::string json = _make_json( shape, descr ); 
+    return json ; 
+}
+
+
+
 std::string NPU::_make_dict(const std::vector<int>& shape, const char* descr )
 {
     std::stringstream ss ; 
@@ -406,16 +474,33 @@ std::string NPU::_make_dict(const std::vector<int>& shape, const char* descr )
     ss << "'descr': '" << descr << "', " ; 
     ss << "'fortran_order': " << ( fortran_order ? "True" : "False" ) << ", " ; 
     ss << "'shape': " ; 
-    ss << _make_tuple( shape ) ; 
+    bool json = false ; 
+    ss << _make_tuple( shape, json ) ; 
     ss << "}" ;  
     return ss.str(); 
 } 
 
-std::string NPU::_make_tuple( const std::vector<int>& shape )
+std::string NPU::_make_json(const std::vector<int>& shape, const char* descr )
+{
+    std::stringstream ss ; 
+    ss << "{" ; 
+    ss << "\"descr\": \"" << descr << "\", " ; 
+    ss << "\"fortran_order\": " << ( fortran_order ? "true" : "false" ) << ", " ; 
+    ss << "\"shape\": " ; 
+    bool json = true ; 
+    ss << _make_tuple( shape, json) ; 
+    ss << "}" ;  
+    return ss.str(); 
+} 
+
+
+
+
+std::string NPU::_make_tuple( const std::vector<int>& shape, bool json )
 {
     int ndim = shape.size() ;
     std::stringstream ss ; 
-    ss << "(" ; 
+    ss <<  ( json ? "[" : "(" ) ; 
 
     if( ndim == 1)
     {
@@ -425,7 +510,7 @@ std::string NPU::_make_tuple( const std::vector<int>& shape )
     {
         for(int i=0 ; i < ndim ; i++ ) ss << shape[i] << ( i == ndim - 1 ? "" : ", " )  ; 
     }
-    ss << "), " ;
+    ss << ( json ?  "] " : "), " ) ;    // hmm assuming shape comes last in json
     return ss.str(); 
 }
 

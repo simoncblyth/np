@@ -9,6 +9,8 @@
 template<typename T>
 struct NP
 {
+    static bool ONLY_HEADER ;  
+ 
     static NP<T>* Load(const char* path); 
     static NP<T>* Load(const char* dir, const char* name); 
 
@@ -20,6 +22,11 @@ struct NP
 
     void save(const char* path);   
     void save(const char* dir, const char* name);   
+
+    void savemeta();    
+    void savemeta(const char* path);   
+    void savemeta(const char* dir, const char* name);   
+
     void dump(int i0=-1, int i1=-1) const ;   
     std::string desc() const ; 
 
@@ -29,11 +36,14 @@ struct NP
 
     std::vector<T> data ; 
     std::vector<int> shape ; 
+    std::string lpath ; 
 };
 
 template<typename T> T*  NP<T>::values() { return data.data() ;  } 
 template<typename T> int NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
 template<typename T> int NP<T>::num_values() const { return data.size() ;  }
+
+template<typename T> bool NP<T>::ONLY_HEADER = false ; 
 
 
 template<typename T>
@@ -87,6 +97,8 @@ int NP<T>::load(const char* dir, const char* name)
 template<typename T>
 int NP<T>::load(const char* path)
 {
+    lpath = path ;  // loadpath 
+
     std::ifstream fp(path, std::ios::in|std::ios::binary);
     if(fp.fail())
     {
@@ -106,6 +118,7 @@ int NP<T>::load(const char* path)
 #ifdef NP_DEBUG
     std::cout << "NP::load " << path << std::endl ; 
     std::cout << header << std::endl ; 
+    if(ONLY_HEADER) std::cout << "ONLY_HEADER" << std::endl ; 
 #endif
 
     shape.clear(); 
@@ -117,15 +130,17 @@ int NP<T>::load(const char* path)
     // know how many bytes can read from the remainder of the stream
     // following the header
 
-    NPS sh(shape) ; 
+    if(ONLY_HEADER == false)
+    {
+        NPS sh(shape) ; 
 
-    size_t total_items = sh.size() ;  
-    size_t total_bytes = total_items*sizeof(T) ; 
+        size_t total_items = sh.size() ;  
+        size_t total_bytes = total_items*sizeof(T) ; 
 
-    data.resize(total_items);
+        data.resize(total_items);
 
-    fp.read(reinterpret_cast<char*>(&data[0]), total_bytes );
-
+        fp.read(reinterpret_cast<char*>(&data[0]), total_bytes );
+    }
     return 0 ; 
 }
 
@@ -134,27 +149,66 @@ void NP<T>::save(const char* path)
 {
     NPS sh(shape) ; 
     int sz = sh.size(); 
-    assert( sz == data.size() ); 
 
     std::string hdr = NPU::make_header<T>( shape ) ; 
 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
     stream << hdr ; 
-    stream.write(reinterpret_cast<const char*>(data.data()), sizeof(T)*sz);
+
+    if(ONLY_HEADER == false)
+    {
+        assert( sz == data.size() ); 
+        stream.write(reinterpret_cast<const char*>(data.data()), sizeof(T)*sz);
+    }    
+
 
 #ifdef NP_DEBUG
     std::cout << hdr << std::endl ; 
     std::cout << " writing " << path << std::endl ; 
+    if(ONLY_HEADER) std::cout << "ONLY_HEADER" << std::endl ; 
 #endif
 }
-
-
 template<typename T>
 void NP<T>::save(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
     save(path.c_str()); 
 }
+
+
+
+template<typename T>
+void NP<T>::savemeta(const char* path)
+{
+    NPS sh(shape) ; 
+    int sz = sh.size(); 
+
+    std::string json = NPU::make_metadata<T>( shape ) ; 
+
+    std::ofstream stream(path, std::ios::out|std::ios::binary);
+    stream << json ; 
+}
+
+template<typename T>
+void NP<T>::savemeta(const char* dir, const char* name)
+{
+    std::string path = form_path(dir, name); 
+    savemeta(path.c_str()); 
+}
+
+template<typename T>
+void NP<T>::savemeta()
+{
+    assert( lpath.empty() == false ); 
+    assert( U::EndsWith(lpath.c_str(), ".npy" ) ); 
+
+    std::string path = U::ChangeExt(lpath.c_str(), ".npy", ".npj"); 
+    std::cout << "NP::savemeta to " << path << std::endl  ; 
+
+    savemeta(path.c_str()); 
+}
+
+
 
 
 
@@ -180,17 +234,25 @@ void NP<T>::dump(int i0_, int i1_) const
        << std::endl 
        ;  
 
-    for(int i=i0 ; i < i1 ; i++){
-        std::cout << "[" << i  << "]" << std::endl ;  
-        for(int j=0 ; j < nj ; j++){
-            for(int k=0 ; k < nk ; k++)
-            {
-                int index = i*nj*nk + j*nk + k ; 
-                std::cout << " " << std::fixed << data[index] ;      
+    if(ONLY_HEADER == true)
+    {
+        std::cout << "ONLY_HEADER" << std::endl ;   
+    } 
+    else
+    { 
+        for(int i=i0 ; i < i1 ; i++){
+            std::cout << "[" << i  << "]" << std::endl ;  
+            for(int j=0 ; j < nj ; j++){
+                for(int k=0 ; k < nk ; k++)
+                {
+                    int index = i*nj*nk + j*nk + k ; 
+                    std::cout << " " << std::fixed << data[index] ;      
+                }
+                //std::cout << std::endl ; 
             }
-            //std::cout << std::endl ; 
+            std::cout << std::endl ; 
         }
-        std::cout << std::endl ; 
     }
+
 }
 
