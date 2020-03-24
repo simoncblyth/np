@@ -1,3 +1,4 @@
+// gcc NPMakeMeta.cc -lstdc++ -std=c++11 -o ~/bin/NPMakeMeta
 // gcc NPMakeMeta.cc -lstdc++ -o /tmp/NPMakeMeta && /tmp/NPMakeMeta
 
 #include "NP.hh"
