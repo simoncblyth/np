@@ -1,5 +1,4 @@
-// gcc NPMakeMeta.cc -lstdc++ -std=c++11 -o ~/bin/NPMakeMeta
-// gcc NPMakeMeta.cc -lstdc++ -o /tmp/NPMakeMeta && /tmp/NPMakeMeta
+// gcc NPMakeMetaTest.cc -I.. -lstdc++ -o /tmp/NPMakeMetaTest && /tmp/NPMakeMetaTest 
 
 #include "NP.hh"
 

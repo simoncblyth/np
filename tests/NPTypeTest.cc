@@ -1,5 +1,4 @@
-// clang NPTypeTest.cc -lc++ -o /tmp/NPTypeTest && /tmp/NPTypeTest
-// gcc NPTypeTest.cc -lstdc++ -o /tmp/NPTypeTest && /tmp/NPTypeTest
+// gcc NPTypeTest.cc -I.. -lstdc++ -o /tmp/NPTypeTest && /tmp/NPTypeTest
 
 #include <string>
 #include <iostream>

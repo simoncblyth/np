@@ -1,5 +1,4 @@
-// clang NPTest.cc -lc++ -o /tmp/NPTest && /tmp/NPTest
-// gcc NPTest.cc -lstdc++ -o /tmp/NPTest && /tmp/NPTest
+// gcc NPTest.cc -I.. -lstdc++ -o /tmp/NPTest && /tmp/NPTest
 
 #include "NP.hh"
 
@@ -48,7 +47,6 @@ int main(int argc, char** argv)
 
 
     h->savemeta(path3);
-
 
 
     return 0 ; 

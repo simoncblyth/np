@@ -1,5 +1,4 @@
-// clang chars.cc -lc++ && ./a.out && rm a.out 
-// gcc chars.cc -lstdc++ && ./a.out && rm a.out 
+// gcc charsTest.cc -I.. -lstdc++ -o /tmp/charsTest && /tmp/charsTest
 
 #include "NP.hh"
 

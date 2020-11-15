@@ -1,5 +1,4 @@
-// clang NPLoadTest.cc -lc++ -o /tmp/NPLoadTest && /tmp/NPLoadTest
-// gcc NPLoadTest.cc -lstdc++ -o /tmp/NPLoadTest && /tmp/NPLoadTest
+// gcc NPLoadTest.cc -I.. -lstdc++ -o /tmp/NPLoadTest && /tmp/NPLoadTest
 
 #include "NP.hh"
 
