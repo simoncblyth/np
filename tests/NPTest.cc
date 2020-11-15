@@ -3,11 +3,11 @@
 #include "NP.hh"
 
 
-NP<float>* make_test_array(int ni, int nj)
+NP<float>* make_array(int ni, int nj)
 {
     NP<float>* a = new NP<float>(ni, nj)  ;  
     std::cout << "a " << a->desc() << std::endl; 
-    a->fillIndexFlat()
+    a->fillIndexFlat() ;
     return a ; 
 }
 
@@ -18,7 +18,7 @@ int main(int argc, char** argv)
     const char* path2 = argc > 2 ? argv[2] : "/tmp/c.nph" ; 
     const char* path3 = argc > 3 ? argv[2] : "/tmp/c.npj" ; 
 
-    NP<float>* a = make_test_array(10, 4 ); 
+    NP<float>* a = make_array(10, 4 ); 
     a->save(path1) ; 
 
     std::cout << NPU::check(path1) << std::endl ; 

@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash -l
 
 tests=$(ls -1 *Test.cc *test.cc)
 

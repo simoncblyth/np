@@ -363,5 +363,14 @@ void NP<T>::dump(int i0_, int i1_) const
         }
     }
 
+    std::cout 
+        << "meta:[" 
+        << std::endl
+        << meta
+        << std::endl
+        << "]"
+        << std::endl
+        ; 
+
 }
 
