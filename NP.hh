@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "NPU.hh"
+#include "net_hdr.hh"
 
 template<typename T>
 struct NP
@@ -15,6 +16,9 @@ struct NP
     static NP<T>* Load(const char* dir, const char* name); 
 
     NP(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
+
+    void fill(T value); 
+    void fillIndexFlat(T offset=0); 
 
     int load(const char* path);   
     int load(const char* dir, const char* name);   
@@ -31,19 +35,110 @@ struct NP
     std::string desc() const ; 
 
     T* values() ; 
-    int num_values() const ; 
-    int num_bytes() const ; 
+    char* bytes();  
+    const char* bytes() const ;  
+
+    unsigned num_values() const ; 
+
+    unsigned num_bytes() const ;   // just the array, not the header 
+    unsigned hdr_bytes() const ;  
+    unsigned meta_bytes() const ;  
+    std::string network_hdr() const ; 
 
     std::vector<T> data ; 
     std::vector<int> shape ; 
     std::string lpath ; 
+
+    std::string hdr ; 
+    std::string meta ; 
 };
 
+
+template<typename T>
+std::ostream& operator<<(std::ostream &os,  const NP<T>& a) 
+{ 
+    os << a.network_hdr() ; 
+    os << a.hdr ; 
+    os.write(a.bytes(), a.num_bytes());
+    os << a.meta ; 
+
+    return os ; 
+}
+
+template<typename T>
+std::istream& operator>>(std::istream& is, NP<T>& a)
+{
+    std::string nethdr(2*4, '\0') ;  
+    is.read( (char*)nethdr.data(), 8 ) ; 
+
+    std::vector<unsigned> items ; 
+    net_hdr::unpack(nethdr, items ); 
+    assert( items.size() == 2 );     
+
+    unsigned hdr_arr_bytes = items[0]; 
+    unsigned meta_bytes = items[1]; 
+
+    std::string hdr ; 
+    std::getline(is, hdr );  
+    hdr += '\n' ;  // getline consumes newline ending header but does not return it 
+    unsigned hdr_bytes = hdr.length(); 
+    unsigned arr_bytes0 = hdr_arr_bytes - hdr_bytes ; 
+
+    a.shape.clear(); 
+    int rc = NPU::parse_header<T>( a.shape, hdr ) ; 
+    assert( rc == 0 ) ; 
+
+    NPS sh(a.shape) ; 
+    unsigned arr_items = sh.size() ;  
+    unsigned arr_bytes = arr_items*sizeof(T) ; 
+
+    std::cout 
+        << " hdr_arr_bytes(items[0]) " << hdr_arr_bytes 
+        << " meta_bytes(items[1]) " << meta_bytes 
+        << " hdr_bytes " << hdr_bytes 
+        << " arr_bytes0 " << arr_bytes0 
+        << " arr_bytes " << arr_bytes 
+        << " arr_items " << arr_items 
+        << " shape " << NPS::desc(a.shape)
+        << std::endl
+        ;
+
+    assert( arr_bytes == arr_bytes0 ); 
+
+    a.data.resize(arr_items);
+    is.read(reinterpret_cast<char*>(&a.data[0]), arr_bytes );
+
+    std::string meta(meta_bytes, '\0' ); 
+    is.read( (char*)meta.data(), meta_bytes );
+    a.meta = meta ; 
+ 
+    //is.setstate(std::ios::failbit);
+    return is;
+}
+
+
+
+
+
 template<typename T> T*  NP<T>::values() { return data.data() ;  } 
-template<typename T> int NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
-template<typename T> int NP<T>::num_values() const { return data.size() ;  }
+template<typename T> unsigned NP<T>::num_values() const { return data.size() ;  }
+
+template<typename T> char*  NP<T>::bytes() { return (char*)data.data() ;  } 
+template<typename T> const char*  NP<T>::bytes() const { return (char*)data.data() ;  } 
+
+template<typename T> unsigned NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
+template<typename T> unsigned NP<T>::hdr_bytes() const { return hdr.length() ; }
+template<typename T> unsigned NP<T>::meta_bytes() const { return meta.length() ; }
+
 
 template<typename T> bool NP<T>::ONLY_HEADER = false ; 
+
+template<typename T> std::string NP<T>::network_hdr() const 
+{
+    std::vector<unsigned> parts = { hdr_bytes() + num_bytes(), meta_bytes() } ;  
+    std::string net_hdr = net_hdr::pack( parts ); 
+    return net_hdr ; 
+}
 
 
 template<typename T>
@@ -53,7 +148,21 @@ NP<T>::NP(int ni, int nj, int nk, int nl, int nm )
     sh.set_shape( ni, nj, nk, nl, nm ); 
     data.resize( sh.size() ) ; 
     std::fill( data.begin() , data.end(), T(0) ) ;     
+    hdr = NPU::make_header<T>( shape ); 
 }
+
+template<typename T>
+void NP<T>::fill(T value)
+{
+    std::fill( data.begin() , data.end(), value ) ;     
+}
+
+template<typename T>
+void NP<T>::fillIndexFlat(T offset)
+{
+    for(unsigned i=0 ; i < data.size() ; i++) data[i] = T(i) + offset ; 
+}
+
 
 template<typename T>
 std::string NP<T>::desc() const 

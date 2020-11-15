@@ -10,19 +10,21 @@ expressed in big endian "network order".
 
 **/
 
+#include <cstdint>
 #include <cassert>
 #include <vector>
 #include <string>
 
+
 struct net_hdr
 {
     union uc4_t {
-        unsigned u    ;   
-        char     c[4] ; 
+        uint32_t          u    ;   
+        char              c[4] ; 
     };  
     static std::string pack(const std::vector<unsigned> items);
-    static void unpack( const std::string& hdr        , std::vector<unsigned>& items );
-    static void unpack( char* data, unsigned num_bytes, std::vector<unsigned>& items );
+    static void unpack( const std::string& hdr         , std::vector<unsigned>& items );
+    static void unpack( char* data, unsigned num_bytes , std::vector<unsigned>& items );
 };
 
 std::string net_hdr::pack(const std::vector<unsigned> items) // static 
