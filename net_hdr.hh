@@ -15,29 +15,38 @@ expressed in big endian "network order".
 #include <vector>
 #include <string>
 
-
 struct net_hdr
 {
+    static const unsigned LENGTH ; 
+
     union uc4_t {
         uint32_t          u    ;   
         char              c[4] ; 
     };  
     static std::string pack(const std::vector<unsigned> items);
-    static void unpack( const std::string& hdr         , std::vector<unsigned>& items );
+    static void unpack(     const std::string& hdr         , std::vector<unsigned>& items );
     static void unpack( char* data, unsigned num_bytes , std::vector<unsigned>& items );
+
+    static unsigned unpack( const std::string& hdr, unsigned index ); 
 };
+
+
+const unsigned net_hdr::LENGTH = 8 ;  
 
 std::string net_hdr::pack(const std::vector<unsigned> items) // static 
 {
-    assert( 4 == sizeof(unsigned)); 
     unsigned ni = items.size(); 
 
+    assert( ni == 2 ); 
+    assert( sizeof(unsigned) == 4); 
+    assert( ni*sizeof(unsigned) == LENGTH ); 
+
     uc4_t uc4 ; 
-    std::string hdr(ni*4, '\0' );  
+    std::string hdr(LENGTH, '\0' );  
     for(unsigned i=0 ; i < ni ; i++)
     {   
         uc4.u = htonl(items[i]) ;   // to big endian or "network order"
-        memcpy( (void*)(hdr.data() + i*4), &(uc4.c[0]), 4 );  
+        memcpy( (void*)(hdr.data() + i*sizeof(unsigned)), &(uc4.c[0]), 4 );  
     }   
     return hdr ; 
 }
@@ -46,6 +55,15 @@ void net_hdr::unpack( const std::string& hdr, std::vector<unsigned>& items ) // 
 {
     unpack((char*)hdr.data(), hdr.length(), items );
 }
+
+unsigned net_hdr::unpack( const std::string& hdr, unsigned index ) // static
+{
+    std::vector<unsigned> items ; 
+    unpack(hdr, items); 
+    return index < items.size() ? items[index] : 0 ; 
+} 
+
+
 
 void net_hdr::unpack( char* data, unsigned num_bytes, std::vector<unsigned>& items ) // static
 {
@@ -62,6 +80,5 @@ void net_hdr::unpack( char* data, unsigned num_bytes, std::vector<unsigned>& ite
         items[i] = ntohl(uc4.u) ;   // from big endian to endian-ness of host  
     }   
 }
-
 
 

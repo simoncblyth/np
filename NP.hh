@@ -51,7 +51,11 @@ struct NP
 
     std::string hdr ; 
     std::string meta ; 
+
+    std::string read_net_hdr ; 
+    unsigned read_item_size(unsigned index) const ;     
 };
+
 
 
 template<typename T>
@@ -65,18 +69,26 @@ std::ostream& operator<<(std::ostream &os,  const NP<T>& a)
     return os ; 
 }
 
+/**
+
+https://www.boost.org/doc/libs/1_52_0/doc/html/boost_asio/overview/core/buffers.html
+
+* A scatter-read receives data into multiple buffers.
+* A gather-write transmits multiple buffers.
+
+https://stackoverflow.com/questions/14413322/how-to-create-buffer-sequence
+
+https://www.boost.org/doc/libs/1_52_0/doc/html/boost_asio/example/serialization/connection.hpp
+
+**/
+
 template<typename T>
 std::istream& operator>>(std::istream& is, NP<T>& a)
 {
-    std::string nethdr(2*4, '\0') ;  
-    is.read( (char*)nethdr.data(), 8 ) ; 
+    is.read( (char*)a.read_net_hdr.data(), net_hdr::LENGTH ) ; 
 
-    std::vector<unsigned> items ; 
-    net_hdr::unpack(nethdr, items ); 
-    assert( items.size() == 2 );     
-
-    unsigned hdr_arr_bytes = items[0]; 
-    unsigned meta_bytes = items[1]; 
+    unsigned hdr_arr_bytes = a.read_item_size(0); 
+    unsigned meta_bytes    = a.read_item_size(1);  
 
     std::string hdr ; 
     std::getline(is, hdr );  
@@ -117,8 +129,7 @@ std::istream& operator>>(std::istream& is, NP<T>& a)
 }
 
 
-
-
+template<typename T> unsigned NP<T>::read_item_size(unsigned index) const { return net_hdr::unpack(read_net_hdr, index); }  
 
 template<typename T> T*  NP<T>::values() { return data.data() ;  } 
 template<typename T> unsigned NP<T>::num_values() const { return data.size() ;  }
@@ -126,10 +137,9 @@ template<typename T> unsigned NP<T>::num_values() const { return data.size() ;  
 template<typename T> char*  NP<T>::bytes() { return (char*)data.data() ;  } 
 template<typename T> const char*  NP<T>::bytes() const { return (char*)data.data() ;  } 
 
-template<typename T> unsigned NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
 template<typename T> unsigned NP<T>::hdr_bytes() const { return hdr.length() ; }
+template<typename T> unsigned NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
 template<typename T> unsigned NP<T>::meta_bytes() const { return meta.length() ; }
-
 
 template<typename T> bool NP<T>::ONLY_HEADER = false ; 
 
@@ -149,6 +159,7 @@ NP<T>::NP(int ni, int nj, int nk, int nl, int nm )
     data.resize( sh.size() ) ; 
     std::fill( data.begin() , data.end(), T(0) ) ;     
     hdr = NPU::make_header<T>( shape ); 
+    read_net_hdr.assign(net_hdr::LENGTH, '\0' ); 
 }
 
 template<typename T>

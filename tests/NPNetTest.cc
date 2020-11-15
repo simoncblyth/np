@@ -3,18 +3,17 @@
 NPNetTest.cc
 =============
 
-Start server::
+Start server in one session::
 
     /tmp/NPNetTestServer
 
-On invoking client the server responds with 
+On invoking client in another session the server responds with 
 an array sent via the socket using tcp::iostream.::
 
     /tmp/NPNetTestClient
 
-Note that the same executable acts as both 
-server and client, acting according to the executable name.
-
+Note that the same executable acts as both server and client, 
+acting according to the executable name.
 **/
 
 #include <string>
@@ -37,7 +36,6 @@ std::string make_meta(unsigned count)
     ss << head << count << tail ; 
     return ss.str(); 
 }
-
 int server()
 {
     NP<float>* a = new NP<float>(10,4) ; a->fillIndexFlat(); a->meta = "{}" ; 
@@ -68,7 +66,6 @@ int server()
     }
     return 0 ; 
 }
-
 int client()
 {
     try
@@ -90,6 +87,4 @@ int client()
     }
     return 0 ; 
 }
-
 int main(int argc, char** argv){ return strstr(argv[0],"Server") ? server() : client() ; }
-
