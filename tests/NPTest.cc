@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     h->save(path2) ; 
 
 
-    h->savemeta(path3);
+    h->savejsonhdr(path3);
 
 
     return 0 ; 

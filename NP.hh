@@ -23,9 +23,9 @@ struct NP
     void save(const char* path);   
     void save(const char* dir, const char* name);   
 
-    void savemeta();    
-    void savemeta(const char* path);   
-    void savemeta(const char* dir, const char* name);   
+    void savejsonhdr();    
+    void savejsonhdr(const char* path);   
+    void savejsonhdr(const char* dir, const char* name);   
 
     void dump(int i0=-1, int i1=-1) const ;   
     std::string desc() const ; 
@@ -178,34 +178,34 @@ void NP<T>::save(const char* dir, const char* name)
 
 
 template<typename T>
-void NP<T>::savemeta(const char* path)
+void NP<T>::savejsonhdr(const char* path)
 {
     NPS sh(shape) ; 
     int sz = sh.size(); 
 
-    std::string json = NPU::make_metadata<T>( shape ) ; 
+    std::string json = NPU::make_jsonhdr<T>( shape ) ; 
 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
     stream << json ; 
 }
 
 template<typename T>
-void NP<T>::savemeta(const char* dir, const char* name)
+void NP<T>::savejsonhdr(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
-    savemeta(path.c_str()); 
+    savejsonhdr(path.c_str()); 
 }
 
 template<typename T>
-void NP<T>::savemeta()
+void NP<T>::savejsonhdr()
 {
     assert( lpath.empty() == false ); 
     assert( U::EndsWith(lpath.c_str(), ".npy" ) ); 
 
     std::string path = U::ChangeExt(lpath.c_str(), ".npy", ".npj"); 
-    std::cout << "NP::savemeta to " << path << std::endl  ; 
+    std::cout << "NP::savejsonhdr to " << path << std::endl  ; 
 
-    savemeta(path.c_str()); 
+    savejsonhdr(path.c_str()); 
 }
 
 

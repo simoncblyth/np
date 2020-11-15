@@ -6,6 +6,8 @@
 #include <vector>
 #include <cassert>
 #include <complex>
+#include <fstream>
+
 
 
 union u16c2_t 
@@ -186,7 +188,7 @@ struct NPU
     template<typename T>
     static std::string make_header(const std::vector<int>& shape );
     template<typename T>
-    static std::string make_metadata(const std::vector<int>& shape );
+    static std::string make_jsonhdr(const std::vector<int>& shape );
 
 
     template<typename T>
@@ -198,16 +200,17 @@ struct NPU
     static int _parse_header_length(const std::string& hdr );
     static std::string _make_preamble( int major=1, int minor=0 );
     static std::string _make_header(const std::vector<int>& shape, const char* descr="<f4" );
-    static std::string _make_metadata(const std::vector<int>& shape, const char* descr="<f4" );
+    static std::string _make_jsonhdr(const std::vector<int>& shape, const char* descr="<f4" );
     static std::string _little_endian_short_string( uint16_t dlen ) ; 
     static std::string _make_tuple(const std::vector<int>& shape, bool json );
     static std::string _make_dict(const std::vector<int>& shape, const char* descr );
     static std::string _make_json(const std::vector<int>& shape, const char* descr );
     static std::string _make_header(const std::string& dict);
-    static std::string _make_metadata(const std::string& json);
+    static std::string _make_jsonhdr(const std::string& json);
 
     static std::string xxdisplay(const std::string& hdr, int width, char non_printable );
     static std::string check(const char* path); 
+    static bool is_readable(const char* path);
 
 
 };
@@ -228,10 +231,10 @@ std::string NPU::make_header(const std::vector<int>& shape )
 
 
 template<typename T>
-std::string NPU::make_metadata(const std::vector<int>& shape )
+std::string NPU::make_jsonhdr(const std::vector<int>& shape )
 {
     std::string descr = Desc<T>::descr() ; 
-    return _make_metadata( shape, descr.c_str() ) ; 
+    return _make_jsonhdr( shape, descr.c_str() ) ; 
 }
 
 
@@ -440,6 +443,14 @@ void NPU::_parse_tuple(std::vector<int>& shape, const std::string& sh )
 #endif
 }
  
+bool NPU::is_readable(const char* path)  // static 
+{
+    std::ifstream fp(path, std::ios::in|std::ios::binary);
+    bool readable = !fp.fail(); 
+    fp.close(); 
+    return readable ; 
+}
+
 
 std::string NPU::check(const char* path) 
 {
@@ -460,7 +471,7 @@ std::string NPU::_make_header(const std::vector<int>& shape, const char* descr )
     return header ; 
 }
 
-std::string NPU::_make_metadata(const std::vector<int>& shape, const char* descr )
+std::string NPU::_make_jsonhdr(const std::vector<int>& shape, const char* descr )
 {
     std::string json = _make_json( shape, descr ); 
     return json ; 
