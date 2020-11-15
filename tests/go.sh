@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-tests=$(ls -1 *Test.cc)
+tests=$(ls -1 *Test.cc *test.cc)
 
 for t in $tests ; do 
     echo === $t 
