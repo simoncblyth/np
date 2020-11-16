@@ -14,20 +14,26 @@ NP
 Lightweight version of Opticks NPY that adds asyncio transport capabilities
 based on boost::asio.
 
+The templating is not convenient for transport because you 
+dont know the type until parsing the hdr. 
+Plus most of the class does not depend on the type... so 
+perhaps try to have some templated methods rather than 
+a templated class ?
+
 **/
 
 template<typename T>
 struct NP
 {
     static bool ONLY_HEADER ;  
- 
+    NP(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
+
     static NP<T>* Load(const char* path); 
     static NP<T>* Load(const char* dir, const char* name); 
 
-    NP(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
-
     void fill(T value); 
     void fillIndexFlat(T offset=0); 
+    T*   values() ; 
 
     int load(const char* path);   
     int load(const char* dir, const char* name);   
@@ -43,16 +49,13 @@ struct NP
     void dump(int i0=-1, int i1=-1) const ;   
     std::string desc() const ; 
 
-    T* values() ; 
     char* bytes();  
     const char* bytes() const ;  
 
     unsigned num_values() const ; 
-
     unsigned arr_bytes() const ;   // formerly num_bytes
     unsigned hdr_bytes() const ;  
     unsigned meta_bytes() const ;
-
   
     // primary data members 
     std::vector<T>   data ; 
@@ -70,12 +73,9 @@ struct NP
     unsigned nh_item_size(unsigned index) const ;     
     std::string network_hdr() const ; 
 
-    bool decode_net_header() ; // also resizes buffers ready for reading in 
     void update_headers();     
-
+    bool decode_net_header() ; // also resizes buffers ready for reading in 
     bool decode_arr_header() ; // sets shape based on arr header
-
-
 };
 
 /**
@@ -159,8 +159,6 @@ template<typename T> std::string NP<T>::network_hdr() const
     std::string net_hdr = net_hdr::pack( parts ); 
     return net_hdr ; 
 }
-
-
 
 /**
 NP::update_headers
@@ -301,6 +299,7 @@ std::string NP<T>::desc() const
        << " shape.size " << shape.size() 
        << " data.size " << data.size()
        << " meta.size " << meta.size() 
+       << " _hdr " << _hdr 
        ;
     return ss.str(); 
 }

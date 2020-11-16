@@ -259,23 +259,25 @@ typedef std::list<np_server_ptr> np_server_list;
 
 //----------------------------------------------------------------------
 const char* getenv_(const char* key, const char* fallback){ return getenv(key) ? getenv(key) : fallback ; }
-const char* getport(){ return getenv_("TCP_PORT", "15008" ) ; }
+const char* getport(){ return getenv_("TCP_PORT", "15006" ) ; }
 
 int main(int argc, char** argv)
 {
-    std::cout << "np_server" << std::endl ; 
     try
     {
         if (argc < 2)
         {
             argc = 2 ; 
             argv[1] = (char*)getport(); 
+
+   
         }
         boost::asio::io_context io_context;
         np_server_list servers;
         for (int i = 1; i < argc; ++i)
         {
             using namespace std; // For atoi.
+            std::cout << "np_server port:" << argv[i] <<  std::endl ; 
             tcp::endpoint endpoint(tcp::v4(), atoi(argv[i]));
             np_server_ptr server(new np_server(io_context, endpoint));
             servers.push_back(server);

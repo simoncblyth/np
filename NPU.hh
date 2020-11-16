@@ -196,8 +196,8 @@ struct NPU
 
     static void _parse_tuple(std::vector<int>& shape, const std::string& sh );
 
-    static const bool fortran_order ;  
-    static int _parse_header_length(const std::string& hdr );
+    static const bool  fortran_order ;  
+    static int         _parse_header_length(const std::string& hdr );
     static std::string _make_preamble( int major=1, int minor=0 );
     static std::string _make_header(const std::vector<int>& shape, const char* descr="<f4" );
     static std::string _make_jsonhdr(const std::vector<int>& shape, const char* descr="<f4" );
@@ -208,13 +208,14 @@ struct NPU
     static std::string _make_header(const std::string& dict);
     static std::string _make_jsonhdr(const std::string& json);
 
+    static void _parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict);  // static 
+    static void _parse_dict(std::string& descr, bool& fortran_order, const char* dict); // static
+    static void _parse_descr(bool& little_endian, char& uifc, int& width, const char* descr);  // static
+
     static std::string xxdisplay(const std::string& hdr, int width, char non_printable );
     static std::string check(const char* path); 
     static bool is_readable(const char* path);
-
-
 };
-
 
 const char* NPU::MAGIC = "\x93NUMPY" ; 
 const bool NPU::fortran_order = false ; 
@@ -226,19 +227,12 @@ std::string NPU::make_header(const std::vector<int>& shape )
     return _make_header( shape, descr.c_str() ) ; 
 }
 
-
-
-
-
 template<typename T>
 std::string NPU::make_jsonhdr(const std::vector<int>& shape )
 {
     std::string descr = Desc<T>::descr() ; 
     return _make_jsonhdr( shape, descr.c_str() ) ; 
 }
-
-
-
 
 std::string NPU::xxdisplay(const std::string& hdr, int width, char non_printable)
 {
@@ -252,7 +246,6 @@ std::string NPU::xxdisplay(const std::string& hdr, int width, char non_printable
    }   
    return ss.str(); 
 }
-
 
 int NPU::_parse_header_length(const std::string& hdr )
 {
@@ -282,7 +275,6 @@ Created by commands like::
 
     python -c "import numpy as np ; np.save('/tmp/z0.npy', np.zeros((10,4), dtype=np.float64)) "
 
-
 Older NumPy does not add padding::
 
     epsilon:np blyth$ xxd /tmp/z.npy
@@ -294,7 +286,6 @@ Older NumPy does not add padding::
     00000050: 0000 0000 0000 0000 0000 0000 0000 0000  ................
     00000060: 0000 0000 0000 0000 0000 0000 0000 0000  ................
     00000070: 0000 0000 0000 0000 0000 0000 0000 0000  ................
-
 
 Newer NumPy adds a little padding to the header::
 
@@ -309,7 +300,6 @@ Newer NumPy adds a little padding to the header::
     00000070: 2020 2020 2020 2020 2020 2020 2020 200a                 .
     00000080: 0000 0000 0000 0000 0000 0000 0000 0000  ................
     00000090: 0000 0000 0000 0000 0000 0000 0000 0000  ................
-
 
 Parsing the header
 -------------------
@@ -328,7 +318,7 @@ NumPy np.save / np.load
 
 
 */
-    std::string preamble = hdr.substr(0,8) ;  
+    std::string preamble = hdr.substr(0,8) ;  // 6 char MAGIC + 2 char version  
     std::string PREAMBLE = _make_preamble(); 
     assert( preamble.compare(PREAMBLE) == 0 );  
 
@@ -373,6 +363,7 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
     assert(ends_with_newline) ; 
     dict[dict.size()-1] = '\0' ; 
 
+
     std::string::size_type p0 = dict.find("(") + 1; 
     std::string::size_type p1 = dict.find(")"); 
     assert( p0 != std::string::npos ); 
@@ -381,6 +372,7 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
     std::string sh = dict.substr( p0, p1 - p0 ) ;  
 
     _parse_tuple( shape, sh ); 
+
 
 #ifdef NPU_DEBUG
     std::cout 
@@ -442,6 +434,83 @@ void NPU::_parse_tuple(std::vector<int>& shape, const std::string& sh )
 
 #endif
 }
+
+
+
+/**
+NPU::_parse_dict
+------------------
+
+::
+
+    const char* dict = R"({'descr': '<f4', 'fortran_order': False, 'shape': (10, 4), })" ; 
+    //       nq:           1     2  3   4  5             6         7     8
+    //     elem:                 0      1                2       3       4 
+
+**/
+
+void NPU::_parse_dict(std::string& descr, bool& fortran_order, const char* dict) // static
+{
+    char q = '\'' ;  
+    char x = '\0' ;   // "wildcard" extra delim 
+
+    std::vector<std::string> elem ;  
+    std::stringstream ss ; 
+    unsigned nq = 0 ; 
+    for(int i=0 ; i < strlen(dict) ; i++)
+    {
+        if(dict[i] == q || dict[i] == x) 
+        {
+            nq += 1 ;  
+            if(nq == 6 ) x = ' ' ; 
+            if(nq == 7 ) x = ',' ; 
+            if(nq == 8 ) x = '\0' ; 
+
+            if( nq % 2 == 0 )  
+            {
+                elem.push_back(ss.str());  
+                ss.str("");
+            }
+        } 
+        else
+        {
+            if(nq % 2 == 1 ) ss << dict[i] ; 
+        }
+    }
+
+    assert( elem[0].compare("descr") == 0 );  
+    assert( elem[2].compare("fortran_order") == 0 );  
+    assert( elem[3].compare("False") == 0 || elem[3].compare("True") == 0);  
+    assert( elem[4].compare("shape") == 0 );  
+
+    descr = elem[1]; 
+    fortran_order = elem[3].compare("False") == 0 ? false : true ; 
+}
+
+void NPU::_parse_descr(bool& little_endian, char& uifc, int& width, const char* descr)  // static
+{
+    assert( strlen(descr) == 3 ); 
+
+    char c_endian = descr[0] ; 
+    char c_uifc = descr[1] ; 
+    char c_width = descr[2] ; 
+
+    assert( c_endian == '<' || c_endian == '>' ); 
+    little_endian = c_endian == '<' ;
+
+    assert( c_uifc == 'u' || c_uifc == 'i' || c_uifc == 'f' || c_uifc == 'c' ); 
+    uifc = c_uifc ; 
+
+    width = c_width - '0' ; 
+}
+
+void NPU::_parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict)  // static 
+{
+    _parse_dict(descr, fortran_order, dict); 
+    _parse_descr(little_endian, uifc, width, descr.c_str() ); 
+}
+
+
  
 bool NPU::is_readable(const char* path)  // static 
 {
