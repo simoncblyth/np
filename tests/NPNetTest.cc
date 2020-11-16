@@ -1,19 +1,19 @@
-// boost-;gcc NPNetTest.cc -std=c++11 -I.. -I$(boost-prefix)/include -lstdc++ -o /tmp/NPNetTestServer && ln -sf /tmp/NPNetTestServer /tmp/NPNetTestClient
+// boost-;gcc NPNetTest.cc -std=c++11 -I.. -I$(boost-prefix)/include -lstdc++ -o /tmp/NPNetTest && /tmp/NPNetTest 
 /**
 NPNetTest.cc
 =============
 
 Start server in one session::
 
-    /tmp/NPNetTestServer
+    /tmp/NPNetTest s
 
 On invoking client in another session the server responds with 
 an array sent via the socket using tcp::iostream.::
 
-    /tmp/NPNetTestClient
+    /tmp/NPNetTest 
 
-Note that the same executable acts as both server and client, 
-acting according to the executable name.
+Note that the same executable acts as both server and client according 
+to the argument.
 **/
 
 #include <string>
@@ -71,10 +71,9 @@ int client()
     try
     {
         tcp::iostream stream(gethost(), getport());
-        if (!stream)
-        {
+        if (!stream){
             std::cout << "Unable to connect: " << stream.error().message() << std::endl;
-            return 1;
+            return 0;
         }
         std::cout << "client recv array from stream " << std::endl ; 
         NP<float>* a = new NP<float>() ; 
@@ -87,4 +86,4 @@ int client()
     }
     return 0 ; 
 }
-int main(int argc, char** argv){ return strstr(argv[0],"Server") ? server() : client() ; }
+int main(int argc, char** argv){ return ( argc > 1 && argv[1][0] == 's' ) ? server() : client() ; }

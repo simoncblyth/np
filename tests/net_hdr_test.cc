@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 {
     std::cout << argv[0] << std::endl ;
 
-    std::vector<unsigned> items = { 0x12345678, 0xdeadbeef } ;
+    std::vector<unsigned> items = { 0x12345678, 0xdeadbeef, 0xf0f0f0f0 } ;
     net_hdr_test(items);
 
     return 0 ;

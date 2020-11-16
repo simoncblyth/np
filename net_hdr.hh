@@ -31,13 +31,13 @@ struct net_hdr
 };
 
 
-const unsigned net_hdr::LENGTH = 8 ;  
+const unsigned net_hdr::LENGTH = 4*3 ;  
 
 std::string net_hdr::pack(const std::vector<unsigned> items) // static 
 {
     unsigned ni = items.size(); 
 
-    assert( ni == 2 ); 
+    assert( ni == 3 ); 
     assert( sizeof(unsigned) == 4); 
     assert( ni*sizeof(unsigned) == LENGTH ); 
 
@@ -62,8 +62,6 @@ unsigned net_hdr::unpack( const std::string& hdr, unsigned index ) // static
     unpack(hdr, items); 
     return index < items.size() ? items[index] : 0 ; 
 } 
-
-
 
 void net_hdr::unpack( char* data, unsigned num_bytes, std::vector<unsigned>& items ) // static
 {

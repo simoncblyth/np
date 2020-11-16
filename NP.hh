@@ -7,6 +7,15 @@
 #include "NPU.hh"
 #include "net_hdr.hh"
 
+/**
+NP
+==
+
+Lightweight version of Opticks NPY that adds asyncio transport capabilities
+based on boost::asio.
+
+**/
+
 template<typename T>
 struct NP
 {
@@ -40,96 +49,210 @@ struct NP
 
     unsigned num_values() const ; 
 
-    unsigned num_bytes() const ;   // just the array, not the header 
+    unsigned arr_bytes() const ;   // formerly num_bytes
     unsigned hdr_bytes() const ;  
-    unsigned meta_bytes() const ;  
-    std::string network_hdr() const ; 
+    unsigned meta_bytes() const ;
 
-    std::vector<T> data ; 
+  
+    // primary data members 
+    std::vector<T>   data ; 
     std::vector<int> shape ; 
+    std::string      meta ; 
+
+    // transient
     std::string lpath ; 
 
-    std::string hdr ; 
-    std::string meta ; 
+    // headers used for transport 
+    std::string _hdr ; 
+    std::string _net_hdr ; 
 
-    std::string read_net_hdr ; 
-    unsigned read_item_size(unsigned index) const ;     
+    // _net_hdr related 
+    unsigned nh_item_size(unsigned index) const ;     
+    std::string network_hdr() const ; 
+
+    bool decode_net_header() ; // also resizes buffers ready for reading in 
+    void update_headers();     
+
+    bool decode_arr_header() ; // sets shape based on arr header
+
+
 };
 
+/**
+NP<T> operator<<
+-------------------
 
+Write array into output stream 
+
+**/
 
 template<typename T>
 std::ostream& operator<<(std::ostream &os,  const NP<T>& a) 
 { 
-    os << a.network_hdr() ; 
-    os << a.hdr ; 
-    os.write(a.bytes(), a.num_bytes());
+    os << a.network_hdr() ; // hmm not using _net_hdr 
+    os << a._hdr ; 
+    os.write(a.bytes(), a.arr_bytes());
     os << a.meta ; 
 
     return os ; 
 }
 
 /**
+NP<T> operator>>
+------------------
 
-https://www.boost.org/doc/libs/1_52_0/doc/html/boost_asio/overview/core/buffers.html
-
-* A scatter-read receives data into multiple buffers.
-* A gather-write transmits multiple buffers.
-
-https://stackoverflow.com/questions/14413322/how-to-create-buffer-sequence
-
-https://www.boost.org/doc/libs/1_52_0/doc/html/boost_asio/example/serialization/connection.hpp
+Direct input stream into NP array
 
 **/
 
 template<typename T>
-std::istream& operator>>(std::istream& is, NP<T>& a)
+std::istream& operator>>(std::istream& is, NP<T>& a)      // NB this is NOT a struct member function
 {
-    is.read( (char*)a.read_net_hdr.data(), net_hdr::LENGTH ) ; 
+    is.read( (char*)a._net_hdr.data(), net_hdr::LENGTH ) ; 
 
-    unsigned hdr_arr_bytes = a.read_item_size(0); 
-    unsigned meta_bytes    = a.read_item_size(1);  
+    unsigned hdr_bytes_nh = a.nh_item_size(0); 
+    unsigned arr_bytes_nh = a.nh_item_size(1); 
+    unsigned meta_bytes_nh = a.nh_item_size(2);  
 
     std::string hdr ; 
-    std::getline(is, hdr );  
+    std::getline( is, hdr );  
     hdr += '\n' ;  // getline consumes newline ending header but does not return it 
-    unsigned hdr_bytes = hdr.length(); 
-    unsigned arr_bytes0 = hdr_arr_bytes - hdr_bytes ; 
 
-    a.shape.clear(); 
+    unsigned hdr_bytes_h = hdr.length() ; 
+    assert( hdr_bytes_h == hdr_bytes_nh ); 
+
+    a.shape.clear();   // hmm note that only the shape is used from the header
     int rc = NPU::parse_header<T>( a.shape, hdr ) ; 
     assert( rc == 0 ) ; 
 
     NPS sh(a.shape) ; 
-    unsigned arr_items = sh.size() ;  
-    unsigned arr_bytes = arr_items*sizeof(T) ; 
+    unsigned arr_items_h = sh.size() ;  
+    unsigned arr_bytes_h = arr_items_h*sizeof(T) ; 
 
     std::cout 
-        << " hdr_arr_bytes(items[0]) " << hdr_arr_bytes 
-        << " meta_bytes(items[1]) " << meta_bytes 
-        << " hdr_bytes " << hdr_bytes 
-        << " arr_bytes0 " << arr_bytes0 
-        << " arr_bytes " << arr_bytes 
-        << " arr_items " << arr_items 
+        << " hdr_bytes_nh " << hdr_bytes_nh 
+        << " arr_bytes_nh " << arr_bytes_nh 
+        << " meta_bytes_nh " << meta_bytes_nh 
+        << " hdr_bytes_h " << hdr_bytes_h 
+        << " arr_bytes_h " << arr_bytes_h 
+        << " arr_items_h " << arr_items_h 
         << " shape " << NPS::desc(a.shape)
         << std::endl
         ;
 
-    assert( arr_bytes == arr_bytes0 ); 
+    assert( arr_bytes_h == arr_bytes_nh ); 
 
-    a.data.resize(arr_items);
-    is.read(reinterpret_cast<char*>(&a.data[0]), arr_bytes );
+    a.data.resize(arr_items_h);
+    is.read(reinterpret_cast<char*>(&a.data[0]), arr_bytes_h );
 
-    std::string meta(meta_bytes, '\0' ); 
-    is.read( (char*)meta.data(), meta_bytes );
+    std::string meta(meta_bytes_nh, '\0' ); 
+    is.read( (char*)meta.data(), meta_bytes_nh );
     a.meta = meta ; 
  
     //is.setstate(std::ios::failbit);
     return is;
 }
 
+template<typename T> std::string NP<T>::network_hdr() const 
+{
+    std::vector<unsigned> parts = { hdr_bytes(), arr_bytes(), meta_bytes() } ;  
+    std::string net_hdr = net_hdr::pack( parts ); 
+    return net_hdr ; 
+}
 
-template<typename T> unsigned NP<T>::read_item_size(unsigned index) const { return net_hdr::unpack(read_net_hdr, index); }  
+
+
+/**
+NP::update_headers
+-------------------
+
+The header descriptions of the object are updated.
+Hmm : do this automatically in setters that change shape or metadata ?
+
+**/
+
+template<typename T> void NP<T>::update_headers()
+{
+    std::string net_hdr = network_hdr(); 
+    _net_hdr.assign(net_hdr.data(), net_hdr.length()); 
+
+    std::string hdr =  NPU::make_header<T>( shape ) ;
+    _hdr.resize(hdr.length()); 
+    _hdr.assign(hdr.data(), hdr.length()); 
+}
+
+/**
+NP::decode_net_header
+-----------------------
+
+This must be called after reading the net header to 
+resize buffers prior to reading them in.
+
+NB assumes T is the correctly sized type for the content 
+about to be received. Could do this more carefully by 
+parsing the array hdr to extract type and shape 
+prior to resizing the array.
+
+**/
+template<typename T> bool NP<T>::decode_net_header()  
+{
+    unsigned hdr_bytes_nh = nh_item_size(0); 
+    unsigned arr_bytes_nh = nh_item_size(1); 
+    unsigned meta_bytes_nh = nh_item_size(2);  
+
+    std::cout 
+        << "NP::decode_net_header"
+        << " hdr_bytes_nh " << hdr_bytes_nh
+        << " arr_bytes_nh " << arr_bytes_nh
+        << " meta_bytes_nh " << meta_bytes_nh
+        << std::endl
+        ;
+
+    bool valid = hdr_bytes_nh > 0 ; 
+    if(valid)
+    {
+        _hdr.resize(hdr_bytes_nh);
+        data.resize(arr_bytes_nh/sizeof(T)); 
+        meta.resize(meta_bytes_nh);
+    }
+    return valid ; 
+}
+template<typename T> unsigned NP<T>::nh_item_size(unsigned index) const { return net_hdr::unpack(_net_hdr, index); }  
+
+/**
+NP::decode_arr_header
+-----------------------
+
+Array header is parsed to set the array shape.
+
+Note that currently only the shape is used from the header, 
+other properties are currently ignored.
+
+descr 
+    endianness, type and element byte size 
+fortran_order
+    row/column major ?
+
+Example in json form::
+
+    {
+        "descr": "<f4", 
+        "fortran_order": false, 
+        "shape": [10, 4] 
+    }
+
+**/
+
+template<typename T> bool NP<T>::decode_arr_header()  
+{
+    shape.clear();  
+    int rc = NPU::parse_header<T>( shape, _hdr ) ; 
+    bool valid = rc == 0 ; 
+    assert(valid) ; 
+    return valid ; 
+}
+
+
 
 template<typename T> T*  NP<T>::values() { return data.data() ;  } 
 template<typename T> unsigned NP<T>::num_values() const { return data.size() ;  }
@@ -137,18 +260,12 @@ template<typename T> unsigned NP<T>::num_values() const { return data.size() ;  
 template<typename T> char*  NP<T>::bytes() { return (char*)data.data() ;  } 
 template<typename T> const char*  NP<T>::bytes() const { return (char*)data.data() ;  } 
 
-template<typename T> unsigned NP<T>::hdr_bytes() const { return hdr.length() ; }
-template<typename T> unsigned NP<T>::num_bytes() const { return data.size()*sizeof(T)  ;  }
+template<typename T> unsigned NP<T>::hdr_bytes() const { return _hdr.length() ; }
+template<typename T> unsigned NP<T>::arr_bytes() const { return data.size()*sizeof(T)  ;  }   // formerly num_bytes
 template<typename T> unsigned NP<T>::meta_bytes() const { return meta.length() ; }
 
 template<typename T> bool NP<T>::ONLY_HEADER = false ; 
 
-template<typename T> std::string NP<T>::network_hdr() const 
-{
-    std::vector<unsigned> parts = { hdr_bytes() + num_bytes(), meta_bytes() } ;  
-    std::string net_hdr = net_hdr::pack( parts ); 
-    return net_hdr ; 
-}
 
 
 template<typename T>
@@ -158,8 +275,8 @@ NP<T>::NP(int ni, int nj, int nk, int nl, int nm )
     sh.set_shape( ni, nj, nk, nl, nm ); 
     data.resize( sh.size() ) ; 
     std::fill( data.begin() , data.end(), T(0) ) ;     
-    hdr = NPU::make_header<T>( shape ); 
-    read_net_hdr.assign(net_hdr::LENGTH, '\0' ); 
+    _hdr = NPU::make_header<T>( shape ); 
+    _net_hdr.assign(net_hdr::LENGTH, '\0' ); 
 }
 
 template<typename T>
@@ -179,7 +296,12 @@ template<typename T>
 std::string NP<T>::desc() const 
 {
     std::stringstream ss ; 
-    ss << "NP " << NPS::desc(shape) ;
+    ss << "NP " 
+       << NPS::desc(shape) 
+       << " shape.size " << shape.size() 
+       << " data.size " << data.size()
+       << " meta.size " << meta.size() 
+       ;
     return ss.str(); 
 }
 
@@ -296,7 +418,6 @@ void NP<T>::save(const char* dir, const char* name)
 }
 
 
-
 template<typename T>
 void NP<T>::savejsonhdr(const char* path)
 {
@@ -329,10 +450,6 @@ void NP<T>::savejsonhdr()
 }
 
 
-
-
-
-
 template<typename T>
 void NP<T>::dump(int i0_, int i1_) const 
 {
@@ -344,6 +461,8 @@ void NP<T>::dump(int i0_, int i1_) const
     int i1 = i1_ == -1 ? std::min(ni, 10) : i1_ ;  
 
     std::cout 
+       << desc() 
+       << std::endl 
        << " array dimensions " 
        << " ni " << ni 
        << " nj " << nj 
