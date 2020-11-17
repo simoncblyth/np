@@ -512,8 +512,18 @@ void NPU::_parse_descr(bool& little_endian, char& uifc, int& ebyte, const char* 
     char c_uifc = descr[1] ; 
     char c_ebyte = descr[2] ; 
 
-    assert( c_endian == '<' || c_endian == '>' ); 
-    little_endian = c_endian == '<' ;
+    bool expect_endian = c_endian == '<' || c_endian == '>' || c_endian == '|' ; 
+    if(!expect_endian)
+    {
+        std::cerr 
+            << "unexpected endian "
+            << " c_endian " << c_endian 
+            << " descr [" << descr << "]"  
+            << std::endl
+             ; 
+    }
+    assert( expect_endian ); 
+    little_endian = c_endian == '<' || c_endian == '|' ;
 
     assert( c_uifc == 'u' || c_uifc == 'i' || c_uifc == 'f' || c_uifc == 'c' ); 
     uifc = c_uifc ; 
