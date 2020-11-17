@@ -189,6 +189,7 @@ struct NPU
 
     template<typename T>
     static std::string make_header(const std::vector<int>& shape );
+
     template<typename T>
     static std::string make_jsonhdr(const std::vector<int>& shape );
 
@@ -198,6 +199,9 @@ struct NPU
     static void _parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict); 
     static void _parse_dict(std::string& descr, bool& fortran_order, const char* dict);
     static void _parse_descr(bool& little_endian, char& uifc, int& width, const char* descr);  
+
+    static int  _dtype_ebyte(const char* dtype);
+    static char _dtype_uifc(const char* dtype);
 
 
     static std::string _make_preamble( int major=1, int minor=0 );
@@ -514,7 +518,26 @@ void NPU::_parse_descr(bool& little_endian, char& uifc, int& ebyte, const char* 
 
     ebyte = c_ebyte - '0' ; 
     assert( ebyte == 1 || ebyte == 2 || ebyte == 4 || ebyte == 8 ); 
+}
 
+int NPU::_dtype_ebyte(const char* dtype)  // static 
+{
+    unsigned len = strlen(dtype) ; 
+    assert( len == 2 || len == 3 ); 
+
+    char c_ebyte = dtype[len-1] ;  
+    int ebyte = c_ebyte - '0' ; 
+    
+    assert( ebyte == 1 || ebyte == 2 || ebyte == 4 || ebyte == 8 ); 
+    return ebyte ; 
+} 
+char NPU::_dtype_uifc(const char* dtype) // static
+{
+    unsigned len = strlen(dtype) ; 
+    assert( len == 2 || len == 3 ); 
+    char c_uifc = dtype[len-2] ; 
+    assert( c_uifc == 'u' || c_uifc == 'i' || c_uifc == 'f' );  // dont bother with 'c' complex  
+    return c_uifc ; 
 }
 
 
