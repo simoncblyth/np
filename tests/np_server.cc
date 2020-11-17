@@ -111,7 +111,7 @@ void np_session::start()
     room_.join(shared_from_this());
     boost::asio::async_read(
         socket_,
-        boost::asio::buffer(read_msg_._net_hdr),
+        boost::asio::buffer(read_msg_._prefix),
         boost::bind(&np_session::handle_read_header, shared_from_this(), boost::asio::placeholders::error)
         );
 }
@@ -120,9 +120,9 @@ void np_session::start()
 void np_session::handle_read_header(const boost::system::error_code& error)
 {
     std::cout << "np_session::handle_read_header" << std::endl ; 
-    if (!error && read_msg_.decode_net_header())
+    if (!error && read_msg_.decode_prefix())
     {
-        std::cout << "np_session::handle_read_header : decode_net_header succeeds " << std::endl ; 
+        std::cout << "np_session::handle_read_header : decode_prefix succeeds " << std::endl ; 
         std::vector<boost::asio::mutable_buffer> np_bufs;
         np_bufs.push_back(boost::asio::buffer(read_msg_._hdr));
         np_bufs.push_back(boost::asio::buffer(read_msg_.data));
@@ -142,14 +142,14 @@ void np_session::handle_read_header(const boost::system::error_code& error)
 void np_session::handle_read_body(const boost::system::error_code& error)
 {
     std::cout << "np_session::handle_read_body" << std::endl ; 
-    if (!error && read_msg_.decode_arr_header())
+    if (!error && read_msg_.decode_header())
     {
         read_msg_.dump(); 
 
         room_.deliver(read_msg_);
         boost::asio::async_read(
             socket_,
-            boost::asio::buffer(read_msg_._net_hdr),
+            boost::asio::buffer(read_msg_._prefix),
             boost::bind(&np_session::handle_read_header, shared_from_this(),boost::asio::placeholders::error)
         );
     }
@@ -168,7 +168,7 @@ void np_session::deliver(const np_message& msg)
         np_message& write_msg = write_msgs_.front() ; 
 
         std::vector<boost::asio::const_buffer> np_bufs;
-        np_bufs.push_back(boost::asio::buffer(write_msg._net_hdr));
+        np_bufs.push_back(boost::asio::buffer(write_msg._prefix));
         np_bufs.push_back(boost::asio::buffer(write_msg._hdr));
         np_bufs.push_back(boost::asio::buffer(write_msg.data));
         np_bufs.push_back(boost::asio::buffer(write_msg.meta));
@@ -191,7 +191,7 @@ void np_session::handle_write(const boost::system::error_code& error)
             np_message& write_msg = write_msgs_.front() ; 
 
             std::vector<boost::asio::const_buffer> np_bufs;
-            np_bufs.push_back(boost::asio::buffer(write_msg._net_hdr));
+            np_bufs.push_back(boost::asio::buffer(write_msg._prefix));
             np_bufs.push_back(boost::asio::buffer(write_msg._hdr));
             np_bufs.push_back(boost::asio::buffer(write_msg.data));
             np_bufs.push_back(boost::asio::buffer(write_msg.meta));

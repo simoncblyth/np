@@ -1,4 +1,4 @@
-// gcc NPMiniMakeTest.cc -I.. -lstdc++ -o /tmp/NPMiniMakeTest && /tmp/NPMiniMakeTest 5 2 4 && python -c "import numpy as np ; print(np.load('/tmp/a.npy'))"
+// gcc NPMiniMakeTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/NPMiniMakeTest && /tmp/NPMiniMakeTest 5 2 4 && python -c "import numpy as np ; print(np.load('/tmp/a.npy'))"
 #include "NP.hh"
 int main(int argc, char** argv)
 {

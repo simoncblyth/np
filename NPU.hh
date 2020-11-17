@@ -18,26 +18,20 @@ union u16c2_t
 
 struct Endian
 {
+    static const unsigned UNITY ; 
     static const char LITTLE ; 
     static const char BIG ; 
     static char detect(); 
 };
 
-const char Endian::LITTLE = '<' ; 
-const char Endian::BIG = '>' ; 
+const unsigned Endian::UNITY = 1 ; 
+const char Endian::LITTLE = '<' ;  // least-significant byte at the smallest address
+const char Endian::BIG = '>' ;     // most-significant byte at the smallest address
 
 char Endian::detect()
 {
-    u16c2_t one ;
-    one.u16 = 1 ;   // use the union to detect endianness and do the split 
- 
-    bool little_endian = one.c[0] == 1 && one.c[1] == 0 ; 
-    bool big_endian = one.c[0] == 0 && one.c[1] == 1 ; 
-    assert( little_endian ^ big_endian ); 
-
-    return little_endian ? LITTLE : BIG ;  
+    return (*(char *)&UNITY == 1) ? LITTLE : BIG ; 
 }
-
 
 template<typename T>
 struct Desc 
@@ -45,6 +39,8 @@ struct Desc
     static const char code ; 
     static std::string descr(); 
 };
+
+// template specializations for code
 
 template<> const char Desc<float>::code = 'f' ; 
 template<> const char Desc<double>::code = 'f' ; 
@@ -64,7 +60,6 @@ template<> const char Desc<unsigned long long>::code = 'u' ;
 template<> const char Desc<std::complex<float> >::code = 'c' ; 
 template<> const char Desc<std::complex<double> >::code = 'c' ; 
 
-
 template<typename T>
 std::string Desc<T>::descr()
 {
@@ -81,6 +76,13 @@ std::string Desc<T>::descr()
 struct NPS
 {
     NPS(std::vector<int>& shape_ ) : shape(shape_) {}  ; 
+
+    static int set_shape(std::vector<int>& shape_, int ni, int nj=-1, int nk=-1, int nl=-1, int nm=-1) 
+    {
+        NPS sh(shape_); 
+        sh.set_shape(ni,nj,nk,nl,nm); 
+        return sh.size(); 
+    }
 
     void set_shape(int ni, int nj=-1, int nk=-1, int nl=-1, int nm=-1)
     {
@@ -156,7 +158,6 @@ struct NPS
 struct U
 {
     static bool EndsWith( const char* s, const char* q) ; 
-
     static std::string ChangeExt( const char* s, const char* x1, const char* x2) ; 
 };
 
@@ -184,20 +185,21 @@ std::string U::ChangeExt( const char* s, const char* x1, const char* x2)
 struct NPU
 {
     static const char* MAGIC ; 
+    static const bool  FORTRAN_ORDER ;
 
     template<typename T>
     static std::string make_header(const std::vector<int>& shape );
     template<typename T>
     static std::string make_jsonhdr(const std::vector<int>& shape );
 
-
-    template<typename T>
-    static int parse_header(std::vector<int>& shape, const std::string& hdr );
-
+    static void parse_header(std::vector<int>& shape, char& uifc, int& ebyte, const std::string& hdr );
+    static int  _parse_header_length(const std::string& hdr );
     static void _parse_tuple(std::vector<int>& shape, const std::string& sh );
+    static void _parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict); 
+    static void _parse_dict(std::string& descr, bool& fortran_order, const char* dict);
+    static void _parse_descr(bool& little_endian, char& uifc, int& width, const char* descr);  
 
-    static const bool  fortran_order ;  
-    static int         _parse_header_length(const std::string& hdr );
+
     static std::string _make_preamble( int major=1, int minor=0 );
     static std::string _make_header(const std::vector<int>& shape, const char* descr="<f4" );
     static std::string _make_jsonhdr(const std::vector<int>& shape, const char* descr="<f4" );
@@ -208,22 +210,18 @@ struct NPU
     static std::string _make_header(const std::string& dict);
     static std::string _make_jsonhdr(const std::string& json);
 
-    static void _parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict);  // static 
-    static void _parse_dict(std::string& descr, bool& fortran_order, const char* dict); // static
-    static void _parse_descr(bool& little_endian, char& uifc, int& width, const char* descr);  // static
-
     static std::string xxdisplay(const std::string& hdr, int width, char non_printable );
     static std::string check(const char* path); 
     static bool is_readable(const char* path);
 };
 
 const char* NPU::MAGIC = "\x93NUMPY" ; 
-const bool NPU::fortran_order = false ; 
+const bool  NPU::FORTRAN_ORDER = false ; 
 
 template<typename T>
 std::string NPU::make_header(const std::vector<int>& shape )
 {
-    std::string descr = Desc<T>::descr() ; 
+    std::string descr = Desc<T>::descr() ;   
     return _make_header( shape, descr.c_str() ) ; 
 }
 
@@ -309,13 +307,11 @@ followed by 2 bytes with the header length : making 10 bytes which are always pr
 The header length does not include these first 10 bytes.  The header is padded with x20
 to make (hlen+10)%16 == 0 and it is terminated with a newline hex:0a dec:10  
 
-
 NumPy np.save / np.load
 -------------------------
 
 * https://github.com/numpy/numpy/blob/master/numpy/lib/npyio.py
 * https://github.com/numpy/numpy/blob/master/numpy/lib/format.py
-
 
 */
     std::string preamble = hdr.substr(0,8) ;  // 6 char MAGIC + 2 char version  
@@ -351,8 +347,7 @@ NumPy np.save / np.load
 }
 
 
-template<typename T>
-int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
+void NPU::parse_header(std::vector<int>& shape, char& uifc, int& ebyte, const std::string& hdr )
 {
     int hlen = _parse_header_length( hdr ) ; 
 
@@ -363,7 +358,6 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
     assert(ends_with_newline) ; 
     dict[dict.size()-1] = '\0' ; 
 
-
     std::string::size_type p0 = dict.find("(") + 1; 
     std::string::size_type p1 = dict.find(")"); 
     assert( p0 != std::string::npos ); 
@@ -373,6 +367,15 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
 
     _parse_tuple( shape, sh ); 
 
+
+    bool little_endian ; 
+    std::string descr ; 
+    bool fortran_order ; 
+  
+    _parse_dict(little_endian, uifc, ebyte, descr, fortran_order, dict.c_str());
+
+    assert( fortran_order == FORTRAN_ORDER ); 
+    assert( little_endian == true ); 
 
 #ifdef NPU_DEBUG
     std::cout 
@@ -390,12 +393,14 @@ int NPU::parse_header(std::vector<int>& shape, const std::string& hdr )
         << " newline(dec)      " << std::dec << int('\n') << std::endl 
         << " hdr.size() (dec)  " << std::dec << hdr.size() << std::endl 
         << " dict.size() (dec) " << std::dec << dict.size() << std::endl 
+        << " descr " << descr
+        << " uifc " << uifc
+        << " ebyte " << ebyte 
         << std::endl 
         ; 
 
 #endif
 
-    return 0 ; 
 }
 
 void NPU::_parse_tuple(std::vector<int>& shape, const std::string& sh )
@@ -435,6 +440,12 @@ void NPU::_parse_tuple(std::vector<int>& shape, const std::string& sh )
 #endif
 }
 
+
+void NPU::_parse_dict(bool& little_endian, char& uifc, int& ebyte, std::string& descr, bool& fortran_order, const char* dict)  // static 
+{
+    _parse_dict(descr, fortran_order, dict); 
+    _parse_descr(little_endian, uifc, ebyte, descr.c_str() ); 
+}
 
 
 /**
@@ -487,13 +498,13 @@ void NPU::_parse_dict(std::string& descr, bool& fortran_order, const char* dict)
     fortran_order = elem[3].compare("False") == 0 ? false : true ; 
 }
 
-void NPU::_parse_descr(bool& little_endian, char& uifc, int& width, const char* descr)  // static
+void NPU::_parse_descr(bool& little_endian, char& uifc, int& ebyte, const char* descr)  // static
 {
     assert( strlen(descr) == 3 ); 
 
     char c_endian = descr[0] ; 
     char c_uifc = descr[1] ; 
-    char c_width = descr[2] ; 
+    char c_ebyte = descr[2] ; 
 
     assert( c_endian == '<' || c_endian == '>' ); 
     little_endian = c_endian == '<' ;
@@ -501,13 +512,9 @@ void NPU::_parse_descr(bool& little_endian, char& uifc, int& width, const char* 
     assert( c_uifc == 'u' || c_uifc == 'i' || c_uifc == 'f' || c_uifc == 'c' ); 
     uifc = c_uifc ; 
 
-    width = c_width - '0' ; 
-}
+    ebyte = c_ebyte - '0' ; 
+    assert( ebyte == 1 || ebyte == 2 || ebyte == 4 || ebyte == 8 ); 
 
-void NPU::_parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict)  // static 
-{
-    _parse_dict(descr, fortran_order, dict); 
-    _parse_descr(little_endian, uifc, width, descr.c_str() ); 
 }
 
 
@@ -553,7 +560,7 @@ std::string NPU::_make_dict(const std::vector<int>& shape, const char* descr )
     std::stringstream ss ; 
     ss << "{" ; 
     ss << "'descr': '" << descr << "', " ; 
-    ss << "'fortran_order': " << ( fortran_order ? "True" : "False" ) << ", " ; 
+    ss << "'fortran_order': " << ( FORTRAN_ORDER ? "True" : "False" ) << ", " ; 
     ss << "'shape': " ; 
     bool json = false ; 
     ss << _make_tuple( shape, json ) ; 
@@ -566,7 +573,7 @@ std::string NPU::_make_json(const std::vector<int>& shape, const char* descr )
     std::stringstream ss ; 
     ss << "{" ; 
     ss << "\"descr\": \"" << descr << "\", " ; 
-    ss << "\"fortran_order\": " << ( fortran_order ? "true" : "false" ) << ", " ; 
+    ss << "\"fortran_order\": " << ( FORTRAN_ORDER ? "true" : "false" ) << ", " ; 
     ss << "\"shape\": " ; 
     bool json = true ; 
     ss << _make_tuple( shape, json) ; 

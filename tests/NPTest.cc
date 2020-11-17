@@ -29,15 +29,13 @@ int main(int argc, char** argv)
     b->dump(0,9); 
 
 
-    NP<float>::ONLY_HEADER = true ; 
-    std::cout << "ONLY_HEADER" << std::endl ; 
     NP<float>* h = NP<float>::Load(path1) ; 
     h->dump(0,9); 
 
     h->save(path2) ; 
 
 
-    h->savejsonhdr(path3);
+    h->save_jsonhdr(path3);
 
 
     return 0 ; 
