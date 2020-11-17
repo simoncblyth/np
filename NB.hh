@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <cassert>
@@ -25,20 +26,26 @@ struct NB
 {
     NB(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
+    static void sizeof_check(); 
     static NB* Load(const char* path); 
     static NB* Load(const char* dir, const char* name); 
 
     template<typename T> T*       values() ; 
     template<typename T> const T* values() const  ; 
     template<typename T> void fill(T value); 
-    template<typename T> void fillIndexFlat(T offset=0); 
-    template<typename T> void dump(int i0=-1, int i1=-1) const ;   
+    template<typename T> void _fillIndexFlat(T offset=0); 
+    template<typename T> void _dump(int i0=-1, int i1=-1) const ;   
+    template<typename T> std::string _present(T v) const ; 
+
+    void fillIndexFlat(); 
+    void dump(int i0=-1, int i1=-1) const ; 
 
 
     int load(const char* path);   
     int load(const char* dir, const char* name);   
     static std::string form_path(const char* dir, const char* name);   
 
+    void save_header(const char* path);   
     void save(const char* path);   
     void save(const char* dir, const char* name);   
 
@@ -128,8 +135,7 @@ std::istream& operator>>(std::istream& is, NB& a)
         ;
 
     std::getline( is, a._hdr );  
-    a._hdr += '\n' ;           // getline consumes newline ending header but does not return it 
-
+    a._hdr += '\n' ;     // getline consumes newline ending header but does not return it 
     assert( hdr_bytes_nh == a._hdr.length() ); 
 
     a.decode_header();   // resizes data array 
@@ -242,7 +248,6 @@ ebyte
 size
     number of elements 
 
-
 Decoding the header gives the shape of the
 data, so together with the size of the type
 know how many bytes can read from the remainder of the stream
@@ -252,8 +257,10 @@ following the header.
 
 bool NB::decode_header()  
 {
-    shape.clear();  
-    NPU::parse_header( shape, uifc, ebyte, _hdr ) ; 
+    shape.clear(); 
+    std::string descr ; 
+    NPU::parse_header( shape, descr, uifc, ebyte, _hdr ) ; 
+    dtype = strdup(descr.c_str());  
     size = NPS::size(shape); 
     data.resize(size*ebyte) ; // data is now just char 
     return true  ; 
@@ -266,11 +273,8 @@ unsigned NB::num_values() const { return NPS::size(shape) ;  }
 unsigned NB::arr_bytes()  const { return NPS::size(shape)*ebyte ; }
 unsigned NB::meta_bytes() const { return meta.length() ; }
 
-
-
 char*        NB::bytes() { return (char*)data.data() ;  } 
 const char*  NB::bytes() const { return (char*)data.data() ;  } 
-
 
 
 NB::NB(const char* dtype_, int ni, int nj, int nk, int nl, int nm )
@@ -298,17 +302,95 @@ template<typename T> void NB::fill(T value)
     for(unsigned i=0 ; i < size ; i++) *(vv+i) = value ; 
 }
 
-template<typename T> void NB::fillIndexFlat(T offset)
+template<typename T> void NB::_fillIndexFlat(T offset)
 {
     T* vv = values<T>(); 
     for(unsigned i=0 ; i < size ; i++) *(vv+i) = T(i) + offset ; 
 }
 
 
+void NB::sizeof_check() // static 
+{
+    assert( sizeof(float) == 4  );  
+    assert( sizeof(double) == 8  );  
+
+    assert( sizeof(char) == 1 );  
+    assert( sizeof(short) == 2 );
+    assert( sizeof(int)   == 4 );
+    assert( sizeof(long)  == 8 );
+    assert( sizeof(long long)  == 8 );
+}
+
+void NB::fillIndexFlat()
+{
+    if(uifc == 'f')
+    {   
+        switch(ebyte)
+        {   
+            case 4: _fillIndexFlat<float>()  ; break ; 
+            case 8: _fillIndexFlat<double>() ; break ; 
+        }   
+    }   
+    else if(uifc == 'u')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _fillIndexFlat<unsigned char>()  ; break ; 
+            case 2: _fillIndexFlat<unsigned short>()  ; break ; 
+            case 4: _fillIndexFlat<unsigned int>() ; break ; 
+            case 8: _fillIndexFlat<unsigned long>() ; break ; 
+        }   
+    }   
+    else if(uifc == 'i')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _fillIndexFlat<char>()  ; break ; 
+            case 2: _fillIndexFlat<short>()  ; break ; 
+            case 4: _fillIndexFlat<int>() ; break ; 
+            case 8: _fillIndexFlat<long>() ; break ; 
+        }   
+    }   
+}
+
+
+void NB::dump(int i0, int i1) const 
+{
+    if(uifc == 'f')
+    {   
+        switch(ebyte)
+        {   
+            case 4: _dump<float>(i0,i1)  ; break ; 
+            case 8: _dump<double>(i0,i1) ; break ; 
+        }   
+    }   
+    else if(uifc == 'u')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _dump<unsigned char>(i0,i1)  ; break ; 
+            case 2: _dump<unsigned short>(i0,i1)  ; break ; 
+            case 4: _dump<unsigned int>(i0,i1) ; break ; 
+            case 8: _dump<unsigned long>(i0,i1) ; break ; 
+        }   
+    }   
+    else if(uifc == 'i')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _dump<char>(i0,i1)  ; break ; 
+            case 2: _dump<short>(i0,i1)  ; break ; 
+            case 4: _dump<int>(i0,i1) ; break ; 
+            case 8: _dump<long>(i0,i1) ; break ; 
+        }   
+    }   
+}
+
 std::string NB::desc() const 
 {
     std::stringstream ss ; 
     ss << "NB " 
+       << " dtype " << dtype
        << NPS::desc(shape) 
        << " size " << size 
        << " uifc " << uifc 
@@ -316,7 +398,6 @@ std::string NB::desc() const
        << " shape.size " << shape.size() 
        << " data.size " << data.size()
        << " meta.size " << meta.size() 
-       << " _hdr " << _hdr 
        ;
     return ss.str(); 
 }
@@ -380,6 +461,13 @@ int NB::load(const char* path)
     return 0 ; 
 }
 
+void NB::save_header(const char* path)
+{
+    update_headers(); 
+    std::ofstream stream(path, std::ios::out|std::ios::binary);
+    stream << _hdr ; 
+}
+
 void NB::save(const char* path)
 {
     update_headers(); 
@@ -419,16 +507,56 @@ void NB::save_jsonhdr()
 }
 
 
+template <typename T> std::string NB::_present(T v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::fixed << std::setw(8) << v  ;      
+    return ss.str();
+}
+
+// needs specialization to _present char as an int rather than a character
+template<>  std::string NB::_present(char v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::fixed << std::setw(8) << int(v)  ;      
+    return ss.str();
+}
+template<>  std::string NB::_present(unsigned char v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::fixed << std::setw(8) << unsigned(v)  ;      
+    return ss.str();
+}
+template<>  std::string NB::_present(float v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::setw(10) << std::fixed << std::setprecision(3) << v ;
+    return ss.str();
+}
+template<>  std::string NB::_present(double v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::setw(10) << std::fixed << std::setprecision(3) << v ;
+    return ss.str();
+}
 
 
-template <typename T>
-void NB::dump(int i0_, int i1_) const 
+
+
+
+
+
+
+
+
+
+template <typename T> void NB::_dump(int i0_, int i1_) const 
 {
     int ni = NPS::ni_(shape) ;
     int nj = NPS::nj_(shape) ;
     int nk = NPS::nk_(shape) ;
 
-    int i0 = i0_ == -1 ? 0 : i0_ ;  
+    int i0 = i0_ == -1 ? 0                : i0_ ;  
     int i1 = i1_ == -1 ? std::min(ni, 10) : i1_ ;  
 
     std::cout 
@@ -447,12 +575,13 @@ void NB::dump(int i0_, int i1_) const
     const T* vv = values<T>(); 
 
     for(int i=i0 ; i < i1 ; i++){
-        std::cout << "[" << i  << "]" << std::endl ;  
+        std::cout << "[" << i  << "] " ;
         for(int j=0 ; j < nj ; j++){
             for(int k=0 ; k < nk ; k++)
             {
                 int index = i*nj*nk + j*nk + k ; 
-                std::cout << " " << std::fixed << *(vv + index)  ;      
+                T v = *(vv + index) ; 
+                std::cout << _present<T>(v)  ;      
             }
             //std::cout << std::endl ; 
         }
@@ -468,11 +597,94 @@ void NB::dump(int i0_, int i1_) const
         << "]"
         << std::endl
         ; 
-
 }
 
 
-template const float* NB::values() const ;
-//template float*       NB::values<float>() ;
+/**
 
+specialize-head(){ cat << EOH
+// template specializations generated by below bash functions
+
+EOH
+}
+
+specialize-types(){ cat << EOT
+float
+double
+char
+short
+int
+long
+long long
+unsigned char
+unsigned short
+unsigned int
+unsigned long
+unsigned long long
+EOT
+}
+
+specialize-(){
+    cat << EOC | perl -pe "s,T,$1,g" - 
+template<> const T* NB::values<T>() const { return (T*)data.data() ; }
+template<>       T* NB::values<T>()      {  return (T*)data.data() ; }
+template       void NB::_fillIndexFlat<T>(T) ;
+
+EOC
+}
+specialize(){ specialize-head ; specialize-types | while read t ; do specialize- "$t" ; done  ; }
+specialize
+
+**/
+
+
+// template specializations generated by below bash functions
+
+template<> const float* NB::values<float>() const { return (float*)data.data() ; }
+template<>       float* NB::values<float>()      {  return (float*)data.data() ; }
+template       void NB::_fillIndexFlat<float>(float) ;
+
+template<> const double* NB::values<double>() const { return (double*)data.data() ; }
+template<>       double* NB::values<double>()      {  return (double*)data.data() ; }
+template       void NB::_fillIndexFlat<double>(double) ;
+
+template<> const char* NB::values<char>() const { return (char*)data.data() ; }
+template<>       char* NB::values<char>()      {  return (char*)data.data() ; }
+template       void NB::_fillIndexFlat<char>(char) ;
+
+template<> const short* NB::values<short>() const { return (short*)data.data() ; }
+template<>       short* NB::values<short>()      {  return (short*)data.data() ; }
+template       void NB::_fillIndexFlat<short>(short) ;
+
+template<> const int* NB::values<int>() const { return (int*)data.data() ; }
+template<>       int* NB::values<int>()      {  return (int*)data.data() ; }
+template       void NB::_fillIndexFlat<int>(int) ;
+
+template<> const long* NB::values<long>() const { return (long*)data.data() ; }
+template<>       long* NB::values<long>()      {  return (long*)data.data() ; }
+template       void NB::_fillIndexFlat<long>(long) ;
+
+template<> const long long* NB::values<long long>() const { return (long long*)data.data() ; }
+template<>       long long* NB::values<long long>()      {  return (long long*)data.data() ; }
+template       void NB::_fillIndexFlat<long long>(long long) ;
+
+template<> const unsigned char* NB::values<unsigned char>() const { return (unsigned char*)data.data() ; }
+template<>       unsigned char* NB::values<unsigned char>()      {  return (unsigned char*)data.data() ; }
+template       void NB::_fillIndexFlat<unsigned char>(unsigned char) ;
+
+template<> const unsigned short* NB::values<unsigned short>() const { return (unsigned short*)data.data() ; }
+template<>       unsigned short* NB::values<unsigned short>()      {  return (unsigned short*)data.data() ; }
+template       void NB::_fillIndexFlat<unsigned short>(unsigned short) ;
+
+template<> const unsigned int* NB::values<unsigned int>() const { return (unsigned int*)data.data() ; }
+template<>       unsigned int* NB::values<unsigned int>()      {  return (unsigned int*)data.data() ; }
+template       void NB::_fillIndexFlat<unsigned int>(unsigned int) ;
+
+template<> const unsigned long* NB::values<unsigned long>() const { return (unsigned long*)data.data() ; }
+template<>       unsigned long* NB::values<unsigned long>()      {  return (unsigned long*)data.data() ; }
+template       void NB::_fillIndexFlat<unsigned long>(unsigned long) ;
+
+template<> const unsigned long long* NB::values<unsigned long long>() const { return (unsigned long long*)data.data() ; }
+template<>       unsigned long long* NB::values<unsigned long long>()      {  return (unsigned long long*)data.data() ; }
+template       void NB::_fillIndexFlat<unsigned long long>(unsigned long long) ;
 

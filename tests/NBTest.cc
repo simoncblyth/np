@@ -1,47 +1,90 @@
 // gcc NBTest.cc -std=c++11  -I.. -lstdc++ -o /tmp/NBTest && /tmp/NBTest
 
+#include <iostream>
+#include <sstream>
 #include "NB.hh"
 
-
-NB* make_array(const char* dtype, int ni, int nj)
+std::string make_path(const char* dtype, const char* ext)
 {
-    NB* a = new NB(dtype, ni, nj)  ;  
-    std::cout << "a " << a->desc() << std::endl; 
+    std::stringstream ss ; 
+    ss << "/tmp/NBTest_" << *(dtype+1) << *(dtype+2) << ext ; 
+    return ss.str();  
+} 
 
-    if(a->uifc == 'f' && a->ebyte == 4 )
-    {
-        a->fillIndexFlat<float>() ;
-    }
+void test_lifecycle(const char* dtype, int ni, int nj=-1, int nk=-1, int nl=-1, int nm=-1 )
+{
+    std::string npy = make_path(dtype, ".npy" ); 
+    std::string nph = make_path(dtype, ".nph" ); 
+    std::string npj = make_path(dtype, ".npj" ); 
+    const char* path = npy.c_str(); 
 
-    return a ; 
+    std::cout 
+        << "test_lifecycle"
+        << " dtype " << dtype 
+        << " npy " << npy 
+        << " nph " << nph
+        << " npj " << npj 
+        << std::endl
+        ; 
+
+    NB* a = new NB(dtype, ni, nj, nk, nl, nm)  ;  
+    a->fillIndexFlat(); 
+
+    std::cout << " a.desc " << a->desc() << std::endl ; 
+
+    a->save(path); 
+    a->save_header(nph.c_str()) ; 
+    a->save_jsonhdr(npj.c_str());
+
+    NB* b = NB::Load(npy.c_str()); 
+
+    std::cout << " b.desc " << b->desc() << std::endl ; 
+    b->dump(); 
+
+
+    std::string cmd = NPU::check(path) ;  
+    int rc = system(cmd.c_str()); 
+    assert( rc == 0 ); 
 }
 
+
+void test_lifecycle()
+{
+    //std::vector<std::string> dtypes = {"<f4" , "<f8" , "<i1", "<i2", "<i4", "<i8" , "<u1", "<u2", "<u4", "<u8" }; 
+    std::vector<std::string> dtypes = {"<f4" , "<f8" }; 
+    //std::vector<std::string> dtypes = { "<u1" }; 
+
+    for(unsigned i=0 ; i < dtypes.size() ; i++)
+    {
+        const char* dtype = dtypes[i].c_str() ; 
+        test_lifecycle( dtype, 10, 4 );  
+    } 
+}
+
+void test_format()
+{
+    float a=42.0 ; 
+    std::cout << std::setw(10) << std::fixed << std::setprecision(3)  << a << std::endl ; 
+}
+
+
+void test_sizeof()
+{
+    assert( sizeof(float) == 4  ); 
+    assert( sizeof(double) == 8  ); 
+
+    assert( sizeof(char) == 1 ); 
+    assert( sizeof(short) == 2 ); 
+    assert( sizeof(int)   == 4 ); 
+    assert( sizeof(long)  == 8 ); 
+    assert( sizeof(long long)  == 8 ); 
+}
 
 int main(int argc, char** argv)
 {
-    const char* path1 = argc > 1 ? argv[1] : "/tmp/c.npy" ; 
-    const char* path2 = argc > 2 ? argv[2] : "/tmp/c.nph" ; 
-    const char* path3 = argc > 3 ? argv[2] : "/tmp/c.npj" ; 
-
-    NB* a = make_array("f4", 10, 4 ); 
-    a->save(path1) ; 
-
-    std::cout << NPU::check(path1) << std::endl ; 
-
-    NB* b = NB::Load(path1) ; 
-    std::cout << "b " << b->desc() << std::endl; 
-
-    b->dump<float>(0,9); 
-
-
-    NB* h = NB::Load(path1) ; 
-    h->dump<float>(0,9); 
-
-    h->save(path2) ; 
-
-
-    h->save_jsonhdr(path3);
-
-
+    test_sizeof(); 
+    test_lifecycle(); 
+    //test_format(); 
     return 0 ; 
 }
+

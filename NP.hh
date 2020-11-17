@@ -75,6 +75,7 @@ struct NP
     std::string _prefix ; 
 
     // results from parsing _hdr
+    const char* dtype ; 
     int  size ;    // number of elements from shape
     char uifc ;    // element type code 
     int  ebyte ;   // element bytes  
@@ -262,7 +263,9 @@ following the header.
 template<typename T> bool NP<T>::decode_header()  
 {
     shape.clear();  
-    NPU::parse_header( shape, uifc, ebyte, _hdr ) ; 
+    std::string descr ; 
+    NPU::parse_header( shape, descr, uifc, ebyte, _hdr ) ; 
+    dtype = strdup(descr.c_str()); 
     size = NPS::size(shape); 
     data.resize(size) ;  // assumes element type T is correctly sized for the data  
     return true  ; 
@@ -285,6 +288,7 @@ template<typename T> const char*  NP<T>::bytes() const { return (char*)data.data
 template<typename T>
 NP<T>::NP(int ni, int nj, int nk, int nl, int nm )
     :
+    dtype(strdup(Desc<T>::descr().c_str())),
     size(NPS::set_shape(shape, ni,nj,nk,nl,nm )),
     uifc(Desc<T>::code),
     ebyte(sizeof(T))

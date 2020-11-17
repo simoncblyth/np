@@ -193,7 +193,7 @@ struct NPU
     template<typename T>
     static std::string make_jsonhdr(const std::vector<int>& shape );
 
-    static void parse_header(std::vector<int>& shape, char& uifc, int& ebyte, const std::string& hdr );
+    static void parse_header(std::vector<int>& shape, std::string& descr, char& uifc, int& ebyte, const std::string& hdr );
     static int  _parse_header_length(const std::string& hdr );
     static void _parse_tuple(std::vector<int>& shape, const std::string& sh );
     static void _parse_dict(bool& little_endian, char& uifc, int& width, std::string& descr, bool& fortran_order, const char* dict); 
@@ -351,7 +351,7 @@ NumPy np.save / np.load
 }
 
 
-void NPU::parse_header(std::vector<int>& shape, char& uifc, int& ebyte, const std::string& hdr )
+void NPU::parse_header(std::vector<int>& shape, std::string& descr, char& uifc, int& ebyte, const std::string& hdr )
 {
     int hlen = _parse_header_length( hdr ) ; 
 
@@ -373,10 +373,10 @@ void NPU::parse_header(std::vector<int>& shape, char& uifc, int& ebyte, const st
 
 
     bool little_endian ; 
-    std::string descr ; 
     bool fortran_order ; 
   
     _parse_dict(little_endian, uifc, ebyte, descr, fortran_order, dict.c_str());
+
 
     assert( fortran_order == FORTRAN_ORDER ); 
     assert( little_endian == true ); 
@@ -498,7 +498,9 @@ void NPU::_parse_dict(std::string& descr, bool& fortran_order, const char* dict)
     assert( elem[3].compare("False") == 0 || elem[3].compare("True") == 0);  
     assert( elem[4].compare("shape") == 0 );  
 
-    descr = elem[1]; 
+    descr = elem[1];
+    assert( descr.length() == 3 ); 
+ 
     fortran_order = elem[3].compare("False") == 0 ? false : true ; 
 }
 
