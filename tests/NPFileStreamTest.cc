@@ -12,15 +12,15 @@ NPFileStreamTest.cc
 #include "NP.hh"
 
 
-NP<float>* make_array()
+NP* make_array()
 {
-    NP<float>* a = new NP<float>(10,4) ; 
+    NP* a = new NP("<f4", 10,4) ; 
     a->fillIndexFlat();  
-    a->meta = "{}" ; 
+    a->meta = "{\"src\": \"NPFileStreamTest.cc\"}" ; 
     return a ; 
 }
 
-void test_stream_out(const NP<float>* a, const char* path)
+void test_stream_out(const NP* a, const char* path)
 {
     std::ofstream out(path, std::ios::out|std::ios::binary);
     out << *a ; 
@@ -32,11 +32,11 @@ void test_stream_out(const NP<float>* a, const char* path)
         ; 
 }
 
-NP<float>* test_stream_in( const char* path )
+NP* test_stream_in( const char* path )
 {
     std::ifstream in(path, std::ios::in|std::ios::binary);
 
-    NP<float>* a = new NP<float>(); 
+    NP* a = new NP(); 
     in >> *a  ; 
 
     std::cout 
@@ -55,10 +55,10 @@ NP<float>* test_stream_in( const char* path )
 
 void test_file_stream()
 {
-    NP<float>* a = make_array(); 
+    NP* a = make_array(); 
     const char* path = "/tmp/a.npy.transport" ; 
     test_stream_out(a, path); 
-    NP<float>* b = test_stream_in(path); 
+    NP* b = test_stream_in(path); 
 }
 
 

@@ -215,7 +215,8 @@ struct NPU
     static std::string _make_jsonhdr(const std::string& json);
 
     static std::string xxdisplay(const std::string& hdr, int width, char non_printable );
-    static std::string check(const char* path); 
+    static std::string _check(const char* path); 
+    static int         check(const char* path); 
     static bool is_readable(const char* path);
 };
 
@@ -563,7 +564,7 @@ bool NPU::is_readable(const char* path)  // static
 }
 
 
-std::string NPU::check(const char* path) 
+std::string NPU::_check(const char* path) 
 {
     std::stringstream ss ; 
     ss << "python -c \"import numpy as np ; print(np.load('" 
@@ -573,6 +574,13 @@ std::string NPU::check(const char* path)
        ; 
     return ss.str(); 
 }
+
+int NPU::check(const char* path)
+{
+    std::string cmd = _check(path); 
+    return system(cmd.c_str()); 
+}
+
 
 
 std::string NPU::_make_header(const std::vector<int>& shape, const char* descr )

@@ -31,13 +31,13 @@ struct net_hdr
 };
 
 
-const unsigned net_hdr::LENGTH = 4*3 ;  
+const unsigned net_hdr::LENGTH = 4*4 ;  
 
 std::string net_hdr::pack(const std::vector<unsigned> items) // static 
 {
     unsigned ni = items.size(); 
 
-    assert( ni == 3 ); 
+    assert( ni == 4 ); 
     assert( sizeof(unsigned) == 4); 
     assert( ni*sizeof(unsigned) == LENGTH ); 
 

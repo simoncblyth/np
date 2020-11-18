@@ -14,13 +14,9 @@ int main(int argc, char** argv)
         return 0 ; 
     }
 
-    //typedef float FPType ; 
-    typedef double FPType ; 
 
-    NP<FPType>* b = NP<FPType>::Load(path) ; 
-    std::cout << "b " << b->desc() << std::endl; 
-
-    b->dump(0,9); 
+    NP* b = NP::Load(path) ; 
+    b->dump(); 
 
     return 0 ; 
 }

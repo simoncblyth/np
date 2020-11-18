@@ -15,13 +15,11 @@ started from /usr/local/env/boost/basio/example/cpp03/chat/chat_client.cpp
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
 
-//#include "NP.hh"
-#include "NB.hh"
+#include "NP.hh"
 
 using boost::asio::ip::tcp;
 
-//typedef NP<float>               np_message ; 
-typedef NB                      np_message ; 
+typedef NP                      np_message ; 
 typedef std::deque<np_message>  np_message_queue;
 
 class np_client

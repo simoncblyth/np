@@ -2,26 +2,26 @@
 
 #include "NP.hh"
 
-
 int main(int argc, char** argv)
 {
     const char* path = argc > 1 ? argv[1] : "/tmp/s.npy" ; 
 
+    NP* a = new NP("|u1", 4) ; 
 
-    NP<unsigned char>* s = new NP<unsigned char>(4) ; 
-    s->data[0] = 'x' ;  
-    s->data[1] = 'y' ;  
-    s->data[2] = 'z' ;  
-    s->data[3] = 's' ;  
-    s->save(path) ; 
+    a->data[0] = 'x' ; 
+    a->data[1] = 'y' ; 
+    a->data[2] = 'z' ; 
+    a->data[3] = 's' ; 
 
-    std::cout << NPU::check(path) << std::endl ; 
+    a->save(path); 
 
+    int rc = NPU::check(path) ; 
 
-    NP<unsigned char>* s1 = NP<unsigned char>::Load(path) ; 
-    std::cout << "s1 " << s1->desc() << std::endl; 
+    std::cout << rc << std::endl ; 
 
-    s1->dump(0,4); 
+    NP* b = NP::Load(path) ; 
+    b->dump(); 
+
 
     return 0 ; 
 }

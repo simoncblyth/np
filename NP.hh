@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <cassert>
@@ -8,50 +9,51 @@
 #include "net_hdr.hh"
 
 /**
-NP
-==
+NP 
+===
 
-Lightweight version of Opticks NPY that adds asyncio transport capabilities
-based on boost::asio.
-
-TODO: further reduce duplication between 
-
-1. file read/write 
-2. stream read/write 
-3. non-stream read/write 
-
-The templating is not convenient for transport because you 
-dont know the type until parsing the hdr. 
-Plus most of the class does not depend on the type... so 
-perhaps try to have some templated methods rather than 
-a templated class ?
+This replaces a templated struct approach which is in old/NP_old.hh.
+Templating was however not convenient for streaming 
+because you do not know the type until parsing the hdr. 
+Plus most methods do not depend on the type... so this new NP
+has a few templated methods rather than being a templated struct.
 
 **/
 
-template<typename T>
 struct NP
 {
-    NP(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
+    NP(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
+    void set_dtype(const char* dtype_); // may change shape and size of array while retaining the same underlying bytes 
 
-    static NP<T>* Load(const char* path); 
-    static NP<T>* Load(const char* dir, const char* name); 
+    static void sizeof_check(); 
+    static NP* Load(const char* path); 
+    static NP* Load(const char* dir, const char* name); 
 
-    void fill(T value); 
-    void fillIndexFlat(T offset=0); 
-    T*   values() ; 
+    template<typename T> T*       values() ; 
+    template<typename T> const T* values() const  ; 
+    template<typename T> void fill(T value); 
+    template<typename T> void _fillIndexFlat(T offset=0); 
+    template<typename T> void _dump(int i0=-1, int i1=-1) const ;   
+    template<typename T> std::string _present(T v) const ; 
+
+    void fillIndexFlat(); 
+    void dump(int i0=-1, int i1=-1) const ; 
+
 
     int load(const char* path);   
     int load(const char* dir, const char* name);   
     static std::string form_path(const char* dir, const char* name);   
 
+    void save_header(const char* path);   
     void save(const char* path);   
     void save(const char* dir, const char* name);   
 
+
+    std::string get_jsonhdr_path() const ; // .npy -> .npj on loaded path
     void save_jsonhdr();    
     void save_jsonhdr(const char* path);   
     void save_jsonhdr(const char* dir, const char* name);   
 
-    void dump(int i0=-1, int i1=-1) const ;   
     std::string desc() const ; 
 
     char*       bytes();  
@@ -63,9 +65,9 @@ struct NP
     unsigned meta_bytes() const ;
   
     // primary data members 
-    std::vector<T>   data ; 
-    std::vector<int> shape ; 
-    std::string      meta ; 
+    std::vector<char> data ; 
+    std::vector<int>  shape ; 
+    std::string       meta ; 
 
     // transient
     std::string lpath ; 
@@ -74,11 +76,11 @@ struct NP
     std::string _hdr ; 
     std::string _prefix ; 
 
-    // results from parsing _hdr
+    // results from parsing _hdr or set_dtype 
     const char* dtype ; 
-    int  size ;    // number of elements from shape
-    char uifc ;    // element type code 
-    int  ebyte ;   // element bytes  
+    char        uifc ;    // element type code 
+    int         ebyte ;   // element bytes  
+    int         size ;    // number of elements from shape
 
 
     void        update_headers();     
@@ -91,20 +93,17 @@ struct NP
     unsigned    prefix_size(unsigned index) const ;     
 
     std::string make_jsonhdr() const ;
-
-
 };
 
 /**
-NP<T> operator<<
--------------------
+operator<< NP : NOT a member function
+---------------------------------------
 
 Write array into output stream 
 
 **/
 
-template<typename T>
-std::ostream& operator<<(std::ostream &os,  const NP<T>& a) 
+std::ostream& operator<<(std::ostream &os,  const NP& a) 
 { 
     os << a.make_prefix() ; 
     os << a.make_header() ; 
@@ -114,15 +113,14 @@ std::ostream& operator<<(std::ostream &os,  const NP<T>& a)
 }
 
 /**
-NP<T> operator>>
-------------------
+operator>> NP : NOT a member function
+---------------------------------------
 
 Direct input stream into NP array
 
 **/
 
-template<typename T>
-std::istream& operator>>(std::istream& is, NP<T>& a)      // NB this is NOT a struct member function
+std::istream& operator>>(std::istream& is, NP& a)     
 {
     is.read( (char*)a._prefix.data(), net_hdr::LENGTH ) ; 
 
@@ -138,8 +136,7 @@ std::istream& operator>>(std::istream& is, NP<T>& a)      // NB this is NOT a st
         ;
 
     std::getline( is, a._hdr );  
-    a._hdr += '\n' ;           // getline consumes newline ending header but does not return it 
-
+    a._hdr += '\n' ;     // getline consumes newline ending header but does not return it 
     assert( hdr_bytes_nh == a._hdr.length() ); 
 
     a.decode_header();   // resizes data array 
@@ -164,7 +161,7 @@ OR just invoke this before streaming
 
 **/
 
-template<typename T> void NP<T>::update_headers()
+void NP::update_headers()
 {
     std::string net_hdr = make_prefix(); 
     _prefix.assign(net_hdr.data(), net_hdr.length()); 
@@ -173,24 +170,29 @@ template<typename T> void NP<T>::update_headers()
     _hdr.resize(hdr.length()); 
     _hdr.assign(hdr.data(), hdr.length()); 
 
-    assert( num_values() == data.size() ); 
+    // assert( num_values() == data.size() );  //NO
 }
 
 
-template<typename T> std::string NP<T>::make_header() const 
+std::string NP::make_header() const 
 {
-    std::string hdr =  NPU::make_header<T>( shape ) ;
+    std::string hdr =  NPU::_make_header( shape, dtype ) ;
     return hdr ; 
 }
-template<typename T> std::string NP<T>::make_prefix() const 
+std::string NP::make_prefix() const 
 {
-    std::vector<unsigned> parts = { hdr_bytes(), arr_bytes(), meta_bytes() } ;  
+    std::vector<unsigned> parts ;
+    parts.push_back(hdr_bytes());
+    parts.push_back(arr_bytes());
+    parts.push_back(meta_bytes());
+    parts.push_back(0);   
+
     std::string net_hdr = net_hdr::pack( parts ); 
     return net_hdr ; 
 }
-template<typename T> std::string NP<T>::make_jsonhdr() const 
+std::string NP::make_jsonhdr() const 
 {
-    std::string json = NPU::make_jsonhdr<T>( shape ) ; 
+    std::string json = NPU::_make_jsonhdr( shape, dtype ) ; 
     return json ; 
 }  
 
@@ -203,7 +205,7 @@ NP::decode_prefix
 This must be called after reading the net header to 
 resize buffers prior to reading them in.
 
-NB assumes T is the correctly sized type for the content 
+NP assumes T is the correctly sized type for the content 
 about to be received. Could do this more carefully by 
 parsing the array hdr to extract type and shape 
 prior to resizing the array.
@@ -212,7 +214,7 @@ TODO: avoid relying on T, the type info is in the header
 
 
 **/
-template<typename T> bool NP<T>::decode_prefix()  
+bool NP::decode_prefix()  
 {
     unsigned hdr_bytes_nh = prefix_size(0); 
     unsigned arr_bytes_nh = prefix_size(1); 
@@ -230,12 +232,12 @@ template<typename T> bool NP<T>::decode_prefix()
     if(valid)
     {
         _hdr.resize(hdr_bytes_nh);
-        data.resize(arr_bytes_nh/sizeof(T)); 
+        data.resize(arr_bytes_nh);   // data now chars 
         meta.resize(meta_bytes_nh);
     }
     return valid ; 
 }
-template<typename T> unsigned NP<T>::prefix_size(unsigned index) const { return net_hdr::unpack(_prefix, index); }  
+unsigned NP::prefix_size(unsigned index) const { return net_hdr::unpack(_prefix, index); }  
 
 /**
 NP::decode_header
@@ -252,7 +254,6 @@ ebyte
 size
     number of elements 
 
-
 Decoding the header gives the shape of the
 data, so together with the size of the type
 know how many bytes can read from the remainder of the stream
@@ -260,64 +261,197 @@ following the header.
 
 **/
 
-template<typename T> bool NP<T>::decode_header()  
+bool NP::decode_header()  
 {
-    shape.clear();  
+    shape.clear(); 
     std::string descr ; 
     NPU::parse_header( shape, descr, uifc, ebyte, _hdr ) ; 
-    dtype = strdup(descr.c_str()); 
+    dtype = strdup(descr.c_str());  
     size = NPS::size(shape); 
-    data.resize(size) ;  // assumes element type T is correctly sized for the data  
+    data.resize(size*ebyte) ; // data is now just char 
     return true  ; 
 }
 
+
+/**
+NP::set_dtype
+--------------
+
+Setting a dtype with a different element size ebyte 
+necessarily changes shape and size of array.
+
+**/
+
+void NP::set_dtype(const char* dtype_)
+{
+    char uifc_ = NPU::_dtype_uifc(dtype_) ; 
+    int  ebyte_ = NPU::_dtype_ebyte(dtype_) ; 
+
+    std::cout 
+        << "changing dtype/uifc/ebyte from: " 
+        << dtype << "/" << uifc << "/" << ebyte 
+        << " to: "
+        << dtype_ << "/" << uifc_ << "/" << ebyte_ 
+        << std::endl
+        ;          
+
+    assert( ebyte_ == 1 || ebyte_ == 2 || ebyte_ == 4 || ebyte_ == 8 ); 
+
+    dtype = strdup(dtype_); 
+    uifc  = uifc_ ;   
+
+    if( ebyte_ == ebyte )
+    {
+        std::cout << "dtype shifting with no change in ebyte keeps same array dimensions" << std::endl ; 
+        ebyte = ebyte_ ; 
+    }
+    else if( ebyte_ < ebyte )
+    {
+        int expand = ebyte/ebyte_ ; 
+        std::cout << "dtype shifting to smaller ebyte increases array dimensions, expand: " << expand << std::endl ; 
+        for(unsigned i=0 ; i < shape.size() ; i++ ) shape[i] *= expand ; 
+    }
+    else if( ebyte_ > ebyte )
+    {
+        int shrink = ebyte_/ebyte ; 
+        std::cout << "dtype shifting to larger ebyte decreases array dimensions, shrink: " << shrink << std::endl ; 
+        for(unsigned i=0 ; i < shape.size() ; i++ ) shape[i] /= shrink  ; 
+    }
+
+    ebyte = ebyte_ ; 
+    size = NPS::size(shape) ;
+
+    std::cout << desc() << std::endl ; 
+
+}
+
+
+
 // former approach assumed data is already sized : but shape comes first 
 
-template<typename T> unsigned NP<T>::hdr_bytes() const { return _hdr.length() ; }
-template<typename T> unsigned NP<T>::num_values() const { return NPS::size(shape) ;  }
-template<typename T> unsigned NP<T>::arr_bytes()  const { return NPS::size(shape)*sizeof(T) ; }
-template<typename T> unsigned NP<T>::meta_bytes() const { return meta.length() ; }
+unsigned NP::hdr_bytes() const { return _hdr.length() ; }
+unsigned NP::num_values() const { return NPS::size(shape) ;  }
+unsigned NP::arr_bytes()  const { return NPS::size(shape)*ebyte ; }
+unsigned NP::meta_bytes() const { return meta.length() ; }
+
+char*        NP::bytes() { return (char*)data.data() ;  } 
+const char*  NP::bytes() const { return (char*)data.data() ;  } 
 
 
-template<typename T> T*  NP<T>::values() { return data.data() ;  } 
-template<typename T> char*  NP<T>::bytes() { return (char*)data.data() ;  } 
-template<typename T> const char*  NP<T>::bytes() const { return (char*)data.data() ;  } 
-
-
-
-template<typename T>
-NP<T>::NP(int ni, int nj, int nk, int nl, int nm )
+NP::NP(const char* dtype_, int ni, int nj, int nk, int nl, int nm )
     :
-    dtype(strdup(Desc<T>::descr().c_str())),
-    size(NPS::set_shape(shape, ni,nj,nk,nl,nm )),
-    uifc(Desc<T>::code),
-    ebyte(sizeof(T))
+    dtype(strdup(dtype_)),
+    uifc(NPU::_dtype_uifc(dtype)),
+    ebyte(NPU::_dtype_ebyte(dtype)),
+    size(NPS::set_shape(shape, ni,nj,nk,nl,nm ))
 {
-    data.resize( size ) ; 
-    fill( T(0) ) ;     
+    data.resize( size*ebyte ) ; 
+    std::fill( data.begin(), data.end(), 0 );     
 
     _prefix.assign(net_hdr::LENGTH, '\0' ); 
     _hdr = make_header(); 
 }
 
-template<typename T>
-void NP<T>::fill(T value)
+
+
+
+template<typename T> T*  NP::values() { return (T*)data.data() ;  } 
+
+template<typename T> void NP::fill(T value)
 {
-    std::fill( data.begin() , data.end(), value ) ;     
+    T* vv = values<T>(); 
+    for(unsigned i=0 ; i < size ; i++) *(vv+i) = value ; 
 }
 
-template<typename T>
-void NP<T>::fillIndexFlat(T offset)
+template<typename T> void NP::_fillIndexFlat(T offset)
 {
-    for(unsigned i=0 ; i < data.size() ; i++) data[i] = T(i) + offset ; 
+    T* vv = values<T>(); 
+    for(unsigned i=0 ; i < size ; i++) *(vv+i) = T(i) + offset ; 
 }
 
 
-template<typename T>
-std::string NP<T>::desc() const 
+void NP::sizeof_check() // static 
+{
+    assert( sizeof(float) == 4  );  
+    assert( sizeof(double) == 8  );  
+
+    assert( sizeof(char) == 1 );  
+    assert( sizeof(short) == 2 );
+    assert( sizeof(int)   == 4 );
+    assert( sizeof(long)  == 8 );
+    assert( sizeof(long long)  == 8 );
+}
+
+void NP::fillIndexFlat()
+{
+    if(uifc == 'f')
+    {   
+        switch(ebyte)
+        {   
+            case 4: _fillIndexFlat<float>()  ; break ; 
+            case 8: _fillIndexFlat<double>() ; break ; 
+        }   
+    }   
+    else if(uifc == 'u')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _fillIndexFlat<unsigned char>()  ; break ; 
+            case 2: _fillIndexFlat<unsigned short>()  ; break ; 
+            case 4: _fillIndexFlat<unsigned int>() ; break ; 
+            case 8: _fillIndexFlat<unsigned long>() ; break ; 
+        }   
+    }   
+    else if(uifc == 'i')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _fillIndexFlat<char>()  ; break ; 
+            case 2: _fillIndexFlat<short>()  ; break ; 
+            case 4: _fillIndexFlat<int>() ; break ; 
+            case 8: _fillIndexFlat<long>() ; break ; 
+        }   
+    }   
+}
+
+
+void NP::dump(int i0, int i1) const 
+{
+    if(uifc == 'f')
+    {   
+        switch(ebyte)
+        {   
+            case 4: _dump<float>(i0,i1)  ; break ; 
+            case 8: _dump<double>(i0,i1) ; break ; 
+        }   
+    }   
+    else if(uifc == 'u')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _dump<unsigned char>(i0,i1)  ; break ; 
+            case 2: _dump<unsigned short>(i0,i1)  ; break ; 
+            case 4: _dump<unsigned int>(i0,i1) ; break ; 
+            case 8: _dump<unsigned long>(i0,i1) ; break ; 
+        }   
+    }   
+    else if(uifc == 'i')
+    {   
+        switch(ebyte)
+        {   
+            case 1: _dump<char>(i0,i1)  ; break ; 
+            case 2: _dump<short>(i0,i1)  ; break ; 
+            case 4: _dump<int>(i0,i1) ; break ; 
+            case 8: _dump<long>(i0,i1) ; break ; 
+        }   
+    }   
+}
+
+std::string NP::desc() const 
 {
     std::stringstream ss ; 
     ss << "NP " 
+       << " dtype " << dtype
        << NPS::desc(shape) 
        << " size " << size 
        << " uifc " << uifc 
@@ -325,36 +459,31 @@ std::string NP<T>::desc() const
        << " shape.size " << shape.size() 
        << " data.size " << data.size()
        << " meta.size " << meta.size() 
-       << " _hdr " << _hdr 
        ;
     return ss.str(); 
 }
 
-template<typename T>
-NP<T>* NP<T>::Load(const char* path)
+NP* NP::Load(const char* path)
 {
-    NP<T>* a = new NP<T>() ; 
+    NP* a = new NP() ; 
     int rc = a->load(path) ; 
     return rc == 0 ? a  : NULL ; 
 }
 
-template<typename T>
-NP<T>* NP<T>::Load(const char* dir, const char* name)
+NP* NP::Load(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
     return Load(path.c_str());
 }
 
-template<typename T>
-std::string NP<T>::form_path(const char* dir, const char* name)
+std::string NP::form_path(const char* dir, const char* name)
 {
     std::stringstream ss ; 
     ss << dir << "/" << name ; 
     return ss.str(); 
 }
 
-template<typename T>
-int NP<T>::load(const char* dir, const char* name)
+int NP::load(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
     return load(path.c_str()); 
@@ -372,8 +501,7 @@ newline from the stream without returning it.
 
 **/
 
-template<typename T>
-int NP<T>::load(const char* path)
+int NP::load(const char* path)
 {
     lpath = path ;  // loadpath 
 
@@ -387,15 +515,21 @@ int NP<T>::load(const char* path)
     std::getline(fp, _hdr );   
     _hdr += '\n' ; 
 
-    decode_header();  // resizes data as necessary, assuming T is correct 
+    decode_header(); 
 
     fp.read(bytes(), arr_bytes() );
 
     return 0 ; 
 }
 
-template<typename T>
-void NP<T>::save(const char* path)
+void NP::save_header(const char* path)
+{
+    update_headers(); 
+    std::ofstream stream(path, std::ios::out|std::ios::binary);
+    stream << _hdr ; 
+}
+
+void NP::save(const char* path)
 {
     update_headers(); 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
@@ -403,49 +537,91 @@ void NP<T>::save(const char* path)
     stream.write( bytes(), arr_bytes() );
 }
 
-template<typename T>
-void NP<T>::save(const char* dir, const char* name)
+void NP::save(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
     save(path.c_str()); 
 }
 
-template<typename T>
-void NP<T>::save_jsonhdr(const char* path)
+void NP::save_jsonhdr(const char* path)
 {
     std::string json = make_jsonhdr(); 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
     stream << json ; 
 }
 
-template<typename T>
-void NP<T>::save_jsonhdr(const char* dir, const char* name)
+void NP::save_jsonhdr(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
     save_jsonhdr(path.c_str()); 
 }
 
-template<typename T>
-void NP<T>::save_jsonhdr()
+std::string NP::get_jsonhdr_path() const 
 {
     assert( lpath.empty() == false ); 
     assert( U::EndsWith(lpath.c_str(), ".npy" ) ); 
-
     std::string path = U::ChangeExt(lpath.c_str(), ".npy", ".npj"); 
-    std::cout << "NP::save_jsonhdr to " << path << std::endl  ; 
+    return path ; 
+}
 
+void NP::save_jsonhdr()
+{
+    std::string path = get_jsonhdr_path() ; 
+    std::cout << "NP::save_jsonhdr to " << path << std::endl  ; 
     save_jsonhdr(path.c_str()); 
 }
 
 
-template<typename T>
-void NP<T>::dump(int i0_, int i1_) const 
+template <typename T> std::string NP::_present(T v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::fixed << std::setw(8) << v  ;      
+    return ss.str();
+}
+
+// needs specialization to _present char as an int rather than a character
+template<>  std::string NP::_present(char v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::fixed << std::setw(8) << int(v)  ;      
+    return ss.str();
+}
+template<>  std::string NP::_present(unsigned char v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::fixed << std::setw(8) << unsigned(v)  ;      
+    return ss.str();
+}
+template<>  std::string NP::_present(float v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::setw(10) << std::fixed << std::setprecision(3) << v ;
+    return ss.str();
+}
+template<>  std::string NP::_present(double v) const
+{
+    std::stringstream ss ; 
+    ss << " " << std::setw(10) << std::fixed << std::setprecision(3) << v ;
+    return ss.str();
+}
+
+
+
+
+
+
+
+
+
+
+
+template <typename T> void NP::_dump(int i0_, int i1_) const 
 {
     int ni = NPS::ni_(shape) ;
     int nj = NPS::nj_(shape) ;
     int nk = NPS::nk_(shape) ;
 
-    int i0 = i0_ == -1 ? 0 : i0_ ;  
+    int i0 = i0_ == -1 ? 0                : i0_ ;  
     int i1 = i1_ == -1 ? std::min(ni, 10) : i1_ ;  
 
     std::cout 
@@ -461,13 +637,16 @@ void NP<T>::dump(int i0_, int i1_) const
        << std::endl 
        ;  
 
+    const T* vv = values<T>(); 
+
     for(int i=i0 ; i < i1 ; i++){
-        std::cout << "[" << i  << "]" << std::endl ;  
+        std::cout << "[" << i  << "] " ;
         for(int j=0 ; j < nj ; j++){
             for(int k=0 ; k < nk ; k++)
             {
                 int index = i*nj*nk + j*nk + k ; 
-                std::cout << " " << std::fixed << data[index] ;      
+                T v = *(vv + index) ; 
+                std::cout << _present<T>(v)  ;      
             }
             //std::cout << std::endl ; 
         }
@@ -483,6 +662,94 @@ void NP<T>::dump(int i0_, int i1_) const
         << "]"
         << std::endl
         ; 
-
 }
+
+
+/**
+
+specialize-head(){ cat << EOH
+// template specializations generated by below bash functions
+
+EOH
+}
+
+specialize-types(){ cat << EOT
+float
+double
+char
+short
+int
+long
+long long
+unsigned char
+unsigned short
+unsigned int
+unsigned long
+unsigned long long
+EOT
+}
+
+specialize-(){
+    cat << EOC | perl -pe "s,T,$1,g" - 
+template<> const T* NP::values<T>() const { return (T*)data.data() ; }
+template<>       T* NP::values<T>()      {  return (T*)data.data() ; }
+template       void NP::_fillIndexFlat<T>(T) ;
+
+EOC
+}
+specialize(){ specialize-head ; specialize-types | while read t ; do specialize- "$t" ; done  ; }
+specialize
+
+**/
+
+
+// template specializations generated by below bash functions
+
+template<> const float* NP::values<float>() const { return (float*)data.data() ; }
+template<>       float* NP::values<float>()      {  return (float*)data.data() ; }
+template       void NP::_fillIndexFlat<float>(float) ;
+
+template<> const double* NP::values<double>() const { return (double*)data.data() ; }
+template<>       double* NP::values<double>()      {  return (double*)data.data() ; }
+template       void NP::_fillIndexFlat<double>(double) ;
+
+template<> const char* NP::values<char>() const { return (char*)data.data() ; }
+template<>       char* NP::values<char>()      {  return (char*)data.data() ; }
+template       void NP::_fillIndexFlat<char>(char) ;
+
+template<> const short* NP::values<short>() const { return (short*)data.data() ; }
+template<>       short* NP::values<short>()      {  return (short*)data.data() ; }
+template       void NP::_fillIndexFlat<short>(short) ;
+
+template<> const int* NP::values<int>() const { return (int*)data.data() ; }
+template<>       int* NP::values<int>()      {  return (int*)data.data() ; }
+template       void NP::_fillIndexFlat<int>(int) ;
+
+template<> const long* NP::values<long>() const { return (long*)data.data() ; }
+template<>       long* NP::values<long>()      {  return (long*)data.data() ; }
+template       void NP::_fillIndexFlat<long>(long) ;
+
+template<> const long long* NP::values<long long>() const { return (long long*)data.data() ; }
+template<>       long long* NP::values<long long>()      {  return (long long*)data.data() ; }
+template       void NP::_fillIndexFlat<long long>(long long) ;
+
+template<> const unsigned char* NP::values<unsigned char>() const { return (unsigned char*)data.data() ; }
+template<>       unsigned char* NP::values<unsigned char>()      {  return (unsigned char*)data.data() ; }
+template       void NP::_fillIndexFlat<unsigned char>(unsigned char) ;
+
+template<> const unsigned short* NP::values<unsigned short>() const { return (unsigned short*)data.data() ; }
+template<>       unsigned short* NP::values<unsigned short>()      {  return (unsigned short*)data.data() ; }
+template       void NP::_fillIndexFlat<unsigned short>(unsigned short) ;
+
+template<> const unsigned int* NP::values<unsigned int>() const { return (unsigned int*)data.data() ; }
+template<>       unsigned int* NP::values<unsigned int>()      {  return (unsigned int*)data.data() ; }
+template       void NP::_fillIndexFlat<unsigned int>(unsigned int) ;
+
+template<> const unsigned long* NP::values<unsigned long>() const { return (unsigned long*)data.data() ; }
+template<>       unsigned long* NP::values<unsigned long>()      {  return (unsigned long*)data.data() ; }
+template       void NP::_fillIndexFlat<unsigned long>(unsigned long) ;
+
+template<> const unsigned long long* NP::values<unsigned long long>() const { return (unsigned long long*)data.data() ; }
+template<>       unsigned long long* NP::values<unsigned long long>()      {  return (unsigned long long*)data.data() ; }
+template       void NP::_fillIndexFlat<unsigned long long>(unsigned long long) ;
 

@@ -1,4 +1,4 @@
-// gcc descr.cc -I.. -std=c++11 -lstdc++ -o /tmp/descr && /tmp/descr
+// gcc NPU_parse_dict_test.cc -I.. -std=c++11 -lstdc++ -o /tmp/NPU_parse_dict_test && /tmp/NPU_parse_dict_test
 #include <cstring>
 #include <cassert>
 #include <cstdio>

@@ -6,13 +6,20 @@ int main(int argc, char** argv)
     int nj = argc > 2 ? atoi(argv[2]) : 1   ; 
     int nk = argc > 3 ? atoi(argv[3]) : 4   ; 
 
-    NP<float>* a = new NP<float>(ni,nj,nk) ; 
+    NP* a = new NP("<f4", ni,nj,nk) ; 
+
+    float* v = a->values<float>(); 
+
+
     for(int i=0 ; i < ni ; i++ ){
     for(int j=0 ; j < nj ; j++ ){
     for(int k=0 ; k < nk ; k++ ){
 
         int index = i*nj*nk + j*nk + k ; // 3d -> 1d
-        a->data[index] = float(index) ;  // dummy value 
+
+        //a->data[index] = float(index) ;  // dummy value 
+        *(v+index) = float(index);   // dummy value 
+
     }
     }
     }

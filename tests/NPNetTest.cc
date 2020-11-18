@@ -38,7 +38,7 @@ std::string make_meta(unsigned count)
 }
 int server()
 {
-    NP<float>* a = new NP<float>(10,4) ; a->fillIndexFlat(); a->meta = "{}" ; 
+    NP* a = new NP("<f4", 10,4) ; a->fillIndexFlat(); a->meta = "{}" ; 
     unsigned count(0); 
     try
     {
@@ -76,7 +76,7 @@ int client()
             return 0;
         }
         std::cout << "client recv array from stream " << std::endl ; 
-        NP<float>* a = new NP<float>() ; 
+        NP* a = new NP() ; 
         stream >> *a ; 
         a->dump(); 
     }
