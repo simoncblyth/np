@@ -28,6 +28,7 @@ struct NP
     static void sizeof_check(); 
     static NP* Load(const char* path); 
     static NP* Load(const char* dir, const char* name); 
+    static NP* MakeDemo(const char* dtype="<f4" , int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
     template<typename T> T*       values() ; 
     template<typename T> const T* values() const  ; 
@@ -155,9 +156,10 @@ std::istream& operator>>(std::istream& is, NP& a)
 NP::update_headers
 -------------------
 
-The header descriptions of the object are updated.
-Hmm : do this automatically in setters that change shape or metadata ?
-OR just invoke this before streaming  
+Updates network header "prefix" and array header descriptions of the object.
+
+Cannot do this automatically in setters that change shape, dtype or metadata
+because are using a struct.  So just have to invoke this before streaming.  
 
 **/
 
@@ -169,8 +171,6 @@ void NP::update_headers()
     std::string hdr =  make_header(); 
     _hdr.resize(hdr.length()); 
     _hdr.assign(hdr.data(), hdr.length()); 
-
-    // assert( num_values() == data.size() );  //NO
 }
 
 
@@ -185,7 +185,7 @@ std::string NP::make_prefix() const
     parts.push_back(hdr_bytes());
     parts.push_back(arr_bytes());
     parts.push_back(meta_bytes());
-    parts.push_back(0);   
+    parts.push_back(0);    // xxd neater to have 16 byte prefix 
 
     std::string net_hdr = net_hdr::pack( parts ); 
     return net_hdr ; 
@@ -197,21 +197,30 @@ std::string NP::make_jsonhdr() const
 }  
 
 
+NP* NP::MakeDemo(const char* dtype, int ni, int nj, int nk, int nl, int nm )
+{
+    NP* a = new NP(dtype, ni, nj, nk, nl, nm);
+    a->fillIndexFlat(); 
+    return a ; 
+}
+
+
+
 
 /**
 NP::decode_prefix
------------------------
+-------------------
 
-This must be called after reading the net header to 
-resize buffers prior to reading them in.
+This is used for boost asio handlers to resize the 
+object buffers as directed by the sizes extracted 
+from the prefix header. For example see:: 
 
-NP assumes T is the correctly sized type for the content 
-about to be received. Could do this more carefully by 
-parsing the array hdr to extract type and shape 
-prior to resizing the array.
+   np_client::handle_read_header
+   np_session::handle_read_header
 
-TODO: avoid relying on T, the type info is in the header
-
+Note that this is not used when streaming in 
+from file. There is no prefix header in that 
+situation.
 
 **/
 bool NP::decode_prefix()  
@@ -232,7 +241,7 @@ bool NP::decode_prefix()
     if(valid)
     {
         _hdr.resize(hdr_bytes_nh);
-        data.resize(arr_bytes_nh);   // data now chars 
+        data.resize(arr_bytes_nh);   // data now vector of chars 
         meta.resize(meta_bytes_nh);
     }
     return valid ; 
@@ -267,8 +276,8 @@ bool NP::decode_header()
     std::string descr ; 
     NPU::parse_header( shape, descr, uifc, ebyte, _hdr ) ; 
     dtype = strdup(descr.c_str());  
-    size = NPS::size(shape); 
-    data.resize(size*ebyte) ; // data is now just char 
+    size = NPS::size(shape);    // product of shape dimensions 
+    data.resize(size*ebyte) ;   // data is now just char 
     return true  ; 
 }
 
@@ -280,12 +289,17 @@ NP::set_dtype
 Setting a dtype with a different element size ebyte 
 necessarily changes shape and size of array.
 
+CAUTION this will cause asserts if the array shape is such 
+that the dtype change and resulting shape change would 
+change the total number of bytes in the array.
+
 **/
 
 void NP::set_dtype(const char* dtype_)
 {
     char uifc_ = NPU::_dtype_uifc(dtype_) ; 
     int  ebyte_ = NPU::_dtype_ebyte(dtype_) ; 
+    assert( ebyte_ == 1 || ebyte_ == 2 || ebyte_ == 4 || ebyte_ == 8 ); 
 
     std::cout 
         << "changing dtype/uifc/ebyte from: " 
@@ -295,36 +309,44 @@ void NP::set_dtype(const char* dtype_)
         << std::endl
         ;          
 
-    assert( ebyte_ == 1 || ebyte_ == 2 || ebyte_ == 4 || ebyte_ == 8 ); 
-
-    dtype = strdup(dtype_); 
-    uifc  = uifc_ ;   
-
     if( ebyte_ == ebyte )
     {
-        std::cout << "dtype shifting with no change in ebyte keeps same array dimensions" << std::endl ; 
-        ebyte = ebyte_ ; 
+        std::cout << "NP::set_dtype : no change in ebyte keeps same array dimensions" << std::endl ; 
     }
     else if( ebyte_ < ebyte )
     {
         int expand = ebyte/ebyte_ ; 
-        std::cout << "dtype shifting to smaller ebyte increases array dimensions, expand: " << expand << std::endl ; 
+        std::cout << "NP::set_dtype : shifting to smaller ebyte increases array dimensions, expand: " << expand << std::endl ; 
         for(unsigned i=0 ; i < shape.size() ; i++ ) shape[i] *= expand ; 
     }
     else if( ebyte_ > ebyte )
     {
         int shrink = ebyte_/ebyte ; 
-        std::cout << "dtype shifting to larger ebyte decreases array dimensions, shrink: " << shrink << std::endl ; 
+        std::cout << "NP::set_dtype : shifting to larger ebyte decreases array dimensions, shrink: " << shrink << std::endl ; 
         for(unsigned i=0 ; i < shape.size() ; i++ ) shape[i] /= shrink  ; 
     }
 
+    int num_bytes  = size*ebyte ;      // old 
+    int size_ = NPS::size(shape) ;     // new
+    int num_bytes_ = size_*ebyte_ ;    // new 
+
+    bool allowed_change = num_bytes_ == num_bytes ; 
+    if(!allowed_change)
+    {
+        std::cout << "NP::set_dtype : NOT ALLOWED as it would change the number of bytes " << std::endl ; 
+        std::cout << " old num_bytes " << num_bytes << " proposed num_bytes_ " << num_bytes_ << std::endl ;   
+    }
+    assert( allowed_change ); 
+
+    // change the members
+
+    dtype = strdup(dtype_); 
+    uifc  = uifc_ ;   
     ebyte = ebyte_ ; 
-    size = NPS::size(shape) ;
+    size = size_ ; 
 
     std::cout << desc() << std::endl ; 
-
 }
-
 
 
 // former approach assumed data is already sized : but shape comes first 
@@ -345,7 +367,7 @@ NP::NP(const char* dtype_, int ni, int nj, int nk, int nl, int nm )
     ebyte(NPU::_dtype_ebyte(dtype)),
     size(NPS::set_shape(shape, ni,nj,nk,nl,nm ))
 {
-    data.resize( size*ebyte ) ; 
+    data.resize( size*ebyte ) ;  // vector of char  
     std::fill( data.begin(), data.end(), 0 );     
 
     _prefix.assign(net_hdr::LENGTH, '\0' ); 
@@ -604,15 +626,6 @@ template<>  std::string NP::_present(double v) const
     ss << " " << std::setw(10) << std::fixed << std::setprecision(3) << v ;
     return ss.str();
 }
-
-
-
-
-
-
-
-
-
 
 
 template <typename T> void NP::_dump(int i0_, int i1_) const 
