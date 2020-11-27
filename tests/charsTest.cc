@@ -1,4 +1,4 @@
-// gcc charsTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/charsTest && /tmp/charsTest
+// gcc charsTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/charsTest && PYTHON=python3 /tmp/charsTest
 
 #include "NP.hh"
 

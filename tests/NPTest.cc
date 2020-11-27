@@ -1,4 +1,4 @@
-// gcc NPTest.cc -std=c++11  -I.. -lstdc++ -o /tmp/NPTest && /tmp/NPTest
+// gcc NPTest.cc -std=c++11  -I.. -lstdc++ -o /tmp/NPTest && PYTHON=python3 /tmp/NPTest
 
 #include <iostream>
 #include <sstream>

@@ -1,4 +1,4 @@
-// boost-;gcc NPNetTest.cc -std=c++11 -I.. -I$(boost-prefix)/include -lstdc++ -o /tmp/NPNetTest && /tmp/NPNetTest 
+// boost-;gcc NPNetTest.cc -std=c++11 -I.. -I$(boost-prefix)/include -lpthread -lstdc++ -o /tmp/NPNetTest && /tmp/NPNetTest 
 /**
 NPNetTest.cc
 =============

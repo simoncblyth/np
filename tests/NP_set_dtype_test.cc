@@ -1,4 +1,4 @@
-// gcc NP_set_dtype_test.cc -I.. -lstdc++ -o /tmp/NP_set_dtype_test && /tmp/NP_set_dtype_test
+// gcc NP_set_dtype_test.cc -std=c++11 -I.. -lstdc++ -o /tmp/NP_set_dtype_test && /tmp/NP_set_dtype_test
 
 #include <string>
 #include <iostream>

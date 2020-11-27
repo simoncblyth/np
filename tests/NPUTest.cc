@@ -1,4 +1,4 @@
-// gcc NPUTest.cc -I.. -lstdc++ -o /tmp/NPUTest && /tmp/NPUTest
+// gcc NPUTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/NPUTest && /tmp/NPUTest
 
 /**
 NPUTest.cc

@@ -1,4 +1,4 @@
-// gcc UTest.cc -I.. -lstdc++ -o /tmp/UTest && /tmp/UTest
+// gcc UTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/UTest && /tmp/UTest
 
 #include <string>
 #include "NPU.hh"

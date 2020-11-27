@@ -1,4 +1,4 @@
-// gcc NP_jsonhdr_test.cc -I.. -lstdc++ -o /tmp/NP_jsonhdr_test && /tmp/NP_jsonhdr_test 
+// gcc NP_jsonhdr_test.cc -std=c++11 -I.. -lstdc++ -o /tmp/NP_jsonhdr_test && /tmp/NP_jsonhdr_test 
 /**
 NP_jsonhdr_test.cc
 ====================
@@ -18,8 +18,11 @@ NP_jsonhdr_test.cc
 
 int main(int argc, char** argv)
 {
-    const char* path = argc > 1 ? argv[1] : "/tmp/c.npy" ; 
+    const char* path = argc > 1 ? argv[1] : "/tmp/s.npy" ; 
     NP* a = NP::Load(path) ; 
+    if( a == NULL ) return 0 ; 
+
+
     a->dump(0,9); 
     a->save_jsonhdr();
 

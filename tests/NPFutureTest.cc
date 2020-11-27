@@ -1,4 +1,4 @@
-// gcc NPFutureTest.cc -std=c++11  -I.. -lstdc++ -o /tmp/NPFutureTest && /tmp/NPFutureTest
+// gcc NPFutureTest.cc -std=c++11  -I.. -pthread -lstdc++ -o /tmp/NPFutureTest && /tmp/NPFutureTest
 
 #include <iostream>
 #include <vector>

@@ -1,4 +1,4 @@
-// gcc NPLoadTest.cc -I.. -lstdc++ -o /tmp/NPLoadTest && /tmp/NPLoadTest
+// gcc NPLoadTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/NPLoadTest && /tmp/NPLoadTest
 
 #include "NP.hh"
 

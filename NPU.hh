@@ -7,7 +7,8 @@
 #include <cassert>
 #include <complex>
 #include <fstream>
-
+#include <cstdlib>
+#include <cstdint>
 
 
 union u16c2_t 
@@ -566,8 +567,10 @@ bool NPU::is_readable(const char* path)  // static
 
 std::string NPU::_check(const char* path) 
 {
+    char* py = getenv("PYTHON"); 
     std::stringstream ss ; 
-    ss << "python -c \"import numpy as np ; print(np.load('" 
+    ss << ( py ? py : "python" )
+       << " -c \"import numpy as np ; print(np.load('" 
        << path 
        << "')) \" && xxd " 
        << path 

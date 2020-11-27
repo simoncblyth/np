@@ -14,6 +14,8 @@ expressed in big endian "network order".
 #include <cassert>
 #include <vector>
 #include <string>
+#include <cstring>        // memcpy
+#include <arpa/inet.h>    // htonl
 
 struct net_hdr
 {

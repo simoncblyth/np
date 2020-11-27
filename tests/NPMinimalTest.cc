@@ -1,4 +1,4 @@
-// gcc NPMinimalTest.cc -I.. -lstdc++ -o /tmp/NPMinimalTest && /tmp/NPMinimalTest /tmp/a.npy 
+// gcc NPMinimalTest.cc -std=c++11 -I.. -lstdc++ -o /tmp/NPMinimalTest && /tmp/NPMinimalTest /tmp/a.npy 
 #include "NP.hh"
 int main(int argc, char** argv)
 {
