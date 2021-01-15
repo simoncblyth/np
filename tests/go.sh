@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-tests=$(ls -1 *Test.cc *test.cc)
+tests=$(ls -1 *Test.cc *test.cc | sort -r)
 
 for t in $tests ; do 
     echo === $t 
