@@ -18,8 +18,10 @@ This avoids duplicating memory.
 #include <fstream>
 #include "NPU.hh"
 
-int main(int argc, char** argv)
+
+void test_make_header()
 {
+
     std::vector<float> v ;
     for( int i=0 ; i < 10 ; i++ ) v.push_back(float(i)) ;
 
@@ -47,10 +49,22 @@ int main(int argc, char** argv)
         << std::endl   
         ; 
 
-
     /**
     np.save("/tmp/b.npy", np.linspace(0,9,10, dtype=np.float32) )
     **/
+}
+
+void test_endian_detect()
+{
+    std::cout << "endian::detect() " << endian::detect() << std::endl ; 
+}
+
+
+
+int main(int argc, char** argv)
+{
+    test_make_header(); 
+    test_endian_detect(); 
 
     return 0 ; 
 }
