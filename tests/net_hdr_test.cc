@@ -1,7 +1,7 @@
 // gcc net_hdr_test.cc -std=c++11 -I.. -lstdc++ -o /tmp/net_hdr_test && /tmp/net_hdr_test 
 
 #include <iostream> 
-#include "net_hdr.hh"
+#include "NPU.hh"
 
 void net_hdr_test(const std::vector<unsigned>& items0  )
 {

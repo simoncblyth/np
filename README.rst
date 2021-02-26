@@ -10,14 +10,24 @@ Documentation of the NPY serialization format
 * https://github.com/numpy/numpy/blob/master/doc/neps/nep-0001-npy-format.rst
 
 
+NP.hh(+NPU.hh) provides a lightweight header only NPY writing/reading. 
+Just copy into your project and ``#include "NP.hh"`` to use. 
 
-Build and test 
------------------
+
+
+Tests of the header
+--------------------
 
 ::
 
-    clang NPTest.cc -lc++ -o /tmp/NPTest 
-    gcc NPTest.cc -lstdc++ -o /tmp/NPTest 
+    cd tests
+    ./go.sh 
+
+
+Or do some manual testing::
+
+    clang NPTest.cc -std=c++11 -lc++ -o /tmp/NPTest 
+    gcc NPTest.cc -std=c++11 -lstdc++ -o /tmp/NPTest 
        ## build test executable using your compiler, 
        ## implementation is entirely in headers NP.hh and NPU.hh
 

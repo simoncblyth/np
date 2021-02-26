@@ -1,28 +1,28 @@
 #include "descOtherInclude.hh"
-#include "desc.hh"
+#include "NPU.hh"
 #include <iostream>
 
 descOtherInclude::descOtherInclude()
 {
     std::cout 
         << "descOtherInclude" << std::endl << std::endl 
-        << "descr<float>::dtype() " << descr<float>::dtype() << std::endl   
-        << "descr<double>::dtype() " << descr<double>::dtype() << std::endl   
+        << "descr_<float>::dtype() " << descr_<float>::dtype() << std::endl   
+        << "descr_<double>::dtype() " << descr_<double>::dtype() << std::endl   
 
-        << "descr<char>::dtype() " << descr<char>::dtype() << std::endl   
-        << "descr<short>::dtype() " << descr<short>::dtype() << std::endl   
-        << "descr<int>::dtype() " << descr<int>::dtype() << std::endl   
-        << "descr<long>::dtype() " << descr<long>::dtype() << std::endl   
-        << "descr<long long>::dtype() " << descr<long long>::dtype() << std::endl   
+        << "descr_<char>::dtype() " << descr_<char>::dtype() << std::endl   
+        << "descr_<short>::dtype() " << descr_<short>::dtype() << std::endl   
+        << "descr_<int>::dtype() " << descr_<int>::dtype() << std::endl   
+        << "descr_<long>::dtype() " << descr_<long>::dtype() << std::endl   
+        << "descr_<long long>::dtype() " << descr_<long long>::dtype() << std::endl   
 
-        << "descr<unsigned char>::dtype() " << descr<unsigned char>::dtype() << std::endl   
-        << "descr<unsigned short>::dtype() " << descr<unsigned short>::dtype() << std::endl   
-        << "descr<unsigned int>::dtype() " << descr<unsigned int>::dtype() << std::endl   
-        << "descr<unsigned long>::dtype() " << descr<unsigned long>::dtype() << std::endl   
-        << "descr<unsigned long long>::dtype() " << descr<unsigned long long>::dtype() << std::endl   
+        << "descr_<unsigned char>::dtype() " << descr_<unsigned char>::dtype() << std::endl   
+        << "descr_<unsigned short>::dtype() " << descr_<unsigned short>::dtype() << std::endl   
+        << "descr_<unsigned int>::dtype() " << descr_<unsigned int>::dtype() << std::endl   
+        << "descr_<unsigned long>::dtype() " << descr_<unsigned long>::dtype() << std::endl   
+        << "descr_<unsigned long long>::dtype() " << descr_<unsigned long long>::dtype() << std::endl   
 
-        << "descr<std::complex<float> >::dtype() " << descr<std::complex<float> >::dtype() << std::endl   
-        << "descr<std::complex<double> >::dtype() " << descr<std::complex<double> >::dtype() << std::endl   
+        << "descr_<std::complex<float> >::dtype() " << descr_<std::complex<float> >::dtype() << std::endl   
+        << "descr_<std::complex<double> >::dtype() " << descr_<std::complex<double> >::dtype() << std::endl   
         << std::endl 
         << std::endl 
         ; 
