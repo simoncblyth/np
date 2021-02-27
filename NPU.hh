@@ -1,5 +1,16 @@
 #pragma once
 
+/**
+NPU.hh : Utilities used from NP.hh
+====================================
+
+This is developed in https://github.com/simoncblyth/np/
+but given the header-only nature is often just incorporated into 
+other projects together with NP.hh
+
+**/
+
+
 #include <sstream>
 #include <iostream>
 #include <string>

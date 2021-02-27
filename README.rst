@@ -1,6 +1,8 @@
 Minimal NumPy array from C++
 ==============================
 
+* https://github.com/simoncblyth/np/
+
 I searched and they were all excessively complicated for my taste, so I rolled my own: 
 
 * https://github.com/search?q=NPY+C%2B%2B
@@ -12,7 +14,6 @@ Documentation of the NPY serialization format
 
 NP.hh(+NPU.hh) provides a lightweight header only NPY writing/reading. 
 Just copy into your project and ``#include "NP.hh"`` to use. 
-
 
 
 Tests of the header

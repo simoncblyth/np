@@ -13,6 +13,10 @@
 NP 
 ===
 
+This is developed in https://github.com/simoncblyth/np/
+but given the header-only nature is often just incorporated into 
+other projects together with NPU.hh
+
 NP.hh(+NPU.hh) provides lightweight header only NPY writing/reading. 
 Just copy into your project and ``#include "NP.hh"`` to use. 
 
