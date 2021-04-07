@@ -784,14 +784,14 @@ template <typename T> void NP::Write(const char* dir, const char* name, const T*
     std::string dtype = descr_<T>::dtype() ; 
 
     std::cout 
-        << "NP::Write"
+        << "xNP::Write"
         << " dtype " << dtype
-        << " ni  " << ni_
+        << " ni  " << std::setw(7) << ni_
         << " nj  " << nj_
         << " nk  " << nk_
         << " nl  " << nl_
         << " nm  " << nm_
-        << " dir " << dir
+        << " dir " << std::setw(50) << dir
         << " name " << name
         << std::endl 
         ;   
@@ -835,7 +835,7 @@ template void NP::Write<double>(  const char*, const char*, const std::vector<do
 template void NP::Write<int>(     const char*, const char*, const std::vector<int>& ); 
 template void NP::Write<unsigned>(const char*, const char*, const std::vector<unsigned>& ); 
 
-void NP::WriteNames(const char* dir, const char* name, const std::vector<std::string>& names, unsigned num_names_ )
+inline void NP::WriteNames(const char* dir, const char* name, const std::vector<std::string>& names, unsigned num_names_ )
 {
     unsigned num_names = num_names_ == 0 ? names.size() : num_names_ ; 
     std::stringstream ss ; 
