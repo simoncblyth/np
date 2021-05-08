@@ -514,7 +514,8 @@ inline NP* NP::Load(const char* dir, const char* name)
 inline std::string NP::form_path(const char* dir, const char* name)
 {
     std::stringstream ss ; 
-    ss << dir << "/" << name ; 
+    ss << dir ; 
+    if(name) ss << "/" << name ; 
     return ss.str(); 
 }
 
