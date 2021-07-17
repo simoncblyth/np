@@ -25,10 +25,18 @@ Just copy into your project and ``#include "NP.hh"`` to use.
 
 struct NP
 {
+    template<typename T> static NP*  Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1 );  // dtype from template type
+
     NP(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
-    void set_dtype(const char* dtype_); // may change shape and size of array while retaining the same underlying bytes 
+    void init(); 
+    void set_shape( int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1); 
+    void set_shape( const std::vector<int>& src_shape ); 
+    void set_dtype(const char* dtype_); // *set_dtype* may change shape and size of array while retaining the same underlying bytes 
 
     static void sizeof_check(); 
+
+    static NP* Concatenate(const std::vector<NP*>& aa); 
+    static NP* Concatenate(const char* dir, const std::vector<std::string>& names); 
     static NP* Load(const char* path); 
     static NP* Load(const char* dir, const char* name); 
     static NP* MakeDemo(const char* dtype="<f4" , int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
@@ -40,6 +48,7 @@ struct NP
     template<typename T> static void Write(const char* path                 , const T* data, int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
     static void WriteNames(const char* dir, const char* name, const std::vector<std::string>& names, unsigned num_names=0 ); 
+    static void WriteNames(const char* dir, const char* reldir, const char* name, const std::vector<std::string>& names, unsigned num_names=0 ); 
     static void WriteNames(const char* path,                  const std::vector<std::string>& names, unsigned num_names=0 ); 
 
     static void ReadNames(const char* dir, const char* name, std::vector<std::string>& names ) ;
@@ -59,6 +68,7 @@ struct NP
     void fillIndexFlat(); 
     void dump(int i0=-1, int i1=-1) const ; 
 
+    void clear();   
     int load(const char* path);   
     int load(const char* dir, const char* name);   
     static std::string form_path(const char* dir, const char* name);   
@@ -81,6 +91,7 @@ struct NP
     const char* bytes() const ;  
 
     unsigned num_values() const ; 
+    unsigned num_itemvalues() const ; 
     unsigned arr_bytes() const ;   // formerly num_bytes
     unsigned hdr_bytes() const ;  
     unsigned meta_bytes() const ;
@@ -375,6 +386,7 @@ inline void NP::set_dtype(const char* dtype_)
 
 inline unsigned NP::hdr_bytes() const { return _hdr.length() ; }
 inline unsigned NP::num_values() const { return NPS::size(shape) ;  }
+inline unsigned NP::num_itemvalues() const { return NPS::itemsize(shape) ;  }
 inline unsigned NP::arr_bytes()  const { return NPS::size(shape)*ebyte ; }
 inline unsigned NP::meta_bytes() const { return meta.length() ; }
 
@@ -389,15 +401,27 @@ inline NP::NP(const char* dtype_, int ni, int nj, int nk, int nl, int nm )
     ebyte(NPU::_dtype_ebyte(dtype)),
     size(NPS::set_shape(shape, ni,nj,nk,nl,nm ))
 {
+    init(); 
+}
+
+inline void NP::init()
+{
     data.resize( size*ebyte ) ;  // vector of char  
     std::fill( data.begin(), data.end(), 0 );     
-
     _prefix.assign(net_hdr::LENGTH, '\0' ); 
     _hdr = make_header(); 
 }
 
-
-
+inline void NP::set_shape(int ni, int nj, int nk, int nl, int nm)
+{
+    size = NPS::copy_shape(shape, ni, nj, nk, nl, nm); 
+    init(); 
+}
+inline void NP::set_shape(const std::vector<int>& src_shape)
+{
+    size = NPS::copy_shape(shape, src_shape); 
+    init(); 
+}
 
 template<typename T> inline T*  NP::values() { return (T*)data.data() ;  } 
 
@@ -507,6 +531,76 @@ inline std::string NP::desc() const
     return ss.str(); 
 }
 
+
+inline NP* NP::Concatenate(const char* dir, const std::vector<std::string>& names) // static 
+{
+    std::vector<NP*> aa ;
+    for(unsigned i=0 ; i < names.size() ; i++)
+    {
+         const char* name = names[i].c_str(); 
+         NP* a = Load(dir, name); 
+         aa.push_back(a); 
+    }
+    NP* concat = NP::Concatenate(aa); 
+    return concat ; 
+}
+
+inline NP* NP::Concatenate(const std::vector<NP*>& aa)  // static 
+{
+    assert( aa.size() > 0 ); 
+
+    NP* a0 = aa[0] ; 
+    
+    unsigned nv0 = a0->num_itemvalues() ; 
+    const char* dtype0 = a0->dtype ; 
+
+    for(unsigned i=0 ; i < aa.size() ; i++)
+    {
+        NP* a = aa[i] ;
+
+        unsigned nv = a->num_itemvalues() ; 
+        bool compatible = nv == nv0 && strcmp(dtype0, a->dtype) == 0 ; 
+        if(!compatible) 
+            std::cout 
+                << "NP::Concatenate FATAL expecting equal itemsize"
+                << " nv " << nv 
+                << " nv0 " << nv0 
+                << " a.dtype " << a->dtype 
+                << " dtype0 " << dtype0 
+                << std::endl
+                ; 
+        assert(compatible);  
+
+        std::cout << std::setw(3) << i << " " << a->desc() << " nv " << nv << std::endl ; 
+    }
+
+    unsigned ni_total = 0 ; 
+    for(unsigned i=0 ; i < aa.size() ; i++) ni_total += aa[i]->shape[0] ; 
+    std::cout << " ni_total " << ni_total << std::endl ; 
+
+    std::vector<int> comb_shape ; 
+    NPS::copy_shape( comb_shape, a0->shape );  
+    comb_shape[0] = ni_total ; 
+
+    NP* c = new NP(a0->dtype); 
+    c->set_shape(comb_shape); 
+    std::cout << " c " << c->desc() << std::endl ; 
+
+    unsigned offset_bytes = 0 ; 
+    for(unsigned i=0 ; i < aa.size() ; i++)
+    {
+        NP* a = aa[i]; 
+        unsigned a_bytes = a->arr_bytes() ; 
+        memcpy( c->data.data() + offset_bytes ,  a->data.data(),  a_bytes ); 
+        offset_bytes += a_bytes ;  
+        a->clear(); 
+    }
+    return c ; 
+}
+
+
+
+
 inline NP* NP::Load(const char* path)
 {
     NP* a = new NP() ; 
@@ -532,11 +626,17 @@ inline std::string NP::form_path(const char* dir, const char* reldir, const char
 {
     std::stringstream ss ; 
     ss << dir ; 
-    if(name) ss << "/" << name ; 
     if(reldir) ss << "/" << reldir ; 
+    if(name) ss << "/" << name ; 
     return ss.str(); 
 }
 
+inline void NP::clear()
+{
+    data.clear(); 
+    data.shrink_to_fit(); 
+    shape[0] = 0 ;  
+}
 
 inline int NP::load(const char* dir, const char* name)
 {
@@ -586,6 +686,7 @@ inline void NP::save_header(const char* path)
 
 inline void NP::save(const char* path)
 {
+    std::cout << "NP::save path [" << path  << "]" << std::endl ; 
     update_headers(); 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
     stream << _hdr ; 
@@ -594,6 +695,7 @@ inline void NP::save(const char* path)
 
 inline void NP::save(const char* dir, const char* reldir, const char* name)
 {
+    std::cout << "NP::save dir [" << ( dir ? dir : "-" )  << "] reldir [" << ( reldir ? reldir : "-" )  << "] name [" << name << "]" << std::endl ; 
     std::string path = form_path(dir, reldir, name); 
     save(path.c_str()); 
 }
@@ -822,6 +924,16 @@ template <typename T> void NP::read(const T* data)
     }   
 }
 
+
+template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_ )
+{
+    std::string dtype = descr_<T>::dtype() ; 
+    NP* a = new NP(dtype.c_str(), ni_,nj_,nk_,nl_,nm_) ;    
+    return a ; 
+}
+
+
+
 template <typename T> void NP::Write(const char* dir, const char* name, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_ ) // static
 {
     std::string dtype = descr_<T>::dtype() ; 
@@ -858,8 +970,8 @@ template <typename T> void NP::Write(const char* dir, const char* reldir, const 
         << " nk  " << nk_
         << " nl  " << nl_
         << " nm  " << nm_
-        << " dir " << std::setw(50) << dir
-        << " reldir " << std::setw(50) << reldir
+        << " dir " << std::setw(50) << ( dir ? dir : "-" )
+        << " reldir " << std::setw(50) << ( reldir ? reldir : "-" )
         << " name " << name
         << std::endl 
         ;   
@@ -917,6 +1029,18 @@ inline void NP::WriteNames(const char* dir, const char* name, const std::vector<
     std::string path = ss.str() ; 
     WriteNames(path.c_str(), names, num_names_ ); 
 }
+
+inline void NP::WriteNames(const char* dir, const char* reldir, const char* name, const std::vector<std::string>& names, unsigned num_names_ )
+{
+    std::stringstream ss ; 
+    ss << dir << "/" ;
+    if(reldir) ss << reldir << "/" ; 
+    ss << name ; 
+    std::string path = ss.str() ; 
+    WriteNames(path.c_str(), names, num_names_ ); 
+}
+
+
 inline void NP::WriteNames(const char* path, const std::vector<std::string>& names, unsigned num_names_ )
 {
     unsigned num_names = num_names_ == 0 ? names.size() : num_names_ ; 
