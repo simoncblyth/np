@@ -537,7 +537,7 @@ inline int NP::Memcmp(const NP* a, const NP* b ) // static
 {
     unsigned a_bytes = a->arr_bytes() ; 
     unsigned b_bytes = b->arr_bytes() ; 
-    return a_bytes == b_bytes ? memcmp(a, b, a_bytes) : -1 ; 
+    return a_bytes == b_bytes ? memcmp(a->bytes(), b->bytes(), a_bytes) : -1 ; 
 }
 
 inline NP* NP::Concatenate(const char* dir, const std::vector<std::string>& names) // static 
