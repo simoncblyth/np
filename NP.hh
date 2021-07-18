@@ -27,6 +27,7 @@ struct NP
 {
     template<typename T> static NP*  Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1 );  // dtype from template type
 
+
     NP(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
     void init(); 
     void set_shape( int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1); 
@@ -35,6 +36,7 @@ struct NP
 
     static void sizeof_check(); 
 
+    static int Memcmp( const NP* a, const NP* b ); 
     static NP* Concatenate(const std::vector<NP*>& aa); 
     static NP* Concatenate(const char* dir, const std::vector<std::string>& names); 
     static NP* Load(const char* path); 
@@ -531,6 +533,12 @@ inline std::string NP::desc() const
     return ss.str(); 
 }
 
+inline int NP::Memcmp(const NP* a, const NP* b ) // static
+{
+    unsigned a_bytes = a->arr_bytes() ; 
+    unsigned b_bytes = b->arr_bytes() ; 
+    return a_bytes == b_bytes ? memcmp(a, b, a_bytes) : -1 ; 
+}
 
 inline NP* NP::Concatenate(const char* dir, const std::vector<std::string>& names) // static 
 {
