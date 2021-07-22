@@ -3,9 +3,7 @@
 #include <iostream>
 #include "NP.hh"
 
-
-
-int main(int argc, char** argv)
+void test_load(int argc, char** argv)
 {
     const char* default_path = "/tmp/wavelength_deviant_mask.npy" ; 
     const char* path = argc > 1 ? argv[1] : default_path ; 
@@ -28,6 +26,19 @@ int main(int argc, char** argv)
                 << std::endl
                 ; 
     }
+}
+
+void test_Linspace()
+{
+    NP* a = NP::Linspace<float>(0.f, 1.f, 11u ); 
+    a->dump();  
+}
+
+
+int main(int argc, char** argv)
+{
+    //test_load(argc, argv); 
+    test_Linspace(); 
     return 0 ;
 }
 
