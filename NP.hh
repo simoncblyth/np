@@ -84,6 +84,7 @@ struct NP
     template<typename T> void _fillIndexFlat(T offset=0); 
     template<typename T> void _dump(int i0=-1, int i1=-1) const ;   
 
+    static NP* MakeNarrow(const NP* src); 
 
     bool is_pshaped() const ; 
     template<typename T> void pscale(T scale, unsigned column);
@@ -561,10 +562,36 @@ template   void NP::_fillIndexFlat<unsigned long long>(unsigned long long) ;
 
 
 
+inline NP* NP::MakeNarrow(const NP* a) // static 
+{
+    assert( a->ebyte == 8 ); 
+    std::string b_dtype = NPU::_make_narrow(a->dtype); 
 
+    NP* b = new NP(b_dtype.c_str()); 
+    b->set_shape( a->shape ); 
 
+    assert( a->num_values() == b->num_values() ); 
+    unsigned nv = a->num_values(); 
 
+    if( a->uifc == 'f' && b->uifc == 'f')
+    {
+        const double* aa = a->cvalues<double>() ;  
+        float* bb = b->values<float>() ;  
+        for(unsigned i=0 ; i < nv ; i++)
+        {
+            bb[i] = float(aa[i]); 
+        }
+    }
 
+    std::cout 
+        << "NP::MakeNarrow"
+        << " a.dtype " << a->dtype
+        << " b.dtype " << b->dtype
+        << std::endl 
+        ;
+
+    return b ; 
+}
 
 
 inline bool NP::is_pshaped() const

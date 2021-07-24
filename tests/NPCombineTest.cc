@@ -169,7 +169,7 @@ void test_simple()
     NPCombineTest<float> t(aa, -1.f, 8.f, 91); 
 }
 
-void test_RINDEX(unsigned ndom)
+void test_RINDEX(unsigned ndom, bool narrow)
 {
     const char* keydir = getenv("OPTICKS_KEYDIR") ; 
     assert( keydir ); 
@@ -186,15 +186,27 @@ void test_RINDEX(unsigned ndom)
     c->pscale<double>(1e6, 0u); 
     c->pscale<double>(0.95, 1u); 
 
-    std::vector<const NP*> aa = { a, b, c } ; 
-
-    NPCombineTest<double> t(aa, 1., 16., ndom ); 
+    if( narrow == false )
+    { 
+        std::vector<const NP*> aa = { a, b, c } ; 
+        NPCombineTest<double> t(aa, 1., 16., ndom ); 
+    }
+    else
+    {
+        NP* an = NP::MakeNarrow( a ); 
+        NP* bn = NP::MakeNarrow( b ); 
+        NP* cn = NP::MakeNarrow( c ); 
+        std::vector<const NP*> aa = { an, bn, cn } ; 
+        NPCombineTest<float> t(aa, 1.f, 16.f, ndom ); 
+    }
 }
+
+
 
 int main(int argc, char** argv)
 {
     //test_simple(); 
-    test_RINDEX(1000); 
+    test_RINDEX(1000, true); 
     return 0 ;
 }
 
