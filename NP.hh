@@ -6,6 +6,7 @@
 #include <vector>
 #include <cassert>
 #include <fstream>
+#include <cstdint>
 
 #include "NPU.hh"
 
@@ -25,9 +26,24 @@ Just copy into your project and ``#include "NP.hh"`` to use.
 
 struct NP
 {
+    union UIF32
+    {
+        std::uint32_t u ;
+        std::int32_t  i ; 
+        float         f ;  
+    };            
+
+    union UIF64
+    {
+        std::uint64_t  u ;
+        std::int64_t   i ; 
+        double         f ;  
+    };            
+
+
     template<typename T> static NP*  Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1 );  // dtype from template type
     template<typename T> static NP*  Linspace( T x0, T x1, unsigned nx ); 
-
+    template<typename T> static unsigned NumSteps( T x0, T x1, T dx ); 
 
     NP(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
     void init(); 
@@ -40,6 +56,9 @@ struct NP
     static int Memcmp( const NP* a, const NP* b ); 
     static NP* Concatenate(const std::vector<NP*>& aa); 
     static NP* Concatenate(const char* dir, const std::vector<std::string>& names); 
+
+    static NP* Combine(const std::vector<const NP*>& aa, bool annotate=true); 
+
     static NP* Load(const char* path); 
     static NP* Load(const char* dir, const char* name); 
     static NP* MakeDemo(const char* dtype="<f4" , int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
@@ -68,9 +87,10 @@ struct NP
 
     bool is_pshaped() const ; 
     template<typename T> void pscale(T scale, unsigned column);
+    template<typename T> void pscale_add(T scale, T add, unsigned column);
     template<typename T> void pdump(const char* msg="NP::pdump") const ; 
-    template<typename T> T    interp(T x) const ; 
-
+    template<typename T> T    interp(T x) const ;                  // requires pshaped 
+    template<typename T> T    interp(unsigned iprop, T x) const ;  // requires NP::Combine of pshaped arrays 
 
 
     template<typename T> void read(const T* data);
@@ -87,15 +107,15 @@ struct NP
     static std::string form_path(const char* dir, const char* reldir, const char* name);   
 
     void save_header(const char* path);   
-    void save(const char* path) ;  // *save* methods cannot be const because of update_headers
-    void save(const char* dir, const char* name) ;   
-    void save(const char* dir, const char* reldir, const char* name) ;   
-
+    void old_save(const char* path) ;  // formerly the *save* methods could not be const because of update_headers
+    void save(const char* path) const ;  // *save* methods now can be const due to dynamic creation of header
+    void save(const char* dir, const char* name) const ;   
+    void save(const char* dir, const char* reldir, const char* name) const ;   
 
     std::string get_jsonhdr_path() const ; // .npy -> .npj on loaded path
-    void save_jsonhdr();    
-    void save_jsonhdr(const char* path);   
-    void save_jsonhdr(const char* dir, const char* name);   
+    void save_jsonhdr() const ;    
+    void save_jsonhdr(const char* path) const ;   
+    void save_jsonhdr(const char* dir, const char* name) const ;   
 
     std::string desc() const ; 
 
@@ -105,6 +125,7 @@ struct NP
     unsigned num_values() const ; 
     unsigned num_itemvalues() const ; 
     unsigned arr_bytes() const ;   // formerly num_bytes
+    unsigned item_bytes() const ;   // *item* comprises all dimensions beyond the first 
     unsigned hdr_bytes() const ;  
     unsigned meta_bytes() const ;
   
@@ -205,6 +226,8 @@ Updates network header "prefix" and array header descriptions of the object.
 
 Cannot do this automatically in setters that change shape, dtype or metadata
 because are using a struct.  So just have to invoke this before streaming.  
+
+HMM : do not like this as it prevents NP::save from being const 
 
 **/
 
@@ -400,6 +423,7 @@ inline unsigned NP::hdr_bytes() const { return _hdr.length() ; }
 inline unsigned NP::num_values() const { return NPS::size(shape) ;  }
 inline unsigned NP::num_itemvalues() const { return NPS::itemsize(shape) ;  }
 inline unsigned NP::arr_bytes()  const { return NPS::size(shape)*ebyte ; }
+inline unsigned NP::item_bytes() const { return NPS::itemsize(shape)*ebyte ; }
 inline unsigned NP::meta_bytes() const { return meta.length() ; }
 
 inline char*        NP::bytes() { return (char*)data.data() ;  } 
@@ -450,20 +474,119 @@ template<typename T> inline void NP::_fillIndexFlat(T offset)
     for(unsigned i=0 ; i < size ; i++) *(vv+i) = T(i) + offset ; 
 }
 
+
+
+/**
+
+specialize-types(){ cat << EOT
+float
+double
+char
+short
+int
+long
+long long
+unsigned char
+unsigned short
+unsigned int
+unsigned long
+unsigned long long
+EOT
+}
+
+specialize-(){
+    cat << EOC | perl -pe "s,T,$1,g" - 
+template<> inline const T* NP::values<T>() const { return (T*)data.data() ; }
+template<> inline       T* NP::values<T>()      {  return (T*)data.data() ; }
+template   void NP::_fillIndexFlat<T>(T) ;
+
+EOC
+}
+specialize(){ specialize-types | while read t ; do specialize- "$t" ; done  ; }
+specialize
+
+**/
+
+// template specializations generated by above bash function
+
+template<>  inline const float* NP::cvalues<float>() const { return (float*)data.data() ; }
+template<>  inline       float* NP::values<float>()      {  return (float*)data.data() ; }
+template    void NP::_fillIndexFlat<float>(float) ;
+
+template<> inline const double* NP::cvalues<double>() const { return (double*)data.data() ; }
+template<> inline       double* NP::values<double>()      {  return (double*)data.data() ; }
+template   void NP::_fillIndexFlat<double>(double) ;
+
+template<> inline const char* NP::cvalues<char>() const { return (char*)data.data() ; }
+template<> inline       char* NP::values<char>()      {  return (char*)data.data() ; }
+template   void NP::_fillIndexFlat<char>(char) ;
+
+template<> inline const short* NP::cvalues<short>() const { return (short*)data.data() ; }
+template<> inline       short* NP::values<short>()      {  return (short*)data.data() ; }
+template   void NP::_fillIndexFlat<short>(short) ;
+
+template<> inline const int* NP::cvalues<int>() const { return (int*)data.data() ; }
+template<> inline       int* NP::values<int>()      {  return (int*)data.data() ; }
+template   void NP::_fillIndexFlat<int>(int) ;
+
+template<> inline const long* NP::cvalues<long>() const { return (long*)data.data() ; }
+template<> inline       long* NP::values<long>()      {  return (long*)data.data() ; }
+template   void NP::_fillIndexFlat<long>(long) ;
+
+template<> inline const long long* NP::cvalues<long long>() const { return (long long*)data.data() ; }
+template<> inline       long long* NP::values<long long>()      {  return (long long*)data.data() ; }
+template   void NP::_fillIndexFlat<long long>(long long) ;
+
+template<> inline const unsigned char* NP::cvalues<unsigned char>() const { return (unsigned char*)data.data() ; }
+template<> inline       unsigned char* NP::values<unsigned char>()      {  return (unsigned char*)data.data() ; }
+template   void NP::_fillIndexFlat<unsigned char>(unsigned char) ;
+
+template<> inline const unsigned short* NP::cvalues<unsigned short>() const { return (unsigned short*)data.data() ; }
+template<> inline       unsigned short* NP::values<unsigned short>()      {  return (unsigned short*)data.data() ; }
+template   void NP::_fillIndexFlat<unsigned short>(unsigned short) ;
+
+template<> inline const unsigned int* NP::cvalues<unsigned int>() const { return (unsigned int*)data.data() ; }
+template<> inline       unsigned int* NP::values<unsigned int>()      {  return (unsigned int*)data.data() ; }
+template   void NP::_fillIndexFlat<unsigned int>(unsigned int) ;
+
+template<> inline const unsigned long* NP::cvalues<unsigned long>() const { return (unsigned long*)data.data() ; }
+template<> inline       unsigned long* NP::values<unsigned long>()      {  return (unsigned long*)data.data() ; }
+template   void NP::_fillIndexFlat<unsigned long>(unsigned long) ;
+
+template<> inline const unsigned long long* NP::cvalues<unsigned long long>() const { return (unsigned long long*)data.data() ; }
+template<> inline       unsigned long long* NP::values<unsigned long long>()      {  return (unsigned long long*)data.data() ; }
+template   void NP::_fillIndexFlat<unsigned long long>(unsigned long long) ;
+
+
+
+
+
+
+
+
+
+
+
 inline bool NP::is_pshaped() const
 {
     bool property_shaped = shape.size() == 2 && shape[1] == 2 && shape[0] > 1 ;
     return property_shaped ;  
 }
 
-template<typename T> inline void NP::pscale(T scale, unsigned column)
+template<typename T> inline void NP::pscale_add(T scale, T add, unsigned column)
 {
     assert( is_pshaped() ); 
     assert( column < 2 ); 
     T* vv = values<T>(); 
     unsigned ni = shape[0] ; 
-    for(unsigned i=0 ; i < ni ; i++) vv[2*i+column] = vv[2*i+column]*scale ; 
+    for(unsigned i=0 ; i < ni ; i++) vv[2*i+column] = vv[2*i+column]*scale + add ;  ; 
 }
+
+template<typename T> inline void NP::pscale(T scale, unsigned column)
+{
+    pscale_add(scale, T(0.), column ); 
+}
+
 
 
 template<typename T> inline void NP::pdump(const char* msg) const  
@@ -502,14 +625,14 @@ template<typename T> inline T NP::interp(T x) const
     assert( shape.size() == 2 && shape[1] == 2 && shape[0] > 1); 
     unsigned ni = shape[0] ; 
 
-    // pdump<T>("NP::interp.pdump (not being explicit with the type managed to scramble array content) ");  
+    //pdump<T>("NP::interp.pdump (not being explicit with the type managed to scramble array content) ");  
 
     const T* vv = cvalues<T>(); 
 
     int lo = 0 ;
     int hi = ni-1 ;
 
-    /*
+/*
     std::cout 
          << " NP::interp "
          << " x " << x 
@@ -522,9 +645,7 @@ template<typename T> inline T NP::interp(T x) const
          << " vy_hi " <<  vv[2*hi+1] 
          << std::endl
          ; 
-
-    */
-
+*/
 
     if( x <= vv[2*lo+0] ) return vv[2*lo+1] ; 
     if( x >= vv[2*hi+0] ) return vv[2*hi+1] ; 
@@ -541,6 +662,69 @@ template<typename T> inline T NP::interp(T x) const
     T y = vv[2*lo+1] + dy*(x-vv[2*lo+0])/dx ; 
     return y ; 
 }
+
+
+
+
+template<typename T> inline T NP::interp(unsigned iprop, T x) const  
+{
+    unsigned ndim = shape.size() ; 
+    assert( ndim == 3 && shape[ndim-1] == 2 && iprop < shape[0] && shape[1] > 1 ); 
+
+    unsigned niv = num_itemvalues() ; 
+    const T* vv = cvalues<T>() + iprop*niv ; 
+
+    unsigned ni(0) ; 
+    if( ebyte == 4 )
+    {
+        UIF32 uif32 ; 
+        uif32.f = *( vv + niv - 1) ; 
+        ni = uif32.u ; 
+    }
+    else if( ebyte == 8 )
+    {
+        UIF64 uif64 ; 
+        uif64.f = *( vv + niv - 1) ; 
+        ni = uif64.u ;   // narrowing doesnt matter, as unsigned will be big enough 
+    }
+
+    int lo = 0 ;
+    int hi = ni-1 ;
+
+/*
+    std::cout 
+         << " NP::interp "
+         << " x " << x 
+         << " ni " << ni 
+         << " lo " << lo
+         << " hi " << hi
+         << " vx_lo " << vv[2*lo+0] 
+         << " vy_lo " <<  vv[2*lo+1] 
+         << " vx_hi " << vv[2*hi+0] 
+         << " vy_hi " <<  vv[2*hi+1] 
+         << std::endl
+         ; 
+*/
+
+    if( x <= vv[2*lo+0] ) return vv[2*lo+1] ; 
+    if( x >= vv[2*hi+0] ) return vv[2*hi+1] ; 
+
+    while (lo < hi-1)
+    {
+        int mi = (lo+hi)/2;
+        if (x < vv[2*mi+0]) hi = mi ;
+        else lo = mi;
+    }
+
+    T dy = vv[2*hi+1] - vv[2*lo+1] ; 
+    T dx = vv[2*hi+0] - vv[2*lo+0] ; 
+    T y = vv[2*lo+1] + dy*(x-vv[2*lo+0])/dx ; 
+    return y ; 
+}
+
+
+
+
 
 
 
@@ -705,13 +889,120 @@ inline NP* NP::Concatenate(const std::vector<NP*>& aa)  // static
         unsigned a_bytes = a->arr_bytes() ; 
         memcpy( c->data.data() + offset_bytes ,  a->data.data(),  a_bytes ); 
         offset_bytes += a_bytes ;  
-        a->clear(); 
+        a->clear(); // HUH: THATS A BIT IMPOLITE ASSUMING CALLER DOESNT WANT TO USE INPUTS
     }
     return c ; 
 }
 
+/**
+NP::Combine
+------------
 
+Combines 2d arrays with different item counts using the largest item count plus one
+for the middle dimension of the resulting 3d array.
 
+For example a combination of 2d arrays with shapes: (n0,m) (n1,m) (n2,m) (n3,m) (n4,m) 
+yields an output 3d array with shape: (5, 1+max(n0,n1,n2,n3,n4), m ) 
+The extra "1+" column is used for including annotation of the n0, n1, n2, n3, n4  values
+within the output array.  
+
+The canonical usage is for combination of paired properties with m=2 however
+the implementation could easily be generalized to work with higher dimensions if necessary.  
+
+Note that if the n0,n1,n2,... dimensions are very different then the combined array will 
+be inefficient with lots of padding so it makes sense to avoid large differences.  
+When all the n are equal the annotation and adding could be disabled by setting annotate=false.  
+
+See also:
+
+tests/NPInterp.py:np_irregular_combine 
+    python prototype 
+
+test/NPCombineTest.cc 
+    testing this NP::Combine and NP::interp on the combined array 
+
+**/
+inline NP* NP::Combine(const std::vector<const NP*>& aa, bool annotate)  // static 
+{
+    assert( aa.size() > 0 ); 
+    const NP* a0 = aa[0] ; 
+
+    const char* dtype0 = a0->dtype ; 
+    int ebyte0 = a0->ebyte ; 
+    unsigned ndim0 = a0->shape.size() ; 
+    unsigned ldim0 = a0->shape[ndim0-1] ; 
+    unsigned fdim_mx = a0->shape[0] ; 
+
+    for(unsigned i=1 ; i < aa.size() ; i++)
+    { 
+        const NP* a = aa[i]; 
+        assert( strcmp( a->dtype, dtype0 ) == 0 ); 
+
+        unsigned ndim = a->shape.size() ; 
+        assert( ndim == ndim0 && "input arrays must all have an equal number of dimensions" ); 
+
+        unsigned ldim = a->shape[ndim-1] ; 
+        assert( ldim == ldim0 && "last dimension of the input arrays must be equal" ); 
+
+        unsigned fdim = a->shape[0] ; 
+        if( fdim > fdim_mx ) fdim_mx = fdim ; 
+    }
+    unsigned width = fdim_mx + unsigned(annotate) ; 
+    assert( ldim0 == 2 && "last dimension must currently be 2"); 
+
+    NP* c = new NP(a0->dtype, aa.size(), width, ldim0 ); 
+    unsigned item_bytes = c->item_bytes(); 
+
+    std::cout 
+        << "NP::Combine"
+        << " ebyte0 " << ebyte0
+        << " item_bytes " << item_bytes
+        << " aa.size " << aa.size()
+        << " width " << width
+        << " ldim0 " << ldim0
+        << " c " << c->desc() 
+        << std::endl 
+        ; 
+
+    assert( item_bytes % ebyte0 == 0 ); 
+    unsigned offset_bytes = 0 ; 
+    for(unsigned i=0 ; i < aa.size() ; i++)
+    {
+        const NP* a = aa[i]; 
+        unsigned a_bytes = a->arr_bytes() ; 
+        memcpy( c->data.data() + offset_bytes ,  a->data.data(),  a_bytes ); 
+        offset_bytes += item_bytes ;  
+    }
+   
+    if( annotate )
+    {
+        if( ebyte0 == 4 )
+        {
+            float* cc = c->values<float>();  
+            UIF32 uif32 ;  
+            for(unsigned i=0 ; i < aa.size() ; i++)
+            {
+                const NP* a = aa[i]; 
+                uif32.u = a->shape[0] ;                  
+                std::cout << " annotate " << i << " uif32.u  " << uif32.u  << std::endl ; 
+                *(cc + (i+1)*item_bytes/ebyte0 - 1) = uif32.f ;   
+            }  
+        }
+        else if( ebyte0 == 8 )
+        {
+            double* cc = c->values<double>();  
+            UIF64 uif64 ;  
+            for(unsigned i=0 ; i < aa.size() ; i++)
+            {
+                const NP* a = aa[i]; 
+                uif64.u = a->shape[0] ;                  
+                std::cout << " annotate " << i << " uif64.u  " << uif64.u  << std::endl ; 
+                *(cc + (i+1)*item_bytes/ebyte0 - 1) = uif64.f ;   
+            }  
+        }
+    }
+    return c ; 
+}
 
 inline NP* NP::Load(const char* path)
 {
@@ -796,7 +1087,7 @@ inline void NP::save_header(const char* path)
     stream << _hdr ; 
 }
 
-inline void NP::save(const char* path) 
+inline void NP::old_save(const char* path)  // non-const due to update_headers
 {
     std::cout << "NP::save path [" << path  << "]" << std::endl ; 
     update_headers(); 
@@ -805,27 +1096,36 @@ inline void NP::save(const char* path)
     stream.write( bytes(), arr_bytes() );
 }
 
-inline void NP::save(const char* dir, const char* reldir, const char* name)
+inline void NP::save(const char* path) const 
+{
+    std::cout << "NP::save path [" << path  << "]" << std::endl ; 
+    std::string hdr = make_header(); 
+    std::ofstream stream(path, std::ios::out|std::ios::binary);
+    stream << hdr ; 
+    stream.write( bytes(), arr_bytes() );
+}
+
+inline void NP::save(const char* dir, const char* reldir, const char* name) const 
 {
     std::cout << "NP::save dir [" << ( dir ? dir : "-" )  << "] reldir [" << ( reldir ? reldir : "-" )  << "] name [" << name << "]" << std::endl ; 
     std::string path = form_path(dir, reldir, name); 
     save(path.c_str()); 
 }
 
-inline void NP::save(const char* dir, const char* name) 
+inline void NP::save(const char* dir, const char* name) const 
 {
     std::string path = form_path(dir, name); 
     save(path.c_str()); 
 }
 
-inline void NP::save_jsonhdr(const char* path)
+inline void NP::save_jsonhdr(const char* path) const 
 {
     std::string json = make_jsonhdr(); 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
     stream << json ; 
 }
 
-inline void NP::save_jsonhdr(const char* dir, const char* name)
+inline void NP::save_jsonhdr(const char* dir, const char* name) const 
 {
     std::string path = form_path(dir, name); 
     save_jsonhdr(path.c_str()); 
@@ -839,7 +1139,7 @@ inline std::string NP::get_jsonhdr_path() const
     return path ; 
 }
 
-inline void NP::save_jsonhdr()
+inline void NP::save_jsonhdr() const 
 {
     std::string path = get_jsonhdr_path() ; 
     std::cout << "NP::save_jsonhdr to " << path << std::endl  ; 
@@ -931,95 +1231,6 @@ template <typename T> inline void NP::_dump(int i0_, int i1_) const
 }
 
 
-/**
-
-specialize-head(){ cat << EOH
-// template specializations generated by below bash functions
-
-EOH
-}
-
-specialize-types(){ cat << EOT
-float
-double
-char
-short
-int
-long
-long long
-unsigned char
-unsigned short
-unsigned int
-unsigned long
-unsigned long long
-EOT
-}
-
-specialize-(){
-    cat << EOC | perl -pe "s,T,$1,g" - 
-template<> inline const T* NP::values<T>() const { return (T*)data.data() ; }
-template<> inline       T* NP::values<T>()      {  return (T*)data.data() ; }
-template   void NP::_fillIndexFlat<T>(T) ;
-
-EOC
-}
-specialize(){ specialize-head ; specialize-types | while read t ; do specialize- "$t" ; done  ; }
-specialize
-
-**/
-
-
-// template specializations generated by below bash functions
-
-template<>  inline const float* NP::cvalues<float>() const { return (float*)data.data() ; }
-template<>  inline       float* NP::values<float>()      {  return (float*)data.data() ; }
-template    void NP::_fillIndexFlat<float>(float) ;
-
-template<> inline const double* NP::cvalues<double>() const { return (double*)data.data() ; }
-template<> inline       double* NP::values<double>()      {  return (double*)data.data() ; }
-template   void NP::_fillIndexFlat<double>(double) ;
-
-template<> inline const char* NP::cvalues<char>() const { return (char*)data.data() ; }
-template<> inline       char* NP::values<char>()      {  return (char*)data.data() ; }
-template   void NP::_fillIndexFlat<char>(char) ;
-
-template<> inline const short* NP::cvalues<short>() const { return (short*)data.data() ; }
-template<> inline       short* NP::values<short>()      {  return (short*)data.data() ; }
-template   void NP::_fillIndexFlat<short>(short) ;
-
-template<> inline const int* NP::cvalues<int>() const { return (int*)data.data() ; }
-template<> inline       int* NP::values<int>()      {  return (int*)data.data() ; }
-template   void NP::_fillIndexFlat<int>(int) ;
-
-template<> inline const long* NP::cvalues<long>() const { return (long*)data.data() ; }
-template<> inline       long* NP::values<long>()      {  return (long*)data.data() ; }
-template   void NP::_fillIndexFlat<long>(long) ;
-
-template<> inline const long long* NP::cvalues<long long>() const { return (long long*)data.data() ; }
-template<> inline       long long* NP::values<long long>()      {  return (long long*)data.data() ; }
-template   void NP::_fillIndexFlat<long long>(long long) ;
-
-template<> inline const unsigned char* NP::cvalues<unsigned char>() const { return (unsigned char*)data.data() ; }
-template<> inline       unsigned char* NP::values<unsigned char>()      {  return (unsigned char*)data.data() ; }
-template   void NP::_fillIndexFlat<unsigned char>(unsigned char) ;
-
-template<> inline const unsigned short* NP::cvalues<unsigned short>() const { return (unsigned short*)data.data() ; }
-template<> inline       unsigned short* NP::values<unsigned short>()      {  return (unsigned short*)data.data() ; }
-template   void NP::_fillIndexFlat<unsigned short>(unsigned short) ;
-
-template<> inline const unsigned int* NP::cvalues<unsigned int>() const { return (unsigned int*)data.data() ; }
-template<> inline       unsigned int* NP::values<unsigned int>()      {  return (unsigned int*)data.data() ; }
-template   void NP::_fillIndexFlat<unsigned int>(unsigned int) ;
-
-template<> inline const unsigned long* NP::cvalues<unsigned long>() const { return (unsigned long*)data.data() ; }
-template<> inline       unsigned long* NP::values<unsigned long>()      {  return (unsigned long*)data.data() ; }
-template   void NP::_fillIndexFlat<unsigned long>(unsigned long) ;
-
-template<> inline const unsigned long long* NP::cvalues<unsigned long long>() const { return (unsigned long long*)data.data() ; }
-template<> inline       unsigned long long* NP::values<unsigned long long>()      {  return (unsigned long long*)data.data() ; }
-template   void NP::_fillIndexFlat<unsigned long long>(unsigned long long) ;
-
-
 template <typename T> void NP::read(const T* data) 
 {
     T* v = values<T>(); 
@@ -1045,6 +1256,17 @@ template <typename T> NP* NP::Linspace( T x0, T x1, unsigned nx )
     for(unsigned i=0 ; i < nx ; i++) vv[i] = x0 + (x1-x0)*T(i)/T(nx-1) ;
     return dom ; 
 }
+
+template <typename T> unsigned NP::NumSteps( T x0, T x1, T dx )
+{
+    assert( x1 > x0 ); 
+    assert( dx > T(0.) ) ; 
+
+    unsigned ns = 0 ; 
+    for(T x=x0 ; x <= x1 ; x+=dx ) ns+=1 ; 
+    return ns ; 
+}
+
 
 template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_ )
 {

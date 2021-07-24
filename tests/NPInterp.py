@@ -55,21 +55,53 @@ def np_interp_compound( aa, i, x ):
 
     ::
 
+        In [1]: pp
+        Out[1]:
+        array([[[  0.,  50.],
+                [  1., 100.],
+                [  2., 150.],
+                [  0.,   0.],
+                [  0.,   0.],
+                [  0., *0.*]],  # < uint annotation in pp[:,-1,-1]
+
+               [[  0., 100.],
+                [  1., 200.],
+                [  2., 300.],
+                [  3., 400.],
+                [  0.,   0.],
+                [  0., *0.*]],
+
+               [[  0., 150.],
+                [  1., 250.],
+                [  2., 350.],
+                [  3., 450.],
+                [  4., 550.],
+                [  0., *0.*]]], dtype=float32)
+
+    In [4]: pp.view(np.uint32)[:,-1,-1]
+    Out[4]: array([3, 4, 5], dtype=uint32)
+
+    In [2]: pp.shape
+    Out[2]: (3, 6, 2)
+
+    Formerly flattened the last dimension::
+
         In [7]: aa   ## eg shape  (3, 12)
         Out[7]:
         array([[  0.,  50.,   1., 100.,   2., 150.,   0.,   0.,   0.,   0.,   0.,   0.],
                [  0., 100.,   1., 200.,   2., 300.,   3., 400.,   0.,   0.,   0.,   0.],
                [  0., 150.,   1., 250.,   2., 350.,   3., 450.,   4., 550.,   0.,   0.]], dtype=float32)
 
+
     """
-    assert len(aa.shape) == 2 and aa.shape[-1] % 2 == 0
+    assert len(aa.shape) == 3 and aa.shape[-1] == 2
     assert i < len(aa)
     utype = np_utype(aa.dtype)
 
     a = aa[i]
-    i2 = a.view(utype)[-2] ; assert i2 == i
-    ni = a.view(utype)[-1] ; assert ni > 1 
-    return _np_interp( a, ni, x )
+    ni = a.view(utype)[-1,-1] ; assert ni > 1
+    vv = a.ravel()
+    return _np_interp( vv, ni, x )
 
 
 def np_utype(dtype):
@@ -77,21 +109,52 @@ def np_utype(dtype):
     :param dtype: float32 or float64 dtype
     :return utype: corresponding uint32 or uint64 dtype
     """
-    assert str(dtype).startswith("float")   
+    assert str(dtype).startswith("float")
     uint_dtype = str(dtype).replace("float","uint")
     uint_dtype = getattr(np, uint_dtype)
     return uint_dtype
 
-def np_irregular_combine(*pp):
+def np_irregular_combine(*pp, annotate=True):
+    """
+    :param pp: list of arrays
+    :return aa: combination array, with shape annotation in uint view of extra column
+
+    This is used as the prototype for NP.hh/NP::Combine
+
+    Example shapes of input and output arrays::
+
+       (n0,1) (n1,1) (n2,1) (n3,1) (n4,1)  ->   ( count(n0,n1,n2,n3,n4) = 5 , 1+max(n0,n1,n2,n3,n4) , 1 )
+       (n0,2) (n1,2) (n2,2) (n3,2) (n4,2)  ->   ( count(n0,n1,n2,n3,n4) = 5 , 1+max(n0,n1,n2,n3,n4) , 2 )
+       (n0,3) (n1,3) (n2,3) (n3,3) (n4,3)  ->   ( count(n0,n1,n2,n3,n4) = 5 , 1+max(n0,n1,n2,n3,n4) , 3 )
+
+    Currently the special casing to handle the below is not implemented::
+
+       (n0,)  (n1,)  (n2,)  (n3,)  (n4,)   ->   ( count(n0,n1,n2,n3,n4) = 5 , 1+max(n0,n1,n2,n3,n4) , 1 )
+
+    """
     dtype = pp[0].dtype
     utype = np_utype(dtype)
 
-    width = 1 + max(map(len, pp))
-    aa = np.zeros( (len(pp),2*width), dtype=dtype )
+    ndims = list(map(lambda _:_.ndim, pp))
+    u_ndims = np.unique(ndims)
+    assert len(u_ndims) == 1, ("input arrays must all have an equal number of dimensions", ndims )
+    ndim = ndims[0]
+    assert ndim == 2, ("input arrays must be 2d", ndim)
+
+    ldims = list(map(lambda _:_.shape[-1],pp))   # last dimension
+    u_ldims = np.unique(ldims)
+    assert len(u_ldims) == 1, ("last dimension of the input arrays must be equal", ldims)
+    ldim = ldims[0]
+
+    fdims = list(map(lambda _:_.shape[0],pp))  # first dimension
+    width = max(fdims) + int(annotate)
+
+    aa = np.zeros( (len(pp),width,ldim), dtype=dtype )
     for i,p in enumerate(pp):
-        aa[i,:len(p)*2] = p.ravel() 
-        aa.view(utype)[i,-2] = i
-        aa.view(utype)[i,-1] = len(p)
+        aa[i,:len(p),:] = p
+        if annotate:
+            aa.view(utype)[i,-1,-1] = len(p)
+        pass
     pass
     return aa 
 
@@ -141,15 +204,13 @@ def test_compound_np_interp():
 
     fig, ax = plt.subplots(figsize=[12.8,7.2])
     for i,p in enumerate(pp): 
-        lp = p.view(utype)[-1]
-        i2 = p.view(utype)[-2]
-        assert i2 == i 
-        pr = p.reshape(-1,2)
-        ax.scatter( pr[:lp,0], pr[:lp,1], label="src-%d-lp-%d" % (i,lp) )
+        lp = p.view(utype)[-1,-1]
+        ax.scatter( p[:lp,0], p[:lp,1], label="src-%d-lp-%d" % (i,lp) )
         ax.plot( r[:,0], r[:,1+i], label="dst-%d" % i )
     pass
     ax.legend()
     fig.show()
+    return pp
 
 def test_simple_np_interp():
     p = make_simple()
@@ -168,7 +229,7 @@ def test_simple_np_interp():
 
 if __name__ == '__main__':
     #test_simple_np_interp()
-    test_compound_np_interp()
+    pp = test_compound_np_interp()
 
 
 

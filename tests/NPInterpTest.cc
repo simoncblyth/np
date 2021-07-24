@@ -4,17 +4,14 @@
 #include <iostream>
 #include "NP.hh"
 
-
-
 template <typename T>
 struct NPInterpTest
 {
     static const char* FOLD ; 
-    static unsigned NumSteps(T x0, T x1, T dx);
     static NP* MakeSrc() ; 
     static NP* MakeSrc(const std::vector<T>& vals) ; 
 
-    const NP* a ;   // as const exclude from *save*
+    const NP* a ;
     unsigned na ; 
     const T* aa ; 
     const T amn ; 
@@ -39,26 +36,18 @@ const char* NPInterpTest<T>::FOLD = "/tmp/NPInterpTest" ;
 
 
 template <typename T>
-unsigned NPInterpTest<T>::NumSteps(T x0, T x1, T dx)
-{
-    unsigned ns = 0 ; 
-    for(T x=x0 ; x <= x1 ; x+=dx ) ns+=1 ; 
-    return ns ; 
-}
-
-template <typename T>
 NPInterpTest<T>::NPInterpTest(const NP* a_, unsigned nstep)
     :
     a(a_),
     na(a->shape[0]),
     aa(a->cvalues<T>()),
-    amn(aa[2*0+0]), 
+    amn(aa[2*0+0]),       // assumes input array is 2d with 2nd dimension 2, ie of shape (n,2)  
     amx(aa[2*(na-1)+0]),
-    x0(amn - (amx-amn)*0.1f),  
+    x0(amn - (amx-amn)*0.1f),  // picking domain range 
     x1(amx + (amx-amn)*0.1f),  
     dx((amx-amn)/float(nstep)),
-    nb(NumSteps(x0,x1,dx)),
-    b(NP::Make<T>(nb,2)),
+    nb(NP::NumSteps(x0,x1,dx)),
+    b(NP::Make<T>(nb,2)),     
     bb(b->values<T>())
 {
     dump(); 
@@ -127,15 +116,12 @@ void NPInterpTest<T>::scan()
     }
 }
 
-
 template <typename T>
 void NPInterpTest<T>::save() 
 {
-    //a->save(FOLD, "src.npy"); 
+    a->save(FOLD, "src.npy"); 
     b->save(FOLD, "dst.npy");
 } 
-
-
 
 template <typename T>
 NP* NPInterpTest<T>::MakeSrc()   // static 
@@ -158,8 +144,6 @@ NP* NPInterpTest<T>::MakeSrc(const std::vector<T>& vals)  // static
     return a ; 
 } 
 
-
-
 void test_simple()
 {
     NP* a = NPInterpTest<float>::MakeSrc(); 
@@ -175,12 +159,11 @@ void test_RINDEX(unsigned nstep)
     a->pdump<double>("test_RINDEX.pdump"); 
 
     NPInterpTest<double> t(a, nstep); 
-    a->save(NPInterpTest<double>::FOLD, "src.npy");  
 }
 
 int main(int argc, char** argv)
 {
-    //test_simple(); 
+    test_simple(); 
     test_RINDEX(1000); 
     return 0 ;
 }
