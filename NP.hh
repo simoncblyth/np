@@ -62,8 +62,17 @@ struct NP
 
     static NP* Combine(const std::vector<const NP*>& aa, bool annotate=true); 
 
+    // load array asis 
     static NP* Load(const char* path); 
     static NP* Load(const char* dir, const char* name); 
+    static NP* Load(const char* dir, const char* reldir, const char* name); 
+
+    // load float OR double array and if float(4 bytes per element) widens it to double(8 bytes per element)  
+    static NP* LoadWide(const char* path); 
+    static NP* LoadWide(const char* dir, const char* name); 
+    static NP* LoadWide(const char* dir, const char* reldir, const char* name); 
+
+
     static NP* MakeDemo(const char* dtype="<f4" , int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
     template<typename T> static void Write(const char* dir, const char* name, const std::vector<T>& values ); 
@@ -89,6 +98,8 @@ struct NP
 
     static NP* MakeLike(  const NP* src);  
     static NP* MakeNarrow(const NP* src); 
+    static NP* MakeWide(  const NP* src); 
+    static NP* MakeCopy(  const NP* src); 
 
     bool is_pshaped() const ; 
     template<typename T> void pscale(T scale, unsigned column);
@@ -104,6 +115,7 @@ struct NP
 
 
     template<typename T> void read(const T* data);
+    template<typename T> void read2(const T* data);
 
     template<typename T> std::string _present(T v) const ; 
 
@@ -111,10 +123,13 @@ struct NP
     void dump(int i0=-1, int i1=-1) const ; 
 
     void clear();   
+
+    static bool Exists(const char* dir, const char* name);   
+    static bool Exists(const char* path);   
+    int load(const char* dir, const char* name);   
     int load(const char* path);   
     int load_meta( const char* path ); 
 
-    int load(const char* dir, const char* name);   
 
     static std::string form_name(const char* stem, const char* ext); 
     static std::string form_path(const char* dir, const char* name);   
@@ -132,7 +147,8 @@ struct NP
     void save_jsonhdr(const char* dir, const char* name) const ;   
 
     std::string desc() const ; 
-    void set_meta( const std::vector<std::string>& lines ); 
+    void set_meta( const std::vector<std::string>& lines, char delim='\n' ); 
+    void get_meta( std::vector<std::string>& lines,       char delim='\n' ) const ; 
 
     char*       bytes();  
     const char* bytes() const ;  
@@ -635,6 +651,100 @@ inline NP* NP::MakeNarrow(const NP* a) // static
 }
 
 
+inline NP* NP::MakeWide(const NP* a) // static 
+{
+    assert( a->ebyte == 4 ); 
+    std::string b_dtype = NPU::_make_wide(a->dtype); 
+
+    NP* b = new NP(b_dtype.c_str()); 
+    b->set_shape( a->shape ); 
+
+    assert( a->num_values() == b->num_values() ); 
+    unsigned nv = a->num_values(); 
+
+    if( a->uifc == 'f' && b->uifc == 'f')
+    {
+        const float* aa = a->cvalues<float>() ;  
+        double* bb = b->values<double>() ;  
+        for(unsigned i=0 ; i < nv ; i++)
+        {
+            bb[i] = double(aa[i]); 
+        }
+    }
+
+    std::cout 
+        << "NP::MakeWide"
+        << " a.dtype " << a->dtype
+        << " b.dtype " << b->dtype
+        << std::endl 
+        ;
+
+    return b ; 
+}
+
+inline NP* NP::MakeCopy(const NP* a) // static 
+{
+    NP* b = new NP(a->dtype); 
+    b->set_shape( a->shape ); 
+    assert( a->arr_bytes() == b->arr_bytes() ); 
+
+    memcpy( b->bytes(), a->bytes(), a->arr_bytes() );    
+    unsigned nv = a->num_values(); 
+
+    std::cout 
+        << "NP::MakeCopy"
+        << " a.dtype " << a->dtype
+        << " b.dtype " << b->dtype
+        << " nv " << nv
+        << std::endl 
+        ;
+
+    return b ; 
+}
+
+
+inline NP* NP::LoadWide(const char* dir, const char* reldir, const char* name)
+{
+    std::string path = form_path(dir, reldir, name); 
+    return LoadWide(path.c_str());
+}
+
+inline NP* NP::LoadWide(const char* dir, const char* name)
+{
+    std::string path = form_path(dir, name); 
+    return LoadWide(path.c_str());
+}
+
+/**
+NP::LoadWide
+--------------
+
+Loads array and widens it to 8 bytes per element if not already wide.
+
+**/
+inline NP* NP::LoadWide(const char* path)
+{
+    NP* a = NP::Load(path);  
+
+    assert( a->uifc == 'f' && ( a->ebyte == 8 || a->ebyte == 4 ));  
+    // cannot think of application for doing this with  ints, so restrict to float OR double 
+
+    NP* b = a->ebyte == 8 ? NP::MakeCopy(a) : NP::MakeWide(a) ;  
+
+    a->clear(); 
+
+    return b ; 
+}
+
+
+
+
+
+
+
+
+
+
 inline bool NP::is_pshaped() const
 {
     bool property_shaped = shape.size() == 2 && shape[1] == 2 && shape[0] > 1 ;
@@ -1075,12 +1185,23 @@ inline std::string NP::desc() const
     return ss.str(); 
 }
 
-inline void NP::set_meta( const std::vector<std::string>& lines )
+inline void NP::set_meta( const std::vector<std::string>& lines, char delim )
 {
     std::stringstream ss ; 
-    for(unsigned i=0 ; i < lines.size() ; i++) ss << lines[i] << std::endl ; 
+    for(unsigned i=0 ; i < lines.size() ; i++) ss << lines[i] << delim  ; 
     meta = ss.str(); 
 }
+
+inline void NP::get_meta( std::vector<std::string>& lines, char delim  ) const 
+{
+    if(meta.empty()) return ; 
+
+    std::stringstream ss ; 
+    ss.str(meta.c_str())  ;
+    std::string s;
+    while (std::getline(ss, s, delim)) lines.push_back(s) ; 
+}
+
 
 
 inline int NP::Memcmp(const NP* a, const NP* b ) // static
@@ -1279,6 +1400,13 @@ inline NP* NP::Load(const char* dir, const char* name)
     return Load(path.c_str());
 }
 
+inline NP* NP::Load(const char* dir, const char* reldir, const char* name)
+{
+    std::string path = form_path(dir, reldir, name); 
+    return Load(path.c_str());
+}
+
+
 inline std::string NP::form_name(const char* stem, const char* ext)
 {
     std::stringstream ss ; 
@@ -1310,6 +1438,17 @@ inline void NP::clear()
     shape[0] = 0 ;  
 }
 
+inline bool NP::Exists(const char* dir, const char* name) // static 
+{
+    std::string path = form_path(dir, name); 
+    return Exists(path.c_str()); 
+}
+inline bool NP::Exists(const char* path) // static 
+{
+    std::ifstream fp(path, std::ios::in|std::ios::binary);
+    return fp.fail() ? false : true ; 
+}
+
 inline int NP::load(const char* dir, const char* name)
 {
     std::string path = form_path(dir, name); 
@@ -1335,7 +1474,7 @@ inline int NP::load(const char* path)
     std::ifstream fp(path, std::ios::in|std::ios::binary);
     if(fp.fail())
     {
-        std::cerr << "Failed to load from path " << path << std::endl ; 
+        std::cerr << "NP::load Failed to load from path " << path << std::endl ; 
         return 1 ; 
     }
 
@@ -1538,6 +1677,13 @@ template <typename T> void NP::read(const T* data)
         *(v + index) = *(data + index ) ; 
     }   
 }
+
+template <typename T> void NP::read2(const T* data) 
+{
+    assert( sizeof(T) == ebyte ); 
+    memcpy( bytes(), data, arr_bytes() );    
+}
+
 
 template <typename T> NP* NP::Linspace( T x0, T x1, unsigned nx )
 {

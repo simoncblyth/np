@@ -31,26 +31,35 @@ void test_meta_0()
 
 void test_meta_1()
 {
-    std::vector<std::string> names = {"red", "green", "blue", "cyan", "magenta", "yellow" } ; 
+    std::vector<std::string> names0 = {"red", "green", "blue", "cyan", "magenta", "yellow" } ; 
+    std::vector<std::string> names1 ; 
 
     NP* a = NP::Make<double>( 10, 5 ); 
     a->fill<double>(1.); 
-    a->set_meta(names) ;  
+    a->set_meta(names0) ;  
     a->dump(); 
-
-    // std::cout << "a.meta [" << a->meta << "]" << std::endl ; 
 
     const char* path = "/tmp/NPmetaTest/meta_1.npy" ; 
     a->save(path); 
 
+
     NP* b = NP::Load(path); 
     b->dump(); 
-
-    // std::cout << "b.meta [" << b->meta << "]" << std::endl ; 
 
     if( not a->meta.empty() )
     {
         assert( strcmp( a->meta.c_str(), b->meta.c_str() ) == 0 ) ; 
+        b->get_meta(names1);  
+
+        std::cout << " names0.size " << names0.size() << std::endl ;
+        std::cout << " names1.size " << names1.size() << std::endl ;
+
+        assert( names1.size() == names0.size() ); 
+        for(unsigned i=0 ; i < names0.size() ; i++)
+        {
+            assert( strcmp( names0[i].c_str(), names1[i].c_str() ) == 0 ); 
+        } 
+
     }
 }
 

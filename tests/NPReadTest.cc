@@ -1,4 +1,4 @@
-// name=NPReadTest ; gcc $name.cc -std=c++11  -I.. -lstdc++ -o /tmp/$name && /tmp/$name && python3 -c "import numpy as np ; print(np.load(\"/tmp/$name.npy\"))"
+// ./NPReadTest.sh 
 
 #include <vector>
 #include "NP.hh"
@@ -11,7 +11,13 @@ int main(int argc, char** argv)
     NP a("<f4", 4, 4 ); 
     a.read(af.data()); 
     a.dump();
-    a.save("/tmp/NPReadTest.npy");
+    a.save("/tmp/NPReadTest/a.npy");
+
+    NP b("<f4", 4, 4 ); 
+    b.read2(af.data()); 
+    b.dump();
+    b.save("/tmp/NPReadTest/b.npy");
+
 
     return 0 ; 
 }

@@ -330,6 +330,7 @@ struct NPU
 
     static std::string _make_descr(bool little_endian, char uifc, int width );
     static std::string _make_narrow(const char* descr);  
+    static std::string _make_wide(const char* descr);  
     static std::string _make_other(const char* descr, char other);  
 
     static std::string _make_preamble( int major=1, int minor=0 );
@@ -451,11 +452,15 @@ NumPy np.save / np.load
     std::string PREAMBLE = _make_preamble(); 
     assert( preamble.compare(PREAMBLE) == 0 );  
 
-    char hlen_lsb = hdr[8] ;  
-    char hlen_msb = hdr[9] ;  
+    // previously used "char" here,
+    // but thats a bug as when the header exceeds 128 bytes 
+    // it flips -ve (twos complement)
+    // observed this first with the bnd.npy which has 5 dimensions
+    // causing the header to be larger than for example icdf.npy with 3 dimensions
+ 
+    unsigned char hlen_lsb = hdr[8] ;  
+    unsigned char hlen_msb = hdr[9] ;  
     int hlen = hlen_msb << 8 | hlen_lsb ; 
-    assert( (hlen+10) % 16 == 0 ) ;  
-    assert( hlen+10 == hdr.size() ) ; 
 
 #ifdef NPU_DEBUG
     std::cout 
@@ -476,6 +481,10 @@ NumPy np.save / np.load
         ; 
 
 #endif
+    assert( hlen > 0 ); 
+    assert( (hlen+10) % 16 == 0 ) ;  
+    assert( hlen+10 == hdr.size() ) ; 
+
     return hlen ; 
 }
 
@@ -696,6 +705,16 @@ inline std::string NPU::_make_narrow(const char* descr) // static
     _parse_descr( little_endian, uifc, ebyte, descr ); 
     return _make_descr(little_endian, uifc, ebyte/2  ); 
 } 
+
+inline std::string NPU::_make_wide(const char* descr) // static
+{
+    bool little_endian ; 
+    char uifc ; 
+    int ebyte ; 
+    _parse_descr( little_endian, uifc, ebyte, descr ); 
+    return _make_descr(little_endian, uifc, ebyte*2  ); 
+} 
+
 
 inline std::string NPU::_make_other(const char* descr, char other) // static
 {
