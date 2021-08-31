@@ -28,7 +28,6 @@ void test_cumsum_2d()
 
     c->divide_by_last<double>(); 
     c->save("/tmp/NPcumsumTest/c1.npy"); 
-
 }
 
 
