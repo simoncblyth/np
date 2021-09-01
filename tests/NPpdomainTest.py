@@ -7,7 +7,8 @@ ipython -i NPpdomainTest.py
 import os, numpy as np
 import matplotlib.pyplot as plt 
 
-if __name__ == '__main__':
+
+def test_2d():
     FOLD = "/tmp/NPpdomainTest"
     a = np.load(os.path.join(FOLD, "a.npy"))
     b = np.load(os.path.join(FOLD, "b.npy"))
@@ -24,5 +25,27 @@ if __name__ == '__main__':
     fig.show()
 
 
+
+
+
+
+if __name__ == '__main__':
+
+    FOLD = "/tmp/NPpdomainTest/3d"
+    a = np.load(os.path.join(FOLD, "a.npy"))
+    b = np.load(os.path.join(FOLD, "b.npy"))
+    assert len(a) == len(b)
+
+    fig, ax = plt.subplots()
+    for item in range(len(a)):
+
+        ax.plot( a[item, :,0], a[item, :,1]  )
+        ax.scatter( a[item, :,0], a[item, :,1], label="a%d" % item )
+
+        ax.plot( b[item, :,1], b[item, :,0]+10   )
+        ax.scatter( b[item, :,1], b[item, :,0]+10, label="b%d" % item  )
+    pass
+    ax.legend()
+    fig.show()
 
 

@@ -942,54 +942,68 @@ Perhapd should pull a sub NP out of the effective composite, to effect this.
 
 template<typename T> inline T  NP::pdomain(const T value, int item ) const 
 {
+    const T zero = 0. ; 
     unsigned ndim = shape.size() ; 
-    assert( ndim == 2 ); 
-
-    unsigned ni = shape[0]; 
-    unsigned nj = shape[1]; 
+    assert( ndim == 2 || ndim == 3 ); 
+    unsigned ni = shape[ndim-2]; 
+    unsigned nj = shape[ndim-1]; 
     assert( nj == 2 ); 
 
-    const T zero = 0. ; 
-    const T lhs = plhs<T>(0u); 
-    const T rhs = prhs<T>(0u); 
+    unsigned num_items = ndim == 3 ? shape[0] : 1 ; 
+    assert( item < int(num_items) ); 
+    unsigned item_offset = item == -1 ? 0 : ni*nj*item ; 
 
-    unsigned ibin = pfindbin<T>( value, 1u ); 
-    const T* vv = cvalues<T>(); 
+    const T* vv = cvalues<T>() + item_offset ;  // shortcut approach to handling multiple items 
 
-    T xv ; 
-    if(ibin == 0 )  
+    enum { DOM=0 , VAL=1 } ; 
+
+    const T lhs_dom = vv[nj*(0)+DOM]; 
+    const T rhs_dom = vv[nj*(ni-1)+DOM];
+    assert( rhs_dom > lhs_dom ); 
+
+    const T lhs_val = vv[nj*(0)+VAL]; 
+    const T rhs_val = vv[nj*(ni-1)+VAL];
+    assert( rhs_val > lhs_val ); 
+
+    const T yv = value ; 
+    T xv ;   
+
+    if( yv <= lhs_val )
     {
-        xv = lhs ; 
+        xv = lhs_dom ; 
     }
-    else if( ibin == ni ) 
+    else if( yv >= rhs_val )
     {
-        xv = rhs ; 
+        xv = rhs_dom  ; 
     }
-    else
+    else if ( yv >= lhs_val && yv < rhs_val  )
     {
-        assert( ibin > 0 && ibin < ni ); 
-        unsigned i = ibin - 1 ; 
-        const T x0 = vv[nj*(i+0)+0] ; 
-        const T y0 = vv[nj*(i+0)+1] ; 
-        const T x1 = vv[nj*(i+1)+0] ; 
-        const T y1 = vv[nj*(i+1)+1] ; 
-        const T dy = y1 - y0 ;  
-        assert( dy >= zero );   // must be monotonic for this to make sense
-        const T yv = value ; 
+        for(unsigned i=0 ; i < ni-1 ; i++) 
+        {
+            const T x0 = vv[nj*(i+0)+DOM] ; 
+            const T y0 = vv[nj*(i+0)+VAL] ; 
+            const T x1 = vv[nj*(i+1)+DOM] ; 
+            const T y1 = vv[nj*(i+1)+VAL] ;
 
-        xv = x0 ; 
-        if( dy > zero ) xv += (yv-y0) * (x1 - x0) / dy ; 
-    }    
+            const T dy = y1 - y0 ;  
+            assert( dy >= zero );   // must be monotonic for this to make sense
+
+            xv = x0 ; 
+            if( dy > zero ) xv += (yv-y0)*(x1-x0)/dy ; 
+        }
+    } 
 
 #ifdef DEBUG
     std::cout 
         << "NP::pdomain"
-        << " value " << std::setw(10) << std::fixed << std::setprecision(4) << value 
-        << " lhs " << std::setw(10) << std::fixed << std::setprecision(4) << lhs
-        << " rhs " << std::setw(10) << std::fixed << std::setprecision(4) << rhs
-        << " ibin " << std::setw(4) << ibin
+        << " item " << std::setw(4) << item
         << " ni " << std::setw(4) << ni
+        << " yv " << std::setw(10) << std::fixed << std::setprecision(4) << yv
         << " xv " << std::setw(10) << std::fixed << std::setprecision(4) << xv
+        << " lhs_dom " << std::setw(10) << std::fixed << std::setprecision(4) << lhs_dom
+        << " rhs_dom " << std::setw(10) << std::fixed << std::setprecision(4) << rhs_dom
+        << " lhs_val " << std::setw(10) << std::fixed << std::setprecision(4) << lhs_val
+        << " rhs_val " << std::setw(10) << std::fixed << std::setprecision(4) << rhs_val
         << std::endl 
         ;
 #endif
