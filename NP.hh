@@ -108,11 +108,14 @@ struct NP
     static NP* MakeNarrow(const NP* src); 
     static NP* MakeWide(  const NP* src); 
     static NP* MakeCopy(  const NP* src); 
+    NP* copy() const ; 
 
     bool is_pshaped() const ; 
     template<typename T> T    plhs(unsigned column ) const ;  
     template<typename T> T    prhs(unsigned column ) const ;  
     template<typename T> int  pfindbin(const T value, unsigned column ) const ;  
+    template<typename T> void get_edges(T& lo, T& hi, unsigned column, int ibin) const ; 
+
     template<typename T> T    pdomain(const T value, int item=-1 ) const ; 
 
     template<typename T> T    psum(unsigned column ) const ;  
@@ -717,6 +720,11 @@ inline NP* NP::MakeCopy(const NP* a) // static
     return b ; 
 }
 
+inline NP* NP::copy() const 
+{
+    return MakeCopy(this); 
+}
+
 
 inline NP* NP::LoadWide(const char* dir, const char* reldir, const char* name)
 {
@@ -904,6 +912,48 @@ template<typename T> inline int  NP::pfindbin(const T value, unsigned column) co
 }
 
 /**
+NP::get_edges
+----------------
+
+Return bin edges using numbering convention from NP::pfindbin, 
+for out of range ibin == 0 returns lhs edge for both lo and hi
+for out of range ibin = ni returns rhs edge for both lo and hi. 
+
+**/
+
+template<typename T> inline void  NP::get_edges(T& lo, T& hi, unsigned column, int ibin) const 
+{
+    const T* vv = cvalues<T>(); 
+
+    unsigned ndim = shape.size() ; 
+    unsigned ni = shape[0] ;
+    unsigned nj = ndim == 1 ? 1 : shape[1] ; 
+    assert( column < nj ); 
+ 
+    const T lhs = vv[nj*(0)+column] ; 
+    const T rhs = vv[nj*(ni-1)+column] ; 
+
+    if( ibin == 0 )
+    {
+        lo = lhs ; 
+        hi = lhs ; 
+    }   
+    else if( ibin == ni )
+    {
+        lo = rhs ; 
+        hi = rhs ; 
+    }   
+    else
+    {
+        unsigned i = ibin - 1 ; 
+        lo  = vv[nj*(i)+column] ; 
+        hi  = vv[nj*(i+1)+column] ; 
+    }
+}
+
+
+
+/**
 NP::pdomain
 -------------
 
@@ -1065,7 +1115,9 @@ template<typename T> inline void NP::pdump(const char* msg) const
 
 template<typename T> inline void NP::minmax(T& mn, T&mx, unsigned j ) const 
 {
-    assert( shape.size() == 2 ); 
+    unsigned ndim = shape.size() ; 
+
+    assert( ndim == 2 );   // TODO: support ndim 3 with item argument 
     unsigned ni = shape[0] ; 
     unsigned nj = shape[1] ; 
     assert( j < nj ); 
