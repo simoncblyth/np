@@ -13,12 +13,14 @@ void test_pfindbin()
     for(unsigned i=0 ; i < fine->shape[0] ; i++ )
     {
          double f = ff[i] ; 
-         int ibin = bins->pfindbin<double>( f, column ); 
+         bool in_range ; 
+         int ibin = bins->pfindbin<double>( f, column, in_range ); 
 
          std::cout 
              << " i " << std::setw(5) << i
              << " f " << std::setw(10) << std::fixed << std::setprecision(4) << f 
              << " ibin " <<  std::setw(5) << ibin
+             << " in_range " << in_range 
              << std::endl 
              ;
     }
