@@ -114,7 +114,7 @@ void test_pdomain_3d()
 
 int main(int argc, char** argv)
 {
-    //test_pdomain_2d(); 
+    test_pdomain_2d(); 
     test_pdomain_3d(); 
 
     return 0 ;
