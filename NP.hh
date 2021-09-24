@@ -42,10 +42,13 @@ struct NP
         double         f ;  
     };            
 
-
     template<typename T> static NP*  Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1 );  // dtype from template type
     template<typename T> static NP*  Linspace( T x0, T x1, unsigned nx ); 
     template<typename T> static NP*  MakeDiv( const NP* src, unsigned mul  ); 
+    template<typename T> static NP*  Make( const std::vector<T>& src ); 
+    template<typename T> static T To( const char* a ); 
+    template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
+
 
     template<typename T> static NP*  MakeUniform( unsigned ni, unsigned seed=0u );  
     template<typename T> static unsigned NumSteps( T x0, T x1, T dx ); 
@@ -114,6 +117,10 @@ struct NP
     static NP* MakeNarrow(const NP* src); 
     static NP* MakeWide(  const NP* src); 
     static NP* MakeCopy(  const NP* src); 
+
+    template<typename T> static NP* MakeCDF(  const NP* src );
+    template<typename T> static NP* MakeICDF(  const NP* src, unsigned nu, unsigned hd_factor );
+ 
     NP* copy() const ; 
 
     bool is_pshaped() const ; 
@@ -130,7 +137,7 @@ struct NP
     template<typename T> void pdump(const char* msg="NP::pdump") const ; 
     template<typename T> void minmax(T& mn, T&mx, unsigned j=1, int item=-1 ) const ; 
     template<typename T> void linear_crossings( T value, std::vector<T>& crossings ) const ; 
-    template<typename T> T    trapz() const ;                      // composite trapezoidal integration, requires pshaped
+    template<typename T> NP*  trapz() const ;                      // composite trapezoidal integration, requires pshaped
     template<typename T> T    interp(T x) const ;                  // requires pshaped 
     template<typename T> T    interp(unsigned iprop, T x) const ;  // requires NP::Combine of pshaped arrays 
     template<typename T> NP*  cumsum(int axis=0) const ; 
@@ -766,6 +773,95 @@ inline NP* NP::MakeCopy(const NP* a) // static
     return b ; 
 }
 
+
+
+template<typename T>
+inline NP* NP::MakeCDF(const NP* dist )  // static 
+{
+    NP* cdf = dist->trapz<T>() ;   
+    cdf->divide_by_last<T>(); 
+    return cdf ; 
+}
+ 
+
+/**
+NP::MakeICDF
+-------------
+
+Inverts CDF using *nu* NP::pdomain lookups in range 0->1
+
+**/
+
+template<typename T>
+inline NP* NP::MakeICDF(const NP* cdf, unsigned nu, unsigned hd_factor )  // static 
+{
+    unsigned ndim = cdf->shape.size(); 
+    assert( ndim == 2 || ndim == 3 ); 
+
+    unsigned num_items = ndim == 3 ? cdf->shape[0] : 1 ; 
+    int item = -1 ; 
+
+    assert( hd_factor == 0 || hd_factor == 10 || hd_factor == 20 );  
+    T edge = hd_factor > 0 ? T(1.)/T(hd_factor) : 0. ;   
+
+    NP* icdf = new NP(cdf->dtype, num_items, nu, hd_factor == 0 ? 1 : 4 );  
+    T* vv = icdf->values<T>(); 
+
+    unsigned ni = icdf->shape[0] ; 
+    unsigned nj = icdf->shape[1] ; 
+    unsigned nk = icdf->shape[2] ; 
+#ifdef DEBUG
+    std::cout 
+        << "NP::MakeICDF"
+        << " nu " << nu
+        << " ni " << ni
+        << " nj " << nj
+        << " nk " << nk
+        << " hd_factor " << hd_factor
+        << std::endl 
+        ;
+#endif
+
+    for(unsigned i=0 ; i < ni ; i++)
+    {
+        int item = i ;  
+        for(unsigned j=0 ; j < nj ; j++)
+        {
+            T y_all = T(j)/T(nj) ; //        // 0 -> (nj-1)/nj = 1-1/nj 
+            T x_all = cdf->pdomain<T>( y_all, item );    
+#ifdef DEBUG
+            std::cout 
+                <<  " y_all " << std::setw(10) << std::setprecision(4) << std::fixed << y_all 
+                <<  " x_all " << std::setw(10) << std::setprecision(4) << std::fixed << x_all 
+                << std::endl
+                ;
+#endif
+            unsigned offset = i*nj*nk+j*nk ;  
+
+            vv[offset+0] = x_all ;
+
+            if( hd_factor > 0 )
+            {
+                T y_lhs = T(j)/T(hd_factor*nj) ;
+                T y_rhs = T(1.) - edge + T(j)/T(hd_factor*nj) ; 
+
+                T x_lhs = cdf->pdomain<T>( y_lhs, item );    
+                T x_rhs = cdf->pdomain<T>( y_rhs, item );    
+
+                vv[offset+1] = x_lhs ;
+                vv[offset+2] = x_rhs ;
+                vv[offset+3] = 0. ;
+            }
+        }
+    }
+    return icdf ; 
+} 
+
+
+
+
+
+
 inline NP* NP::copy() const 
 {
     return MakeCopy(this); 
@@ -1060,28 +1156,42 @@ template<typename T> inline T  NP::pdomain(const T value, int item, bool dump ) 
     assert( ndim == 2 || ndim == 3 ); 
     unsigned ni = shape[ndim-2]; 
     unsigned nj = shape[ndim-1]; 
-    assert( nj == 2 || nj == 3 ); 
 
+    assert( nj <= 8 );        // not needed for below, just for sanity of payload
     unsigned jdom = 0 ;       // 1st payload slot is "domain"
     unsigned jval = nj - 1 ;  // last payload slot is "value" 
-
     // note that with nj > 2 this allows other values to be carried 
-
 
     unsigned num_items = ndim == 3 ? shape[0] : 1 ; 
     assert( item < int(num_items) ); 
-    unsigned item_offset = item == -1 ? 0 : ni*nj*item ; 
+    unsigned item_offset = item == -1 ? 0 : ni*nj*item ;   // using item = 0 will have the same effect
 
     const T* vv = cvalues<T>() + item_offset ;  // shortcut approach to handling multiple items 
 
 
     const T lhs_dom = vv[nj*(0)+jdom]; 
     const T rhs_dom = vv[nj*(ni-1)+jdom];
-    assert( rhs_dom > lhs_dom ); 
+    bool dom_expect = rhs_dom > lhs_dom  ; 
+
+    if(!dom_expect) std::cout 
+        << "NP::pdomain FATAL dom_expect : rhs_dom > lhs_dom "
+        << " lhs_dom " << std::setw(10) << std::fixed << std::setprecision(4) << lhs_dom 
+        << " rhs_dom " << std::setw(10) << std::fixed << std::setprecision(4) << rhs_dom 
+        << std::endl 
+        ;
+    assert( dom_expect ); 
 
     const T lhs_val = vv[nj*(0)+jval]; 
     const T rhs_val = vv[nj*(ni-1)+jval];
-    assert( rhs_val > lhs_val ); 
+
+    bool val_expect = rhs_val > lhs_val ; 
+    if(!val_expect) std::cout 
+        << "NP::pdomain FATAL val_expect : rhs_val > lhs_val "
+        << " lhs_val " << std::setw(10) << std::fixed << std::setprecision(4) << lhs_val 
+        << " rhs_val " << std::setw(10) << std::fixed << std::setprecision(4) << rhs_val 
+        << std::endl 
+        ;
+    assert( val_expect ); 
 
 
     const T yv = value ; 
@@ -1330,29 +1440,47 @@ Composite trapezoidal numerical integration
 
 **/
 
-template<typename T> inline T NP::trapz() const 
+template<typename T> inline NP* NP::trapz() const 
 {
     assert( shape.size() == 2 && shape[1] == 2 && shape[0] > 1); 
     unsigned ni = shape[0] ; 
     const T* vv = cvalues<T>(); 
-
     T half(0.5); 
-    T integral = T(0.);  
+    T xmn = get<T>(0, 0); 
+
+    NP* integral = NP::MakeLike(this); 
+    T* integral_v = integral->values<T>(); 
+    integral_v[0] = xmn ; 
+    integral_v[1] = 0. ; 
+
     for(unsigned i=0 ; i < ni-1 ; i++)
     {
-        unsigned i0 = i+0 ; 
-        unsigned i1 = i+1 ; 
+        T x0 = get<T>(i, 0);
+        T y0 = get<T>(i, 1);
 
-        T x0 = vv[2*i0+0] ; 
-        T y0 = vv[2*i0+1] ; 
+        T x1 = get<T>(i+1, 0); 
+        T y1 = get<T>(i+1, 1); 
 
-        T x1 = vv[2*i1+0] ; 
-        T y1 = vv[2*i1+1] ; 
-
-        integral += (x1 - x0)*(y0 + y1)*half ;  
+#ifdef DEBUG
+        std::cout 
+            << " x0 " << std::setw(10) << std::fixed << std::setprecision(4) << x0 
+            << " y0 " << std::setw(10) << std::fixed << std::setprecision(4) << y0
+            << " x1 " << std::setw(10) << std::fixed << std::setprecision(4) << x1
+            << " y1 " << std::setw(10) << std::fixed << std::setprecision(4) << y1
+            << std::endl 
+            ;
+#endif
+        integral_v[2*(i+1)+0] = x1 ;  // x0 of first bin covered with xmn
+        integral_v[2*(i+1)+1] = integral_v[2*(i)+1] + (x1 - x0)*(y0 + y1)*half ;  
     } 
     return integral ;  
 }
+
+
+
+
+
+
 
 
 
@@ -1482,7 +1610,7 @@ template<typename T> inline NP* NP::cumsum(int axis) const
     if( ndim == 1 )
     {
         unsigned ni = shape[0] ; 
-        for(unsigned i=1 ; i < ni ; i++) ss[i] += ss[i-1] ;  
+        for(unsigned i=1 ; i < ni ; i++) ss[i] += ss[i-1] ;   // cute recursive summation
     }
     else if( ndim == 2 )
     {
@@ -1505,6 +1633,7 @@ template<typename T> inline NP* NP::cumsum(int axis) const
 NP::divide_by_last
 --------------------
 
+Normalization by last payload entry implemented for 1d, 2d and 3d arrays.
 
 **/
 
@@ -1517,16 +1646,27 @@ template<typename T> inline void NP::divide_by_last()
     if( ndim == 1 )
     {
         unsigned ni = shape[0] ; 
-        for(unsigned i=0 ; i < ni ; i++) vv[i] = vv[i]/vv[ni-1] ;  
+        const T last = get<T>(-1) ; 
+        for(unsigned i=0 ; i < ni ; i++) vv[i] /= last  ;  
     }
     else if( ndim == 2 )
     {
         unsigned ni = shape[0] ; 
         unsigned nj = shape[1] ; 
+#ifdef DEBUG
+        std::cout 
+            << "NP::divide_by_last 2d "
+            << " ni " << ni  
+            << " nj " << nj
+            << std::endl
+            ;  
+#endif
+        // 2d case ni*(domain,value) pairs : there is only one last value to divide by : like the below 3d case with ni=1, i=0 
+        const T last = get<T>(-1,-1) ;
+        unsigned j = nj - 1 ;    // last payload slot    
         for(unsigned i=0 ; i < ni ; i++)
         {
-            const T last = vv[i*nj+nj-1] ;  
-            for(unsigned j=0 ; j < nj ; j++) if(last != zero) vv[i*nj+j] /= last ;  
+            if(last != zero) vv[i*nj+j] /= last ;  
         }
     }
     else if( ndim == 3 )   // eg (1000, 100, 2)    1000(diff BetaInverse) * 100 * (energy, integral)  
@@ -1534,11 +1674,12 @@ template<typename T> inline void NP::divide_by_last()
         unsigned ni = shape[0] ;  // eg BetaInverse dimension
         unsigned nj = shape[1] ;  // eg energy dimension 
         unsigned nk = shape[2] ;  // eg payload carrying  [energy,s2,s2integral]
-        assert( nk == 1 || nk == 2 || nk == 3 ) ; // not required by the below, but restrict for understanding 
+        assert( nk <= 8  ) ;      // not required by the below, but restrict for understanding 
+        unsigned k = nk - 1 ;     // last payload property, eg s2integral
 
         for(unsigned i=0 ; i < ni ; i++)
         {
-            unsigned k = nk - 1 ;  // last payload property, eg s2integral
+            // get<T>(i, -1, -1 )
             const T last = vv[i*nj*nk+(nj-1)*nk+k] ;  // for each item i, pluck the last payload value at the last energy value 
             for(unsigned j=0 ; j < nj ; j++) if(last != zero) vv[i*nj*nk+j*nk+k] /= last ;  // traverse energy dimension normalizing the last payload items by last energy brethren
         }
@@ -2282,14 +2423,15 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
 
     for(unsigned i=0 ; i < src_ni - 1 ; i++)
     {
-        bool last_i = i == src_ni - 2 ; 
+        //bool last_i = i == src_ni - 2 ; 
+        bool first_i = i == 0 ; 
         const T s0 = src_v[i] ; 
         const T s1 = src_v[i+1] ; 
 
 #ifdef DEBUG
         std::cout 
             << " i " << std::setw(3) << i 
-            << " last_i " << std::setw(1) << last_i 
+            << " first_i " << std::setw(1) << first_i 
             << " s0 " << std::setw(10) << std::fixed << std::setprecision(4) << s0
             << " s1 " << std::setw(10) << std::fixed << std::setprecision(4) << s1
             << std::endl  
@@ -2297,8 +2439,11 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
 #endif
         for(unsigned s=0 ; s < 1+mul ; s++) // s=0,1,2,... mul 
         {
-            bool last_s = s == mul ; 
-            if( last_s && !last_i ) continue ;  // avoid repeating idx from bin to bin  
+            //bool last_s = s == mul ; 
+            bool first_s = s == 0 ; 
+            //if( last_s && !last_i ) continue ;  // avoid repeating idx from bin to bin  
+            if( first_s && !first_i ) continue ;  // avoid repeating idx from bin to bin  
+
 
             const T frac = T(s)/T(mul) ;    //  frac(s=0)=0  frac(s=mul)=1   
             const T ss = s0 + (s1 - s0)*frac ;  
@@ -2307,7 +2452,7 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
 #ifdef DEBUG
             std::cout 
                 << " s " << std::setw(3) << s 
-                << " last_s " << std::setw(1) << last_s
+                << " first_s " << std::setw(1) << first_s
                 << " idx " << std::setw(3) << idx
                 << " ss " << std::setw(10) << std::fixed << std::setprecision(4) << ss 
                 << std::endl  
@@ -2320,6 +2465,37 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
     }
     return dst ; 
 }
+
+
+template <typename T> NP*  NP::Make( const std::vector<T>& src ) // static
+{
+    NP* a = NP::Make<T>(src.size()); 
+    a->read(src.data()); 
+    return a ; 
+}
+
+template <typename T> T NP::To( const char* a )   // static 
+{   
+    std::string s(a);
+    std::istringstream iss(s);
+    T v ;   
+    iss >> v ; 
+    return v ; 
+}
+
+template <typename T> NP* NP::FromString(const char* str, char delim)  // static 
+{   
+    std::vector<T> vec ; 
+    std::stringstream ss(str);
+    std::string s ; 
+    while(getline(ss, s, delim)) vec.push_back(To<T>(s.c_str()));
+    NP* a = NP::Make<T>(vec) ; 
+    return a ; 
+}
+
+
+
+
 
 
 /**
