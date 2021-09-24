@@ -2,16 +2,23 @@
 
 name=NPMakeICDFTest 
 
-mkdir -p /tmp/$name 
+if [ "$1" == "py" ]; then 
 
-gcc $name.cc -std=c++11 -I.. -DDEBUG  -lstdc++ -o /tmp/$name/$name 
-[ $? -ne 0 ] && echo compile fail && exit 1 
+    ipython -i $name.py
+    [ $? -ne 0 ] && echo ana fail && exit 3
 
-/tmp/$name/$name 
-[ $? -ne 0 ] && echo run fail && exit 2 
+else
+    mkdir -p /tmp/$name 
 
-ipython -i $name.py
-[ $? -ne 0 ] && echo ana fail && exit 3
+    gcc $name.cc -std=c++11 -I.. -DDEBUG  -lstdc++ -o /tmp/$name/$name 
+    [ $? -ne 0 ] && echo compile fail && exit 1 
+
+    /tmp/$name/$name 
+    [ $? -ne 0 ] && echo run fail && exit 2 
+
+    ipython -i $name.py
+    [ $? -ne 0 ] && echo ana fail && exit 3
+fi 
 
 exit 0 
 

@@ -774,6 +774,18 @@ inline NP* NP::MakeCopy(const NP* a) // static
 }
 
 
+/**
+NP::MakeCDF
+------------
+
+Creating a CDF like this with just plain trapz will usually yield a jerky 
+cumulative integral curve. To avoid that need to play some tricks to have 
+integral values are more points.
+
+For example by using NP::MakeDiv to split the bins and linearly interpolate
+the values. 
+ 
+**/
 
 template<typename T>
 inline NP* NP::MakeCDF(const NP* dist )  // static 
@@ -1444,7 +1456,6 @@ template<typename T> inline NP* NP::trapz() const
 {
     assert( shape.size() == 2 && shape[1] == 2 && shape[0] > 1); 
     unsigned ni = shape[0] ; 
-    const T* vv = cvalues<T>(); 
     T half(0.5); 
     T xmn = get<T>(0, 0); 
 
@@ -1471,7 +1482,7 @@ template<typename T> inline NP* NP::trapz() const
             ;
 #endif
         integral_v[2*(i+1)+0] = x1 ;  // x0 of first bin covered with xmn
-        integral_v[2*(i+1)+1] = integral_v[2*(i)+1] + (x1 - x0)*(y0 + y1)*half ;  
+        integral_v[2*(i+1)+1] = integral_v[2*(i+0)+1] + (x1 - x0)*(y0 + y1)*half ;  
     } 
     return integral ;  
 }
@@ -2363,10 +2374,15 @@ template <typename T> NP* NP::Linspace( T x0, T x1, unsigned nx )
 NP::MakeDiv
 -------------
 
-Divides bin edges by integer multiple *mul*. 
-For a src array of length ni the output array is of length::
+When applied to a 1d array the contents are assummed to be domain edges 
+that are divided by an integer multiple *mul*. For a src array of length ni 
+the output array length is::
 
     (ni - 1)*mul + 1  
+
+When applied to a 2d array the contents are assumed to be (ni,2) with 
+(domain,value) pairs. The domain is divided as in the 1d case and values
+are filled in via linear interpolation.
 
 For example, 
 
@@ -2399,13 +2415,14 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
 {
     assert( mul > 0 ); 
     unsigned ndim = src->shape.size(); 
-    assert( ndim == 1 ); 
-    const T* src_v = src->cvalues<T>(); 
+    assert( ndim == 1 || ndim == 2 ); 
 
     unsigned src_ni = src->shape[0] ; 
     unsigned src_bins = src_ni - 1 ; 
     unsigned dst_bins = src_bins*mul ;   
-    unsigned dst_ni = dst_bins + 1 ; 
+
+    int dst_ni = dst_bins + 1 ; 
+    int dst_nj = ndim == 2 ? src->shape[1] : -1 ; 
 
 #ifdef DEBUG
     std::cout 
@@ -2414,19 +2431,19 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
         << " src_bins " << std::setw(3) << src_bins
         << " dst_bins " << std::setw(3) << dst_bins
         << " dst_ni " << std::setw(3) << dst_ni
+        << " dst_nj " << std::setw(3) << dst_nj
         << std::endl
         ; 
 #endif
 
-    NP* dst = NP::Make<T>( dst_ni ); 
+    NP* dst = NP::Make<T>( dst_ni, dst_nj ); 
     T* dst_v = dst->values<T>(); 
 
     for(unsigned i=0 ; i < src_ni - 1 ; i++)
     {
-        //bool last_i = i == src_ni - 2 ; 
         bool first_i = i == 0 ; 
-        const T s0 = src_v[i] ; 
-        const T s1 = src_v[i+1] ; 
+        const T s0 = src->get<T>(i,0) ; 
+        const T s1 = src->get<T>(i+1,0) ; 
 
 #ifdef DEBUG
         std::cout 
@@ -2439,11 +2456,8 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
 #endif
         for(unsigned s=0 ; s < 1+mul ; s++) // s=0,1,2,... mul 
         {
-            //bool last_s = s == mul ; 
             bool first_s = s == 0 ; 
-            //if( last_s && !last_i ) continue ;  // avoid repeating idx from bin to bin  
             if( first_s && !first_i ) continue ;  // avoid repeating idx from bin to bin  
-
 
             const T frac = T(s)/T(mul) ;    //  frac(s=0)=0  frac(s=mul)=1   
             const T ss = s0 + (s1 - s0)*frac ;  
@@ -2460,7 +2474,16 @@ template <typename T> NP* NP::MakeDiv( const NP* src, unsigned mul  )
 #endif
 
             assert( idx < dst_ni ); 
-            dst_v[idx] = ss ; 
+    
+            if( dst_nj == -1 )
+            {
+                dst_v[idx] = ss ; 
+            }
+            else if( dst_nj == 2 )
+            {
+                dst_v[2*idx+0] = ss ; 
+                dst_v[2*idx+1] = src->interp<T>(ss) ; 
+            }
         }
     }
     return dst ; 

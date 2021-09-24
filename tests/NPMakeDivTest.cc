@@ -1,7 +1,8 @@
-// name=NPMakeDivTest ; gcc $name.cc -std=c++11 -lstdc++ -DDEBUG -I.. -o /tmp/$name && /tmp/$name
+// name=NPMakeDivTest ; mkdir -p /tmp/$name ; gcc $name.cc -std=c++11 -lstdc++ -DDEBUG -I.. -o /tmp/$name/$name && /tmp/$name/$name && ipython -i $name.py
 
 #include "NP.hh"
 
+const char* FOLD = "/tmp/NPMakeDivTest" ; 
 
 void test_1()
 {
@@ -134,7 +135,29 @@ void test_many(unsigned mul)
 }
 
 
+void test_twod()
+{
+    std::vector<double> src = { 
+       0.,   0., 
+       1.,  10.,
+       2.,  20.,
+       3.,  30.,
+       4.,  40.,
+       5.,  50.,
+       6.,  60.,
+       7.,  70.,
+       8.,  80.,
+       9.,  90. 
+    };  
 
+    NP* dist = NP::Make<double>( src.size()/2 , 2 ) ; 
+    dist->read(src.data()); 
+    dist->save(FOLD, "twod_dist.npy") ; 
+
+    unsigned mul = 2 ; 
+    NP* dist2 = NP::MakeDiv<double>(dist, mul );  
+    dist2->save(FOLD, "twod_dist2.npy") ; 
+}
 
 
 
@@ -144,9 +167,9 @@ int main(int argc, char** argv)
 {
     //test_1(); 
     //test_2(); 
+    //test_many(4); 
 
-    test_many(4); 
-
+    test_twod();  
 
     return 0 ; 
 }
