@@ -51,6 +51,9 @@ struct NP
 
 
     template<typename T> static NP*  MakeUniform( unsigned ni, unsigned seed=0u );  
+    template<typename T> static NP*  MakeProperty(const NP* a ); 
+    template<typename T> static NP*  MakeSample(const NP* icdf_prop, unsigned ni, unsigned seed=0u );  
+
     template<typename T> static unsigned NumSteps( T x0, T x1, T dx ); 
 
     NP(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
@@ -58,6 +61,7 @@ struct NP
     void set_shape( int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1); 
     void set_shape( const std::vector<int>& src_shape ); 
     bool has_shape(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ) const ;  
+    void change_shape(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1) ;   // one dimension entry left at -1 can be auto-set
 
     void set_dtype(const char* dtype_); // *set_dtype* may change shape and size of array while retaining the same underlying bytes 
 
@@ -535,7 +539,20 @@ inline bool NP::has_shape(int ni, int nj, int nk, int nl, int nm) const
 }
 
 
+/**
+NP::change_shape
+------------------
 
+One dimension can be -1 causing it to be filled automatically.
+See tests/NPchange_shapeTest.cc
+
+**/
+
+inline void NP::change_shape(int ni, int nj, int nk, int nl, int nm)
+{
+    int size2 = NPS::change_shape(shape, ni, nj, nk, nl, nm); 
+    assert( size == size2 ); 
+}
 
 
 
@@ -2540,6 +2557,71 @@ template <typename T> NP* NP::MakeUniform(unsigned ni, unsigned seed) // static
     for(unsigned i=0 ; i < ni ; i++) vv[i] = unif(rng) ; 
     return uu ; 
 }
+
+/**
+NP::MakeProperty
+-----------------
+
+Converts a one dimensional array of values with shape (ni,)
+into 2d array of shape (ni, 2) with the domain a range of values 
+from 0 -> (ni-1)/ni = 1-1/ni 
+
+**/
+
+template <typename T> NP* NP::MakeProperty(const NP* a) // static 
+{
+    bool expect = a->shape.size() == 1 ; 
+    if(!expect) std::cout 
+        << "NP::MakeProperty"
+        << " unexpected input array shape " << a->sstr()
+        ;
+    assert(expect); 
+    unsigned ni = a->shape[0] ; 
+  
+    NP* prop = NP::Make<T>(ni, 2) ; 
+    T* prop_v = prop->values<T>(); 
+
+    for(unsigned i=0 ; i < ni ; i++)
+    {
+        prop_v[2*i+0] = T(i)/T(ni) ;  // 0 -> (ni-1)/ni = 1-1/ni 
+        prop_v[2*i+1] = a->get<T>(i) ; 
+    }
+    return prop ; 
+}
+
+/**
+NP::MakeSample
+----------------
+
+Create a sample of shape (ni,) using the 2d icdf_prop and ni uniform random numbers 
+Hmm in regions where the CDF is flat (and ICDF is steep), the ICDF lookup does not do very well.
+That is the reason for hd_factor, to increase resolution at the extremes where this 
+issue usually occurs without paying the cost of higher resolution across the entire range.
+
+TODO: compare what this provides directly on the ICDF (using NP::interp) 
+      with what the CDF directly can provide (using NP::pdomain)
+     
+**/
+
+template <typename T> NP* NP::MakeSample(const NP* icdf_prop, unsigned ni, unsigned seed ) // static 
+{
+    assert( icdf_prop->shape.size() == 2 && icdf_prop->shape[1] == 2 ); 
+
+    std::mt19937_64 rng;
+    rng.seed(seed); 
+    std::uniform_real_distribution<T> unif(0, 1);
+
+    NP* sample = NP::Make<T>(ni); 
+    T* sample_v = sample->values<T>(); 
+    for(unsigned i=0 ; i < ni ; i++) 
+    {
+        T u = unif(rng) ;  
+        sample_v[i] = icdf_prop->interp<T>(u) ; 
+    }
+    return sample ; 
+}
+
+
 
 
 template <typename T> unsigned NP::NumSteps( T x0, T x1, T dx )

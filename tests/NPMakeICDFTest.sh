@@ -10,7 +10,9 @@ if [ "$1" == "py" ]; then
 else
     mkdir -p /tmp/$name 
 
-    gcc $name.cc -std=c++11 -I.. -DDEBUG  -lstdc++ -o /tmp/$name/$name 
+    #opt=-DDEBUG
+    opt=
+    gcc $name.cc -std=c++11 -I.. $opt  -lstdc++ -o /tmp/$name/$name 
     [ $? -ne 0 ] && echo compile fail && exit 1 
 
     /tmp/$name/$name 
