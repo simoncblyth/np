@@ -169,6 +169,9 @@ struct NP
     int load(const char* path);   
     int load_meta( const char* path ); 
 
+    std::string get_meta_string(const char* key) const ;  
+    template<typename T> T    get_meta(const char* key, T fallback=0) const ;  
+
 
     static std::string form_name(const char* stem, const char* ext); 
     static std::string form_path(const char* dir, const char* name);   
@@ -2444,6 +2447,77 @@ inline int NP::load_meta( const char* path )
     meta = ss.str(); 
     return 0 ; 
 }
+
+
+/**
+NP::get_meta_value
+-------------------
+
+Assumes metadata layout of form::
+
+    key1:value1
+    key2:value2
+
+With each key-value pair separated by newlines and the key and value
+delimited by a colon.
+
+**/
+
+inline std::string NP::get_meta_string(const char* key) const 
+{
+    std::string value ; 
+
+    std::stringstream ss;
+    ss.str(meta);
+    std::string s;
+    char delim = ':' ; 
+
+    while (std::getline(ss, s))
+    { 
+       size_t pos = s.find(delim); 
+       if( pos != std::string::npos )
+       {
+           std::string k = s.substr(0, pos);
+           std::string v = s.substr(pos+1);
+           if(strcmp(k.c_str(), key) == 0 ) value = v ; 
+#ifdef DEBUG
+           std::cout 
+               << "NP::get_meta_string " 
+               << " s[" << s << "]"
+               << " k[" << k << "]" 
+               << " v[" << v << "]" 
+               << std::endl
+               ;   
+#endif
+       }
+#ifdef DEBUG
+       else
+       {
+           std::cout 
+               << "NP::get_meta_string " 
+               << "s[" << s << "] SKIP "   
+               << std::endl
+               ;   
+       }
+#endif
+    } 
+    return value ; 
+}
+
+
+template<typename T> inline T NP::get_meta(const char* key, T fallback) const 
+{
+    std::string s = get_meta_string(key); 
+    if(s.empty()) return fallback ; 
+    return To<T>(s.c_str()) ; 
+}
+
+template int      NP::get_meta<int>(const char*, int ) const ; 
+template unsigned NP::get_meta<unsigned>(const char*, unsigned ) const  ; 
+template float    NP::get_meta<float>(const char*, float ) const ; 
+template double   NP::get_meta<double>(const char*, double ) const ; 
+
+
 
 
 inline void NP::save_header(const char* path)
