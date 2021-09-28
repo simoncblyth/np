@@ -169,8 +169,6 @@ struct NP
     int load(const char* path);   
     int load_meta( const char* path ); 
 
-    std::string get_meta_string(const char* key) const ;  
-    template<typename T> T    get_meta(const char* key, T fallback=0) const ;  
 
 
     static std::string form_name(const char* stem, const char* ext); 
@@ -192,6 +190,11 @@ struct NP
     std::string sstr() const ; 
     void set_meta( const std::vector<std::string>& lines, char delim='\n' ); 
     void get_meta( std::vector<std::string>& lines,       char delim='\n' ) const ; 
+
+    std::string get_meta_string(const char* key) const ;  
+    template<typename T> T    get_meta(const char* key, T fallback=0) const ;  
+    template<typename T> void set_meta(const char* key, T value ) ;  
+
 
     char*       bytes();  
     const char* bytes() const ;  
@@ -2097,6 +2100,138 @@ inline void NP::get_meta( std::vector<std::string>& lines, char delim  ) const
     while (std::getline(ss, s, delim)) lines.push_back(s) ; 
 }
 
+
+/**
+NP::get_meta_string
+-------------------
+
+Assumes metadata layout of form::
+
+    key1:value1
+    key2:value2
+
+With each key-value pair separated by newlines and the key and value
+delimited by a colon.
+
+**/
+
+inline std::string NP::get_meta_string(const char* key) const 
+{
+    std::string value ; 
+
+    std::stringstream ss;
+    ss.str(meta);
+    std::string s;
+    char delim = ':' ; 
+
+    while (std::getline(ss, s))
+    { 
+       size_t pos = s.find(delim); 
+       if( pos != std::string::npos )
+       {
+           std::string k = s.substr(0, pos);
+           std::string v = s.substr(pos+1);
+           if(strcmp(k.c_str(), key) == 0 ) value = v ; 
+#ifdef DEBUG
+           std::cout 
+               << "NP::get_meta_string " 
+               << " s[" << s << "]"
+               << " k[" << k << "]" 
+               << " v[" << v << "]" 
+               << std::endl
+               ;   
+#endif
+       }
+#ifdef DEBUG
+       else
+       {
+           std::cout 
+               << "NP::get_meta_string " 
+               << "s[" << s << "] SKIP "   
+               << std::endl
+               ;   
+       }
+#endif
+    } 
+    return value ; 
+}
+
+
+template<typename T> inline T NP::get_meta(const char* key, T fallback) const 
+{
+    std::string s = get_meta_string(key); 
+    if(s.empty()) return fallback ; 
+    return To<T>(s.c_str()) ; 
+}
+
+template int      NP::get_meta<int>(const char*, int ) const ; 
+template unsigned NP::get_meta<unsigned>(const char*, unsigned ) const  ; 
+template float    NP::get_meta<float>(const char*, float ) const ; 
+template double   NP::get_meta<double>(const char*, double ) const ; 
+
+template<typename T> inline void NP::set_meta(const char* key, T value)  
+{
+    std::stringstream nn;
+    std::stringstream ss;
+    ss.str(meta);
+    std::string s;
+    char delim = ':' ; 
+    bool changed = false ; 
+    while (std::getline(ss, s))
+    { 
+       size_t pos = s.find(delim); 
+       if( pos != std::string::npos )
+       {
+           std::string k = s.substr(0, pos);
+           std::string v = s.substr(pos+1);
+           if(strcmp(k.c_str(), key) == 0 )  // key already present, so change it 
+           {
+               changed = true ; 
+               nn << key << delim << value << std::endl ;   
+           }
+           else
+           {
+               nn << s << std::endl ;  
+           }
+       }
+       else
+       {
+           nn << s << std::endl ;  
+       }    
+    }
+    if(!changed) nn << key << delim << value << std::endl ; 
+    meta = nn.str(); 
+}
+
+template void     NP::set_meta<int>(const char*, int ); 
+template void     NP::set_meta<unsigned>(const char*, unsigned ); 
+template void     NP::set_meta<float>(const char*, float ); 
+template void     NP::set_meta<double>(const char*, double ); 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template<typename T>
 inline int NP::DumpCompare( const NP* a, const NP* b , unsigned a_column, unsigned b_column, const T epsilon ) // static
 {
@@ -2448,74 +2583,6 @@ inline int NP::load_meta( const char* path )
     return 0 ; 
 }
 
-
-/**
-NP::get_meta_value
--------------------
-
-Assumes metadata layout of form::
-
-    key1:value1
-    key2:value2
-
-With each key-value pair separated by newlines and the key and value
-delimited by a colon.
-
-**/
-
-inline std::string NP::get_meta_string(const char* key) const 
-{
-    std::string value ; 
-
-    std::stringstream ss;
-    ss.str(meta);
-    std::string s;
-    char delim = ':' ; 
-
-    while (std::getline(ss, s))
-    { 
-       size_t pos = s.find(delim); 
-       if( pos != std::string::npos )
-       {
-           std::string k = s.substr(0, pos);
-           std::string v = s.substr(pos+1);
-           if(strcmp(k.c_str(), key) == 0 ) value = v ; 
-#ifdef DEBUG
-           std::cout 
-               << "NP::get_meta_string " 
-               << " s[" << s << "]"
-               << " k[" << k << "]" 
-               << " v[" << v << "]" 
-               << std::endl
-               ;   
-#endif
-       }
-#ifdef DEBUG
-       else
-       {
-           std::cout 
-               << "NP::get_meta_string " 
-               << "s[" << s << "] SKIP "   
-               << std::endl
-               ;   
-       }
-#endif
-    } 
-    return value ; 
-}
-
-
-template<typename T> inline T NP::get_meta(const char* key, T fallback) const 
-{
-    std::string s = get_meta_string(key); 
-    if(s.empty()) return fallback ; 
-    return To<T>(s.c_str()) ; 
-}
-
-template int      NP::get_meta<int>(const char*, int ) const ; 
-template unsigned NP::get_meta<unsigned>(const char*, unsigned ) const  ; 
-template float    NP::get_meta<float>(const char*, float ) const ; 
-template double   NP::get_meta<double>(const char*, double ) const ; 
 
 
 

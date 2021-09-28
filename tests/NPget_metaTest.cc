@@ -78,10 +78,19 @@ void test_get_meta(const NP* a )
         << " v3 [" << v3 << "]" 
         <<  std::endl 
         ; 
-
-    
 }
 
+
+void test_set_meta( NP* a )
+{
+    std::cout << "test_set_meta" << std::endl << a->meta << std::endl ; 
+
+    a->set_meta<unsigned>("hd_factor", 20) ; 
+    a->set_meta<unsigned>("hd_factor", 30) ; 
+    a->set_meta<unsigned>("hd_factor", 40) ; 
+
+    std::cout << "test_set_meta" << std::endl << a->meta << std::endl ; 
+}
 
 
 
@@ -91,6 +100,8 @@ int main(int argc, char** argv)
     test_get_meta_string(a); 
     test_get_meta(a); 
 
+    
+    test_set_meta(const_cast<NP*>(a)); 
 
     return 0 ; 
 }
