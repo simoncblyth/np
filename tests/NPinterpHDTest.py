@@ -38,12 +38,21 @@ class NPinterpHDTest(object):
 if __name__ == '__main__':
     t =  NPinterpHDTest()
 
+    np.all( icdf[:,0,0] == icdf[:,0,1] )
+
     title = ["np/tests/NPinterpHDTest.py"]
 
     fig, ax = plt.subplots(figsize=[12.8, 7.2])
     fig.suptitle("\n".join(title))
 
-    ax.plot( xy[:,0], xy[:,1], label="xy" )
+    if xy.ndim == 2:
+        ax.plot( xy[:,0], xy[:,1], label="xy" )
+    elif xy.ndim == 3:
+        for item in range(len(xy)):
+            ax.plot( xy[item,:,0], xy[item,:,1], label="xy %d" % item )
+        pass
+    pass
+
     ax.legend()
 
     fig.show()
