@@ -32,27 +32,33 @@ int main(int argc, char** argv)
 {
     unsigned mul = 10 ; 
     NP* dist = make_dist(mul) ; 
+    std::cout << " dist " << dist->sstr() << std::endl ; 
 
     NP* cdf =  NP::MakeCDF<double>( dist ); 
     cdf->save(FOLD, "cdf.npy"); 
+    std::cout << " cdf " << cdf->sstr() << std::endl ; 
 
     unsigned nu = 91 ; 
-    unsigned hd_factor = 0 ;  // TODO: get hd_factor creation and lookups operational 
+    unsigned hd_factor = 10 ; 
+    // TODO: get hd_factor creation and lookups operational 
+
+
     NP* icdf = NP::MakeICDF<double>( cdf, nu , hd_factor ); 
-    icdf->dump(); 
-    icdf->change_shape(-1); 
-    icdf->save(FOLD, "icdf.npy"); 
     std::cout << " icdf " << icdf->sstr() << std::endl ; 
+    icdf->change_shape(-1, hd_factor > 0 ? 4  : -1 ); 
+    std::cout << " icdf after change_shape " << icdf->sstr() << " hd_factor " << hd_factor << std::endl ; 
+    icdf->dump(); 
+    icdf->save(FOLD, "icdf.npy"); 
 
-    NP* icdf_prop = NP::MakeProperty<double>( icdf ) ; 
+
+    NP* icdf_prop = NP::MakeProperty<double>( icdf, hd_factor ) ; 
     icdf_prop->save(FOLD, "icdf_prop.npy" );  
-
-    std::cout << " icdf_prop " << icdf_prop->sstr() << std::endl ; 
-    
+    std::cout << " icdf_prop " << icdf_prop->sstr() << " hd_factor " << hd_factor << std::endl ; 
 
 
-    NP* sample = NP::MakeSample<double>( icdf_prop, 1000000 );  
-    sample->save(FOLD, "sample.npy"); 
+    unsigned seed = 0u ; 
+    NP* sample = NP::MakeLookupSample<double>( icdf_prop, 1000000, seed, hd_factor );  
+    sample->save(FOLD, "lookup_sample.npy"); 
 
     return 0 ; 
 }

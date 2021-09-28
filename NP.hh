@@ -43,16 +43,12 @@ struct NP
     };            
 
     template<typename T> static NP*  Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1 );  // dtype from template type
-    template<typename T> static NP*  Linspace( T x0, T x1, unsigned nx ); 
+    template<typename T> static NP*  Linspace( T x0, T x1, unsigned nx, int npayload=-1 ); 
     template<typename T> static NP*  MakeDiv( const NP* src, unsigned mul  ); 
     template<typename T> static NP*  Make( const std::vector<T>& src ); 
     template<typename T> static T To( const char* a ); 
     template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
 
-
-    template<typename T> static NP*  MakeUniform( unsigned ni, unsigned seed=0u );  
-    template<typename T> static NP*  MakeProperty(const NP* a ); 
-    template<typename T> static NP*  MakeSample(const NP* icdf_prop, unsigned ni, unsigned seed=0u );  
 
     template<typename T> static unsigned NumSteps( T x0, T x1, T dx ); 
 
@@ -111,6 +107,7 @@ struct NP
     template<typename T> const T*  cvalues() const  ; 
     template<typename T> unsigned  index( int i,  int j=0,  int k=0,  int l=0, int m=0) const ; 
     template<typename T> T           get( int i,  int j=0,  int k=0,  int l=0, int m=0) const ; 
+    template<typename T> void        set( T val, int i,  int j=0,  int k=0,  int l=0, int m=0) ; 
 
     template<typename T> void fill(T value); 
     template<typename T> void _fillIndexFlat(T offset=0); 
@@ -124,6 +121,11 @@ struct NP
 
     template<typename T> static NP* MakeCDF(  const NP* src );
     template<typename T> static NP* MakeICDF(  const NP* src, unsigned nu, unsigned hd_factor );
+    template<typename T> static NP* MakeProperty(const NP* a, unsigned hd_factor ); 
+    template<typename T> static NP* MakeLookupSample(const NP* icdf_prop, unsigned ni, unsigned seed=0u, unsigned hd_factor=0u );  
+    template<typename T> static NP* MakeUniform( unsigned ni, unsigned seed=0u );  
+
+
  
     NP* copy() const ; 
 
@@ -143,6 +145,7 @@ struct NP
     template<typename T> void linear_crossings( T value, std::vector<T>& crossings ) const ; 
     template<typename T> NP*  trapz() const ;                      // composite trapezoidal integration, requires pshaped
     template<typename T> T    interp(T x) const ;                  // requires pshaped 
+    template<typename T> T    interpHD(T u, unsigned hd_factor) const ; 
     template<typename T> T    interp(unsigned iprop, T x) const ;  // requires NP::Combine of pshaped arrays 
     template<typename T> NP*  cumsum(int axis=0) const ; 
     template<typename T> void divide_by_last() ; 
@@ -591,8 +594,12 @@ template<typename T> inline T NP::get( int i,  int j,  int k,  int l, int m) con
     return vv[idx] ; 
 }
 
-
-
+template<typename T> inline void NP::set( T val, int i,  int j,  int k,  int l, int m) 
+{
+    unsigned idx = index<T>(i, j, k, l, m); 
+    T* vv = values<T>();  
+    vv[idx] = val ; 
+}
 
 
 template<typename T> inline void NP::fill(T value)
@@ -818,6 +825,19 @@ NP::MakeICDF
 -------------
 
 Inverts CDF using *nu* NP::pdomain lookups in range 0->1
+The input CDF must contain domain and values in the payload last dimension. 
+3d or 2d input CDF are accepted where 3d input CDF is interpreted as 
+a collection of multiple CDF to be inverted. 
+
+The ICDF created has shape (num_items, nu, hd_factor == 0 ? 1 : 4) 
+where num_items is 1 for 2d input CDF and the number of items for 3d input CDF.
+
+Notice that domain information is not included in the output ICDF, this is 
+to facilitate direct conversion of the ICDF array into GPU textures.
+The *hd_factor* convention regarding domain ranges is used.
+
+Use NP::MakeProperty to add domain infomation using this convention.
+ 
 
 **/
 
@@ -885,6 +905,159 @@ inline NP* NP::MakeICDF(const NP* cdf, unsigned nu, unsigned hd_factor )  // sta
     }
     return icdf ; 
 } 
+
+/**
+NP::MakeProperty
+-----------------
+
+For hd_factor=0 converts a one dimensional array of values with shape (ni,)
+into 2d array of shape (ni, 2) with the domain a range of values 
+from 0 -> (ni-1)/ni = 1-1/ni 
+Thinking in one dimensional terms that means that values and 
+corresponding domains get interleaved.
+The resulting property array can then be used with NP::pdomain or NP::interp.
+
+For hd_factor=10 or hd_factor=20 the input array is required to have shape (ni,4)
+where "all" is in payload slot 0 and lhs and rhs high resolution zooms are in 
+payload slots 1 and 2.  (Slot 3 is currently spare, normally containing zero). 
+
+The output array has an added dimension with shape  (ni,4,2) 
+adding domain values interleaved with the values. 
+The domain values follow the hd_factor convention of scaling the resolution 
+in the 1/hd_factor tails
+
+TODO: a version of NP::interp that is hd_factor aware and uses the relevant 
+portion of the composite property array depending on the random u value 
+
+**/
+
+template <typename T> NP* NP::MakeProperty(const NP* a, unsigned hd_factor ) // static 
+{
+    NP* prop = nullptr ; 
+    unsigned ndim = a->shape.size(); 
+    if( ndim == 1 )
+    {
+        assert( hd_factor == 0 );  
+
+        unsigned ni = a->shape[0] ; 
+        unsigned nj = 2 ; 
+        prop = NP::Make<T>(ni, nj) ; 
+        T* prop_v = prop->values<T>(); 
+        for(unsigned i=0 ; i < ni ; i++)
+        {
+            prop_v[nj*i+0] = T(i)/T(ni) ;  // 0 -> (ni-1)/ni = 1-1/ni 
+            prop_v[nj*i+1] = a->get<T>(i) ; 
+        }
+    } 
+    else if( ndim == 2 )
+    {
+        assert( hd_factor == 10 || hd_factor == 20 ); 
+
+        T edge = 1./T(hd_factor) ;
+
+        unsigned ni = a->shape[0] ; 
+        unsigned nj = a->shape[1] ; 
+        unsigned nk = 2 ; 
+        assert( nj == 4 ); 
+
+
+        prop = NP::Make<T>(ni, nj, nk) ; 
+        T* prop_v = prop->values<T>(); 
+
+        for(unsigned i=0 ; i < ni ; i++)
+        {
+            T u_all =  T(i)/T(ni) ; 
+            T u_lhs =  T(i)/T(hd_factor*ni) ; 
+            T u_rhs =  1. - edge + T(i)/T(hd_factor*ni) ; 
+
+            for(unsigned j=0 ; j < nj ; j++)   // 0,1,2,3
+            {
+                unsigned k=0 ; 
+                switch(j)
+                {
+                    case 0:prop_v[nk*nj*i+nk*j+k] = u_all ; break ; 
+                    case 1:prop_v[nk*nj*i+nk*j+k] = u_lhs ; break ; 
+                    case 2:prop_v[nk*nj*i+nk*j+k] = u_rhs ; break ; 
+                    case 3:prop_v[nk*nj*i+nk*j+k] = 0.    ; break ; 
+                }
+                k=1 ;  
+                prop_v[nk*nj*i+nk*j+k] = a->get<T>(i,j) ; 
+            }
+        }
+    }
+    return prop ; 
+}
+
+/**
+NP::MakeLookupSample
+-----------------------
+
+Create a lookup sample of shape (ni,) using the 2d icdf_prop and ni uniform random numbers 
+Hmm in regions where the CDF is flat (and ICDF is steep), the ICDF lookup does not do very well.
+That is the reason for hd_factor, to increase resolution at the extremes where this 
+issue usually occurs without paying the cost of higher resolution across the entire range.
+
+TODO: compare what this provides directly on the ICDF (using NP::interp) 
+      with what the CDF directly can provide (using NP::pdomain)
+     
+**/
+
+template <typename T> NP* NP::MakeLookupSample(const NP* icdf_prop, unsigned ni, unsigned seed, unsigned hd_factor ) // static 
+{
+    unsigned ndim = icdf_prop->shape.size() ; 
+    unsigned npay = icdf_prop->shape[ndim-1] ; 
+    assert( npay == 2 ); 
+
+    if(ndim == 2)
+    {
+        assert( hd_factor == 0 ); 
+    }
+    else if( ndim == 3 )
+    {
+        assert( hd_factor == 10 || hd_factor == 20  ); 
+        assert( icdf_prop->shape[1] == 4 ); 
+    }
+
+    std::mt19937_64 rng;
+    rng.seed(seed); 
+    std::uniform_real_distribution<T> unif(0, 1);
+
+    NP* sample = NP::Make<T>(ni); 
+    T* sample_v = sample->values<T>(); 
+    for(unsigned i=0 ; i < ni ; i++) 
+    {
+        T u = unif(rng) ;  
+        T y = hd_factor > 0 ? icdf_prop->interpHD<T>(u, hd_factor ) : icdf_prop->interp<T>(u) ; 
+        sample_v[i] = y ; 
+    }
+    return sample ; 
+}
+
+
+
+/**
+NP::MakeUniform
+----------------
+
+Create array of uniform random numbers between 0 and 1 using std::mt19937_64
+
+**/
+
+template <typename T> NP* NP::MakeUniform(unsigned ni, unsigned seed) // static 
+{
+    std::mt19937_64 rng;
+    rng.seed(seed); 
+    std::uniform_real_distribution<T> unif(0, 1);
+
+    NP* uu = NP::Make<T>(ni); 
+    T* vv = uu->values<T>(); 
+    for(unsigned i=0 ; i < ni ; i++) vv[i] = unif(rng) ; 
+    return uu ; 
+}
+
+
+
+
 
 
 
@@ -1523,11 +1696,11 @@ so always explicitly define the template type : DO NOT RELY ON COMPILER WORKING 
 
 template<typename T> inline T NP::interp(T x) const  
 {
-    assert( shape.size() == 2 && shape[1] == 2 && shape[0] > 1); 
+    unsigned ndim = shape.size() ; 
     unsigned ni = shape[0] ; 
+    unsigned npay = shape[ndim-1] ; 
 
-    //pdump<T>("NP::interp.pdump (not being explicit with the type managed to scramble array content) ");  
-
+    assert( ndim == 2 && npay == 2 && ni > 1); 
     const T* vv = cvalues<T>(); 
 
     int lo = 0 ;
@@ -1548,9 +1721,11 @@ template<typename T> inline T NP::interp(T x) const
          ; 
 */
 
+    // for x out of domain range return values at edges
     if( x <= vv[2*lo+0] ) return vv[2*lo+1] ; 
     if( x >= vv[2*hi+0] ) return vv[2*hi+1] ; 
 
+    // binary search for domain bin containing x 
     while (lo < hi-1)
     {
         int mi = (lo+hi)/2;
@@ -1558,13 +1733,58 @@ template<typename T> inline T NP::interp(T x) const
         else lo = mi;
     }
 
+    // linear interpolation across the bin 
     T dy = vv[2*hi+1] - vv[2*lo+1] ; 
     T dx = vv[2*hi+0] - vv[2*lo+0] ; 
     T y = vv[2*lo+1] + dy*(x-vv[2*lo+0])/dx ; 
+
     return y ; 
 }
 
+/**
+NP::interpHD
+--------------
 
+Interpolation within domain 0->1 using hd_factor convention for lhs, rhs high resolution zooms. 
+
+**/
+
+template<typename T> inline T NP::interpHD(T u, unsigned hd_factor) const  
+{
+    unsigned ndim = shape.size() ; 
+    assert( ndim == 3 ); 
+    unsigned ni = shape[0] ; 
+    unsigned nj = shape[1] ; 
+    unsigned nk = shape[2] ; 
+    assert( nj == 4 && nk == 2 ); 
+
+    // pick *j* resolution zoom depending on u 
+    T lhs = T(1.)/T(hd_factor) ; 
+    T rhs = T(1.) - lhs ; 
+    unsigned j = u > lhs && u < rhs ? 0 : ( u < lhs ? 1 : 2 ) ;  
+
+    int lo = 0 ;
+    int hi = ni-1 ;
+
+    // for u out of domain range return values at edges
+    if( u <= get<T>(lo,j,0) ) return get<T>(lo,j,1) ; 
+    if( u >= get<T>(hi,j,0) ) return get<T>(hi,j,1) ; 
+
+    // binary search for domain bin containing x 
+    while (lo < hi-1)
+    {
+        int mi = (lo+hi)/2;
+        if (u < get<T>(mi,j,0) ) hi = mi ;
+        else lo = mi;
+    }
+
+    // linear interpolation across the bin 
+    T dy = get<T>(hi,j,1) - get<T>(lo,j,1) ; 
+    T du = get<T>(hi,j,0) - get<T>(lo,j,0) ; 
+    T y = get<T>(lo,j,1) + + dy*(u-get<T>(lo,j,0))/du ; 
+
+    return y ; 
+}
 
 
 
@@ -2298,10 +2518,15 @@ template<>  inline std::string NP::_present(double v) const
     return ss.str();
 }
 
+/**
+NP::_dump
+-----------
 
+
+**/
 template <typename T> inline void NP::_dump(int i0_, int i1_) const 
 {
-    int ni = NPS::ni_(shape) ;
+    int ni = NPS::ni_(shape) ;  // ni_ nj_ nk_ returns shape dimension size or 1 if no such dimension
     int nj = NPS::nj_(shape) ;
     int nk = NPS::nk_(shape) ;
 
@@ -2368,23 +2593,21 @@ template <typename T> void NP::read2(const T* data)
 }
 
 
-template <typename T> NP* NP::Linspace( T x0, T x1, unsigned nx )
+template <typename T> NP* NP::Linspace( T x0, T x1, unsigned nx, int npayload ) 
 {
     assert( x1 > x0 ); 
     assert( nx > 0 ) ; 
-    NP* dom = NP::Make<T>(nx); 
-    T* vv = dom->values<T>(); 
+    NP* a = NP::Make<T>(nx, npayload );  // npayload default is -1
 
     if( nx == 1 )
     {
-        vv[0] = x0 ;  
+        a->set<T>(x0, 0 ); 
     }
     else
     {
-        for(unsigned i=0 ; i < nx ; i++) vv[i] = x0 + (x1-x0)*T(i)/T(nx-1)  ;
+        for(unsigned i=0 ; i < nx ; i++) a->set<T>( x0 + (x1-x0)*T(i)/T(nx-1), i )  ; 
     }
-
-    return dom ; 
+    return a ; 
 }
 
 /**
@@ -2535,91 +2758,6 @@ template <typename T> NP* NP::FromString(const char* str, char delim)  // static
 
 
 
-
-
-
-/**
-NP::MakeUniform
-----------------
-
-Create array of uniform random numbers between 0 and 1 using std::mt19937_64
-
-**/
-
-template <typename T> NP* NP::MakeUniform(unsigned ni, unsigned seed) // static 
-{
-    std::mt19937_64 rng;
-    rng.seed(seed); 
-    std::uniform_real_distribution<T> unif(0, 1);
-
-    NP* uu = NP::Make<T>(ni); 
-    T* vv = uu->values<T>(); 
-    for(unsigned i=0 ; i < ni ; i++) vv[i] = unif(rng) ; 
-    return uu ; 
-}
-
-/**
-NP::MakeProperty
------------------
-
-Converts a one dimensional array of values with shape (ni,)
-into 2d array of shape (ni, 2) with the domain a range of values 
-from 0 -> (ni-1)/ni = 1-1/ni 
-
-**/
-
-template <typename T> NP* NP::MakeProperty(const NP* a) // static 
-{
-    bool expect = a->shape.size() == 1 ; 
-    if(!expect) std::cout 
-        << "NP::MakeProperty"
-        << " unexpected input array shape " << a->sstr()
-        ;
-    assert(expect); 
-    unsigned ni = a->shape[0] ; 
-  
-    NP* prop = NP::Make<T>(ni, 2) ; 
-    T* prop_v = prop->values<T>(); 
-
-    for(unsigned i=0 ; i < ni ; i++)
-    {
-        prop_v[2*i+0] = T(i)/T(ni) ;  // 0 -> (ni-1)/ni = 1-1/ni 
-        prop_v[2*i+1] = a->get<T>(i) ; 
-    }
-    return prop ; 
-}
-
-/**
-NP::MakeSample
-----------------
-
-Create a sample of shape (ni,) using the 2d icdf_prop and ni uniform random numbers 
-Hmm in regions where the CDF is flat (and ICDF is steep), the ICDF lookup does not do very well.
-That is the reason for hd_factor, to increase resolution at the extremes where this 
-issue usually occurs without paying the cost of higher resolution across the entire range.
-
-TODO: compare what this provides directly on the ICDF (using NP::interp) 
-      with what the CDF directly can provide (using NP::pdomain)
-     
-**/
-
-template <typename T> NP* NP::MakeSample(const NP* icdf_prop, unsigned ni, unsigned seed ) // static 
-{
-    assert( icdf_prop->shape.size() == 2 && icdf_prop->shape[1] == 2 ); 
-
-    std::mt19937_64 rng;
-    rng.seed(seed); 
-    std::uniform_real_distribution<T> unif(0, 1);
-
-    NP* sample = NP::Make<T>(ni); 
-    T* sample_v = sample->values<T>(); 
-    for(unsigned i=0 ; i < ni ; i++) 
-    {
-        T u = unif(rng) ;  
-        sample_v[i] = icdf_prop->interp<T>(u) ; 
-    }
-    return sample ; 
-}
 
 
 
