@@ -34,10 +34,36 @@ void test_10()
 }
 
 
+void test_10_2()
+{
+    unsigned ni = 100 ; 
+    unsigned nj = 100 ; 
+    unsigned nk = 4 ; 
+
+    std::vector<double> src ;  
+    for(unsigned i=0 ; i < ni ; i++) for(unsigned j=0 ; j < nj ; j++) for(unsigned k=0 ; k < nk ; k++) src.push_back(double(100*i+10*j+k));
+ 
+    NP* a = NP::Make<double>( ni, nj, nk );  
+    a->read(src.data()); 
+
+    unsigned hd_factor = 10u ; 
+    NP* p = NP::MakeProperty<double>(a, hd_factor ); 
+    p->dump(); 
+
+    std::cout << " a " << a->sstr() << std::endl ; 
+    std::cout << " p " << p->sstr() << std::endl ; 
+}
+
+
+
+
+
+
 int main(int argc, char** argv)
 {
     //test_0(); 
-    test_10();  
+    //test_10();  
+    test_10_2();  
 
     return 0 ; 
 }

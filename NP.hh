@@ -120,7 +120,7 @@ struct NP
     static NP* MakeCopy(  const NP* src); 
 
     template<typename T> static NP* MakeCDF(  const NP* src );
-    template<typename T> static NP* MakeICDF(  const NP* src, unsigned nu, unsigned hd_factor );
+    template<typename T> static NP* MakeICDF(  const NP* src, unsigned nu, unsigned hd_factor, bool dump );
     template<typename T> static NP* MakeProperty(const NP* a, unsigned hd_factor ); 
     template<typename T> static NP* MakeLookupSample(const NP* icdf_prop, unsigned ni, unsigned seed=0u, unsigned hd_factor=0u );  
     template<typename T> static NP* MakeUniform( unsigned ni, unsigned seed=0u );  
@@ -192,7 +192,7 @@ struct NP
     void get_meta( std::vector<std::string>& lines,       char delim='\n' ) const ; 
 
     std::string get_meta_string(const char* key) const ;  
-    template<typename T> T    get_meta(const char* key, T fallback=0) const ;  
+    template<typename T> T    get_meta(const char* key, T fallback=0) const ;  // for T=std::string must set fallback to ""
     template<typename T> void set_meta(const char* key, T value ) ;  
 
 
@@ -211,8 +211,9 @@ struct NP
     std::vector<int>  shape ; 
     std::string       meta ; 
 
-    // transient
+    // non-persisted transients, set on loading 
     std::string lpath ; 
+    std::string lfold ; 
 
     // headers used for transport 
     std::string _hdr ; 
@@ -851,13 +852,11 @@ Use NP::MakeProperty to add domain infomation using this convention.
 **/
 
 template<typename T>
-inline NP* NP::MakeICDF(const NP* cdf, unsigned nu, unsigned hd_factor )  // static 
+inline NP* NP::MakeICDF(const NP* cdf, unsigned nu, unsigned hd_factor, bool dump)  // static 
 {
     unsigned ndim = cdf->shape.size(); 
     assert( ndim == 2 || ndim == 3 ); 
-
     unsigned num_items = ndim == 3 ? cdf->shape[0] : 1 ; 
-    int item = -1 ; 
 
     assert( hd_factor == 0 || hd_factor == 10 || hd_factor == 20 );  
     T edge = hd_factor > 0 ? T(1.)/T(hd_factor) : 0. ;   
@@ -868,25 +867,29 @@ inline NP* NP::MakeICDF(const NP* cdf, unsigned nu, unsigned hd_factor )  // sta
     unsigned ni = icdf->shape[0] ; 
     unsigned nj = icdf->shape[1] ; 
     unsigned nk = icdf->shape[2] ; 
-#ifdef DEBUG
-    std::cout 
+
+    if(dump) std::cout 
         << "NP::MakeICDF"
         << " nu " << nu
         << " ni " << ni
         << " nj " << nj
         << " nk " << nk
         << " hd_factor " << hd_factor
+        << " ndim " << ndim
+        << " icdf " << icdf->sstr()
         << std::endl 
         ;
-#endif
 
     for(unsigned i=0 ; i < ni ; i++)
     {
         int item = i ;  
+        if(dump) std::cout << "NP::MakeICDF" << " item " << item << std::endl ; 
+
         for(unsigned j=0 ; j < nj ; j++)
         {
             T y_all = T(j)/T(nj) ; //        // 0 -> (nj-1)/nj = 1-1/nj 
             T x_all = cdf->pdomain<T>( y_all, item );    
+
 #ifdef DEBUG
             std::cout 
                 <<  " y_all " << std::setw(10) << std::setprecision(4) << std::fixed << y_all 
@@ -926,7 +929,7 @@ Thinking in one dimensional terms that means that values and
 corresponding domains get interleaved.
 The resulting property array can then be used with NP::pdomain or NP::interp.
 
-For hd_factor=10 or hd_factor=20 the input array is required to have shape (ni,4)
+For hd_factor=10 or hd_factor=20 the input array is required to have shape (ni,4) or (ni,nj,4)
 where "all" is in payload slot 0 and lhs and rhs high resolution zooms are in 
 payload slots 1 and 2.  (Slot 3 is currently spare, normally containing zero). 
 
@@ -935,8 +938,6 @@ adding domain values interleaved with the values.
 The domain values follow the hd_factor convention of scaling the resolution 
 in the 1/hd_factor tails
 
-TODO: a version of NP::interp that is hd_factor aware and uses the relevant 
-portion of the composite property array depending on the random u value 
 
 **/
 
@@ -944,6 +945,8 @@ template <typename T> NP* NP::MakeProperty(const NP* a, unsigned hd_factor ) // 
 {
     NP* prop = nullptr ; 
     unsigned ndim = a->shape.size(); 
+    assert( ndim == 1 || ndim == 2 || ndim == 3 ); 
+
     if( ndim == 1 )
     {
         assert( hd_factor == 0 );  
@@ -958,17 +961,13 @@ template <typename T> NP* NP::MakeProperty(const NP* a, unsigned hd_factor ) // 
             prop_v[nj*i+1] = a->get<T>(i) ; 
         }
     } 
-    else if( ndim == 2 )
+    else if( ndim == 2 )   
     {
         assert( hd_factor == 10 || hd_factor == 20 ); 
-
         T edge = 1./T(hd_factor) ;
-
         unsigned ni = a->shape[0] ; 
-        unsigned nj = a->shape[1] ; 
+        unsigned nj = a->shape[1] ; assert( nj == 4 ); 
         unsigned nk = 2 ; 
-        assert( nj == 4 ); 
-
 
         prop = NP::Make<T>(ni, nj, nk) ; 
         T* prop_v = prop->values<T>(); 
@@ -978,19 +977,58 @@ template <typename T> NP* NP::MakeProperty(const NP* a, unsigned hd_factor ) // 
             T u_all =  T(i)/T(ni) ; 
             T u_lhs =  T(i)/T(hd_factor*ni) ; 
             T u_rhs =  1. - edge + T(i)/T(hd_factor*ni) ; 
+            T u_spa =  0. ; 
 
             for(unsigned j=0 ; j < nj ; j++)   // 0,1,2,3
             {
-                unsigned k=0 ; 
+                unsigned k;
+                k=0 ; 
                 switch(j)
                 {
                     case 0:prop_v[nk*nj*i+nk*j+k] = u_all ; break ; 
                     case 1:prop_v[nk*nj*i+nk*j+k] = u_lhs ; break ; 
                     case 2:prop_v[nk*nj*i+nk*j+k] = u_rhs ; break ; 
-                    case 3:prop_v[nk*nj*i+nk*j+k] = 0.    ; break ; 
+                    case 3:prop_v[nk*nj*i+nk*j+k] = u_spa ; break ; 
                 }
                 k=1 ;  
                 prop_v[nk*nj*i+nk*j+k] = a->get<T>(i,j) ; 
+            }
+        }
+    }
+    else if( ndim == 3 )
+    {
+        assert( hd_factor == 10 || hd_factor == 20 ); 
+        T edge = 1./T(hd_factor) ;
+        unsigned ni = a->shape[0] ; 
+        unsigned nj = a->shape[1] ; 
+        unsigned nk = a->shape[2] ; assert( nk == 4 );   // hd_factor convention
+        unsigned nl = 2 ; 
+
+        prop = NP::Make<T>(ni, nj, nk, nl) ; 
+
+        for(unsigned i=0 ; i < ni ; i++)
+        {
+            for(unsigned j=0 ; j < nj ; j++)
+            {
+                T u_all =  T(j)/T(nj) ; 
+                T u_lhs =  T(j)/T(hd_factor*nj) ; 
+                T u_rhs =  1. - edge + T(j)/T(hd_factor*nj) ; 
+                T u_spa =  0. ; 
+
+                for(unsigned k=0 ; k < nk ; k++)   // 0,1,2,3
+                {
+                    unsigned l ; 
+                    l=0 ; 
+                    switch(k)
+                    {
+                        case 0:prop->set<T>(u_all, i,j,k,l) ; break ; 
+                        case 1:prop->set<T>(u_lhs, i,j,k,l) ; break ; 
+                        case 2:prop->set<T>(u_rhs, i,j,k,l) ; break ; 
+                        case 3:prop->set<T>(u_spa, i,j,k,l) ; break ; 
+                    }
+                    l=1 ;  
+                    prop->set<T>( a->get<T>(i,j,k), i,j,k,l );   
+                }
             }
         }
     }
@@ -1598,7 +1636,11 @@ template<typename T> inline T  NP::pdomain(const T value, int item, bool dump ) 
 
     const T lhs_dom = vv[nj*(0)+jdom]; 
     const T rhs_dom = vv[nj*(ni-1)+jdom];
-    bool dom_expect = rhs_dom > lhs_dom  ; 
+    bool dom_expect = rhs_dom >= lhs_dom  ;  // allow equal as getting zeros at extremes 
+
+    const T lhs_val = vv[nj*(0)+jval]; 
+    const T rhs_val = vv[nj*(ni-1)+jval];
+    bool val_expect = rhs_val >= lhs_val ; 
 
     if(!dom_expect) std::cout 
         << "NP::pdomain FATAL dom_expect : rhs_dom > lhs_dom "
@@ -1608,10 +1650,6 @@ template<typename T> inline T  NP::pdomain(const T value, int item, bool dump ) 
         ;
     assert( dom_expect ); 
 
-    const T lhs_val = vv[nj*(0)+jval]; 
-    const T rhs_val = vv[nj*(ni-1)+jval];
-
-    bool val_expect = rhs_val > lhs_val ; 
     if(!val_expect) std::cout 
         << "NP::pdomain FATAL val_expect : rhs_val > lhs_val "
         << " lhs_val " << std::setw(10) << std::fixed << std::setprecision(4) << lhs_val 
@@ -1619,7 +1657,6 @@ template<typename T> inline T  NP::pdomain(const T value, int item, bool dump ) 
         << std::endl 
         ;
     assert( val_expect ); 
-
 
     const T yv = value ; 
     T xv ;   
@@ -2168,7 +2205,16 @@ template int      NP::get_meta<int>(const char*, int ) const ;
 template unsigned NP::get_meta<unsigned>(const char*, unsigned ) const  ; 
 template float    NP::get_meta<float>(const char*, float ) const ; 
 template double   NP::get_meta<double>(const char*, double ) const ; 
+template std::string NP::get_meta<std::string>(const char*, std::string ) const ; 
 
+/**
+NP::set_meta
+--------------
+
+A preexisting keyed k:v pair is changed by this otherwise if there is no 
+such pre-existing key a new k:v pair is added. 
+
+**/
 template<typename T> inline void NP::set_meta(const char* key, T value)  
 {
     std::stringstream nn;
@@ -2207,6 +2253,7 @@ template void     NP::set_meta<int>(const char*, int );
 template void     NP::set_meta<unsigned>(const char*, unsigned ); 
 template void     NP::set_meta<float>(const char*, float ); 
 template void     NP::set_meta<double>(const char*, double ); 
+template void     NP::set_meta<std::string>(const char*, std::string ); 
 
 
 
@@ -2547,6 +2594,7 @@ newline from the stream without returning it.
 inline int NP::load(const char* path)
 {
     lpath = path ;  // loadpath 
+    lfold = U::DirName(path); 
 
     std::ifstream fp(path, std::ios::in|std::ios::binary);
     if(fp.fail())

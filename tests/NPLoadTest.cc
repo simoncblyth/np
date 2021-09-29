@@ -4,6 +4,7 @@
 #include "NP.hh"
 
 
+
 int main(int argc, char** argv)
 {
     const char* npath = getenv("NPATH"); 
@@ -19,6 +20,10 @@ int main(int argc, char** argv)
 
     NP* b = NP::Load(path) ; 
     b->dump(); 
+
+    std::cout << " b->lpath " << b->lpath << std::endl ; 
+    std::cout << " b->lfold " << b->lfold << std::endl ; 
+
 
     return 0 ; 
 }

@@ -1,4 +1,4 @@
-// name=NPget_metaTest ; gcc $name.cc -std=c++11 -D_DEBUG -I.. -lstdc++ -o /tmp/$name && /tmp/$name 
+// name=NPget_metaTest ; gcc $name.cc -g -std=c++11 -D_DEBUG -I.. -lstdc++ -o /tmp/$name && lldb_ /tmp/$name 
 
 #include "NP.hh"
 
@@ -92,6 +92,23 @@ void test_set_meta( NP* a )
     std::cout << "test_set_meta" << std::endl << a->meta << std::endl ; 
 }
 
+void test_set_meta_2( NP* a )
+{
+    std::cout << "test_set_meta_2" << std::endl << a->meta << std::endl ; 
+    
+    a->set_meta<std::string>("somestring", "hello") ; 
+    a->set_meta<std::string>("creator", "QCerenkov::someMethod") ; 
+
+    std::cout << "test_set_meta_2" << std::endl << a->meta << std::endl ; 
+
+    std::string creator = a->get_meta<std::string>("creator",""); 
+    std::cout << " creator:[" << creator << "]" << std::endl ; 
+
+
+
+}
+
+
 
 
 int main(int argc, char** argv)
@@ -99,9 +116,9 @@ int main(int argc, char** argv)
     const NP* a = make_array(); 
     test_get_meta_string(a); 
     test_get_meta(a); 
-
     
     test_set_meta(const_cast<NP*>(a)); 
+    test_set_meta_2(const_cast<NP*>(a)); 
 
     return 0 ; 
 }
