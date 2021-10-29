@@ -6,6 +6,7 @@ mkdir -p /tmp/$name
 gcc $name.cc \
      -std=c++11 \
        -I.. \
+       -Wshadow \
       -lstdc++ \
        -o /tmp/$name/$name 
 

@@ -251,7 +251,7 @@ struct NPS
     {
         std::stringstream ss ; 
         ss << "("  ; 
-        for(int i=0 ; i < shape.size() ; i++) ss << shape[i] << ", " ; 
+        for(unsigned i=0 ; i < shape.size() ; i++) ss << shape[i] << ", " ; 
         ss << ")"  ; 
         return ss.str(); 
     } 
@@ -260,7 +260,7 @@ struct NPS
     {
         std::stringstream ss ; 
         ss << "["  ; 
-        for(int i=0 ; i < shape.size() ; i++) 
+        for(unsigned i=0 ; i < shape.size() ; i++) 
         {
             ss << shape[i]  ; 
             if( i < shape.size() - 1 ) ss << ", " ; 
@@ -272,14 +272,14 @@ struct NPS
     static int size(const std::vector<int>& shape)
     {
         int sz = 1;
-        for(int i=0; i<int(shape.size()); ++i) sz *= shape[i] ;
+        for(unsigned i=0; i<shape.size(); ++i) sz *= shape[i] ;
         return sz ;  
     }
 
     static int itemsize(const std::vector<int>& shape)
     {
         int sz = 1;
-        for(int i=1; i<int(shape.size()); ++i) sz *= shape[i] ;
+        for(unsigned i=1; i<shape.size(); ++i) sz *= shape[i] ;
         return sz ;  
     }
 
@@ -302,7 +302,7 @@ struct NPS
 
     int idx(int i, int j, int k, int l, int m)
     {
-        int ni = ni_() ;
+        //int ni = ni_() ;
         int nj = nj_() ; 
         int nk = nk_() ; 
         int nl = nl_() ;
@@ -412,7 +412,7 @@ inline std::string NPU::make_jsonhdr(const std::vector<int>& shape )
 inline std::string NPU::xxdisplay(const std::string& hdr, int width, char non_printable)
 {
     std::stringstream ss ; 
-    for(int i=0 ; i < hdr.size() ; i++) 
+    for(unsigned i=0 ; i < hdr.size() ; i++) 
     {   
         char c = hdr[i] ; 
         bool printable = c >= ' ' && c <= '~' ;  // https://en.wikipedia.org/wiki/ASCII
@@ -526,7 +526,7 @@ NumPy np.save / np.load
 #endif
     assert( hlen > 0 ); 
     assert( (hlen+10) % 16 == 0 ) ;  
-    assert( hlen+10 == hdr.size() ) ; 
+    assert( hlen+10 == int(hdr.size()) ) ; 
 
     return hlen ; 
 }
@@ -653,7 +653,7 @@ inline void NPU::_parse_dict(std::string& descr, bool& fortran_order, const char
     std::vector<std::string> elem ;  
     std::stringstream ss ; 
     unsigned nq = 0 ; 
-    for(int i=0 ; i < strlen(dict) ; i++)
+    for(unsigned i=0 ; i < strlen(dict) ; i++)
     {
         if(dict[i] == q || dict[i] == x) 
         {
