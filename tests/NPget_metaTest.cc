@@ -103,9 +103,25 @@ void test_set_meta_2( NP* a )
 
     std::string creator = a->get_meta<std::string>("creator",""); 
     std::cout << " creator:[" << creator << "]" << std::endl ; 
+}
 
+void test_get_meta_static()
+{
+    const char* metadata = R"(   
+xcut:200
+ycut:42
+zcut:-400
+)" ; 
 
+    double xcut = NP::get_meta_<double>(metadata, "xcut", -999. ); 
+    double ycut = NP::get_meta_<double>(metadata, "ycut", -999. ); 
+    double zcut = NP::get_meta_<double>(metadata, "zcut", -999. ); 
+    double qcut = NP::get_meta_<double>(metadata, "qcut", -999. ); 
 
+    std::cout << " xcut " << std::fixed << std::setw(10) << std::setprecision(3) << xcut << std::endl ; 
+    std::cout << " ycut " << std::fixed << std::setw(10) << std::setprecision(3) << ycut << std::endl ; 
+    std::cout << " zcut " << std::fixed << std::setw(10) << std::setprecision(3) << zcut << std::endl ; 
+    std::cout << " qcut " << std::fixed << std::setw(10) << std::setprecision(3) << qcut << std::endl ; 
 }
 
 
@@ -119,6 +135,9 @@ int main(int argc, char** argv)
     
     test_set_meta(const_cast<NP*>(a)); 
     test_set_meta_2(const_cast<NP*>(a)); 
+
+
+    test_get_meta_static(); 
 
     return 0 ; 
 }
