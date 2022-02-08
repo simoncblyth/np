@@ -95,9 +95,9 @@ struct NP
 
     template<typename T> static void Write(const char* path                 , const T* data, int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1 ); 
 
-    static void WriteNames(const char* dir, const char* name, const std::vector<std::string>& names, unsigned num_names=0 ); 
+    static void WriteNames(const char* dir, const char* name,                     const std::vector<std::string>& names, unsigned num_names=0 ); 
     static void WriteNames(const char* dir, const char* reldir, const char* name, const std::vector<std::string>& names, unsigned num_names=0 ); 
-    static void WriteNames(const char* path,                  const std::vector<std::string>& names, unsigned num_names=0 ); 
+    static void WriteNames(const char* path,                                      const std::vector<std::string>& names, unsigned num_names=0 ); 
 
     static void ReadNames(const char* dir, const char* name, std::vector<std::string>& names ) ;
     static void ReadNames(const char* path,                  std::vector<std::string>& names ) ;
@@ -184,7 +184,7 @@ struct NP
 
     void save_header(const char* path);   
     void old_save(const char* path) ;  // formerly the *save* methods could not be const because of update_headers
-    void save(const char* path) const ;  // *save* methods now can be const due to dynamic creation of header
+    void save(const char* path, bool verbose=false) const ;  // *save* methods now can be const due to dynamic creation of header
 
     void save(const char* dir, const char* name) const ;   
     void save(const char* dir, const char* reldir, const char* name) const ;   
@@ -196,15 +196,21 @@ struct NP
 
     std::string desc() const ; 
     std::string sstr() const ; 
+
+
     void set_meta( const std::vector<std::string>& lines, char delim='\n' ); 
     void get_meta( std::vector<std::string>& lines,       char delim='\n' ) const ; 
 
     static std::string               get_meta_string_(const char* metadata, const char* key);  
-    template<typename T> static T    get_meta_(const char* metadata, const char* key, T fallback=0) ;  // for T=std::string must set fallback to ""
+    static std::string               get_meta_string( const std::string& meta, const char* key) ;  
 
-    std::string get_meta_string(const char* key) const ;  
+    template<typename T> static T    get_meta_(const char* metadata, const char* key, T fallback=0) ;  // for T=std::string must set fallback to ""
     template<typename T> T    get_meta(const char* key, T fallback=0) const ;  // for T=std::string must set fallback to ""
     template<typename T> void set_meta(const char* key, T value ) ;  
+
+
+    template<typename T> static T    GetMeta( const std::string& mt, const char* key, T fallback ); 
+    template<typename T> static void SetMeta(       std::string& mt, const char* key, T value ); 
 
 
     char*       bytes();  
@@ -742,6 +748,7 @@ inline NP* NP::MakeNarrow(const NP* a) // static
 
     NP* b = new NP(b_dtype.c_str()); 
     b->set_shape( a->shape ); 
+    b->meta = a->meta ;  // pass along the metadata 
 
     assert( a->num_values() == b->num_values() ); 
     unsigned nv = a->num_values(); 
@@ -2204,29 +2211,33 @@ inline std::string NP::get_meta_string_(const char* metadata, const char* key) /
     return value ; 
 }
 
-inline std::string NP::get_meta_string(const char* key) const 
+inline std::string NP::get_meta_string(const std::string& meta, const char* key) 
 {
     const char* metadata = meta.empty() ? nullptr : meta.c_str() ; 
     return get_meta_string_( metadata, key ); 
 }
 
-
-
-
-template<typename T> inline T NP::get_meta_(const char* metadata, const char* key, T fallback) // static 
+template<typename T> inline T NP::GetMeta(const std::string& mt, const char* key, T fallback) // static 
 {
-    std::string s = get_meta_string_(metadata, key); 
+    if(mt.empty()) return fallback ; 
+    std::string s = get_meta_string( mt, key); 
     if(s.empty()) return fallback ; 
     return To<T>(s.c_str()) ; 
 }
 
+template int         NP::GetMeta<int>(        const std::string& , const char*, int ) ; 
+template unsigned    NP::GetMeta<unsigned>(   const std::string& , const char*, unsigned ) ; 
+template float       NP::GetMeta<float>(      const std::string& , const char*, float ) ; 
+template double      NP::GetMeta<double>(     const std::string& , const char*, double ) ; 
+template std::string NP::GetMeta<std::string>(const std::string& , const char*, std::string ) ; 
+
+
+
 template<typename T> inline T NP::get_meta(const char* key, T fallback) const 
 {
     const char* metadata = meta.empty() ? nullptr : meta.c_str() ; 
-    return get_meta_<T>( metadata, key, fallback ); 
+    return GetMeta<T>( metadata, key, fallback ); 
 }
-
-
 
 template int      NP::get_meta<int>(const char*, int ) const ; 
 template unsigned NP::get_meta<unsigned>(const char*, unsigned ) const  ; 
@@ -2234,19 +2245,13 @@ template float    NP::get_meta<float>(const char*, float ) const ;
 template double   NP::get_meta<double>(const char*, double ) const ; 
 template std::string NP::get_meta<std::string>(const char*, std::string ) const ; 
 
-/**
-NP::set_meta
---------------
 
-A preexisting keyed k:v pair is changed by this otherwise if there is no 
-such pre-existing key a new k:v pair is added. 
 
-**/
-template<typename T> inline void NP::set_meta(const char* key, T value)  
+template<typename T> inline void NP::SetMeta( std::string& mt, const char* key, T value ) // static
 {
     std::stringstream nn;
     std::stringstream ss;
-    ss.str(meta);
+    ss.str(mt);
     std::string s;
     char delim = ':' ; 
     bool changed = false ; 
@@ -2273,7 +2278,29 @@ template<typename T> inline void NP::set_meta(const char* key, T value)
        }    
     }
     if(!changed) nn << key << delim << value << std::endl ; 
-    meta = nn.str(); 
+    mt = nn.str() ; 
+}
+
+template void     NP::SetMeta<int>(         std::string&, const char*, int ); 
+template void     NP::SetMeta<unsigned>(    std::string&, const char*, unsigned ); 
+template void     NP::SetMeta<float>(       std::string&, const char*, float ); 
+template void     NP::SetMeta<double>(      std::string&, const char*, double ); 
+template void     NP::SetMeta<std::string>( std::string&, const char*, std::string ); 
+
+
+
+
+/**
+NP::set_meta
+--------------
+
+A preexisting keyed k:v pair is changed by this otherwise if there is no 
+such pre-existing key a new k:v pair is added. 
+
+**/
+template<typename T> inline void NP::set_meta(const char* key, T value)  
+{
+    SetMeta(meta, key, value); 
 }
 
 template void     NP::set_meta<int>(const char*, int ); 
@@ -2687,9 +2714,11 @@ inline void NP::old_save(const char* path)  // non-const due to update_headers
     stream.write( bytes(), arr_bytes() );
 }
 
-inline void NP::save(const char* path) const 
+inline void NP::save(const char* path, bool verbose) const 
 {
+    if(verbose)
     std::cout << "NP::save path [" << path  << "]" << std::endl ; 
+
     std::string hdr = make_header(); 
     std::ofstream fpa(path, std::ios::out|std::ios::binary);
     fpa << hdr ; 
@@ -3037,60 +3066,23 @@ template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_ 
 
 
 
-template <typename T> void NP::Write(const char* dir, const char* name, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_ ) // static
-{
-    std::string dtype = descr_<T>::dtype() ; 
-
-    std::cout 
-        << "xNP::Write"
-        << " dtype " << dtype
-        << " ni  " << std::setw(7) << ni_
-        << " nj  " << nj_
-        << " nk  " << nk_
-        << " nl  " << nl_
-        << " nm  " << nm_
-        << " dir " << std::setw(50) << dir
-        << " name " << name
-        << std::endl 
-        ;   
-
-    NP a(dtype.c_str(), ni_,nj_,nk_,nl_,nm_) ;    
-    a.read(data); 
-    a.save(dir, name); 
-}
-
-// TODO: eliminate duplication between these methods
-
 template <typename T> void NP::Write(const char* dir, const char* reldir, const char* name, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_ ) // static
 {
-    std::string dtype = descr_<T>::dtype() ; 
-
-    std::cout 
-        << "xNP::Write"
-        << " dtype " << dtype
-        << " ni  " << std::setw(7) << ni_
-        << " nj  " << nj_
-        << " nk  " << nk_
-        << " nl  " << nl_
-        << " nm  " << nm_
-        << " dir " << std::setw(50) << ( dir ? dir : "-" )
-        << " reldir " << std::setw(50) << ( reldir ? reldir : "-" )
-        << " name " << name
-        << std::endl 
-        ;   
-
-    NP a(dtype.c_str(), ni_,nj_,nk_,nl_,nm_) ;    
-    a.read(data); 
-    a.save(dir, reldir, name); 
+    std::string path = form_path(dir, reldir, name); 
+    Write( path.c_str(), data, ni_, nj_, nk_, nl_, nm_ ); 
 }
 
-
+template <typename T> void NP::Write(const char* dir, const char* name, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_ ) // static
+{
+    std::string path = form_path(dir, name); 
+    Write( path.c_str(), data, ni_, nj_, nk_, nl_, nm_ ); 
+}
 
 template <typename T> void NP::Write(const char* path, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_ ) // static
 {
     std::string dtype = descr_<T>::dtype() ; 
     std::cout 
-        << "xNP::Write"
+        << "NP::Write"
         << " dtype " << dtype
         << " ni  " << std::setw(7) << ni_
         << " nj  " << nj_
