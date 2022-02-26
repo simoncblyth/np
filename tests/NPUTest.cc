@@ -59,12 +59,27 @@ void test_endian_detect()
     std::cout << "endian::detect() " << endian::detect() << std::endl ; 
 }
 
+void test_FormName()
+{
+    const char* prefix = "pfx" ; 
+    int idx = 10 ; 
+    const char* ext = ".npy" ; 
+    const char* body = "body" ; 
+
+    std::string s0 = U::FormName(prefix, idx, ext); 
+    std::cout << " U::FormName s0 : [" << s0 << "]" << std::endl ; 
+
+    std::string s1 = U::FormName(prefix, body, ext); 
+    std::cout << " U::FormName s1 : [" << s1 << "]" << std::endl ; 
+}
+
 
 
 int main(int argc, char** argv)
 {
-    test_make_header(); 
-    test_endian_detect(); 
+    //test_make_header(); 
+    //test_endian_detect(); 
+    test_FormName(); 
 
     return 0 ; 
 }
