@@ -154,6 +154,9 @@ struct NP
 
     template<typename T> T    pdomain(const T value, int item=-1, bool dump=false  ) const ; 
     template<typename T> T    interp(T x, int item=-1) const ;                  // requires pshaped 
+    template<typename T> T    interp2D(T x, T y, int item=-1) const ;   
+
+
     template<typename T> T    interpHD(T u, unsigned hd_factor, int item=-1 ) const ; 
     template<typename T> T    interp(unsigned iprop, T x) const ;  // requires NP::Combine of pshaped arrays 
     template<typename T> NP*  cumsum(int axis=0) const ; 
@@ -1752,6 +1755,47 @@ template<typename T> inline T  NP::pdomain(const T value, int item, bool dump ) 
 
 
 /**
+NP::interp2D
+-------------
+
+* https://en.wikipedia.org/wiki/Bilinear_interpolation
+
+The interpolation formulas used by CUDA textures are documented.
+
+* https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#linear-filtering
+
+::
+
+    J.2. Linear Filtering
+    In this filtering mode, which is only available for floating-point textures, the value returned by the texture fetch is
+
+    tex(x)=(1−α)T[i]+αT[i+1] for a one-dimensional texture,
+
+    tex(x,y)=(1−α)(1−β)T[i,j]+α(1−β)T[i+1,j]+(1−α)βT[i,j+1]+αβT[i+1,j+1] for a two-dimensional texture,
+
+    tex(x,y,z) =
+    (1−α)(1−β)(1−γ)T[i,j,k]+α(1−β)(1−γ)T[i+1,j,k]+
+    (1−α)β(1−γ)T[i,j+1,k]+αβ(1−γ)T[i+1,j+1,k]+
+    (1−α)(1−β)γT[i,j,k+1]+α(1−β)γT[i+1,j,k+1]+
+    (1−α)βγT[i,j+1,k+1]+αβγT[i+1,j+1,k+1]
+
+    for a three-dimensional texture,
+    where:
+
+    i=floor(xB), α=frac(xB), xB=x-0.5,
+    j=floor(yB), β=frac(yB), yB=y-0.5,
+    k=floor(zB), γ=frac(zB), zB= z-0.5,
+    α, β, and γ are stored in 9-bit fixed point format with 8 bits of fractional value (so 1.0 is exactly represented).
+
+
+The use of reduced precision makes it not straightforward to perfectly replicate on the CPU, 
+but you should be able to get very close. 
+
+
+**/
+
+
+/**
 NP::interp
 ------------
 
@@ -2828,9 +2872,11 @@ template <typename T> inline void NP::_dump(int i0_, int i1_, int j0_, int j1_ )
        << " ni " << ni 
        << " nj " << nj 
        << " nk " << nk
-       << " item range i0:i1 "
+       << " item range  "
        << " i0 " << i0 
        << " i1 " << i1 
+       << " j0 " << j0 
+       << " j1 " << j1 
        << std::endl 
        ;  
 
