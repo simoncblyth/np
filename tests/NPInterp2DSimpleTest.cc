@@ -31,6 +31,13 @@ The interpolation formulas used by CUDA textures are documented.
     k=floor(zB), γ=frac(zB), zB= z-0.5,
     α, β, and γ are stored in 9-bit fixed point format with 8 bits of fractional value (so 1.0 is exactly represented).
 
+
+About the reduced precision
+
+* https://www.reedbeta.com/blog/texture-gathers-and-coordinate-precision/
+
+
+
 **/
 
 template <typename T>
