@@ -6,8 +6,13 @@ Adapted from the below adding use of NP.hh rather than thrust
 
 * ~/intro_to_cuda/textures/demoTex.cu 
 * https://bitbucket.org/simoncblyth/intro_to_cuda/src/master/textures/demoTex.cu
+
+CUDA Docs
+--------------
+
 * http://on-demand.gputechconf.com/gtc-express/2011/presentations/texture_webinar_aug_2011.pdf
 * https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#texture-fetching
+* https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#table-lookup
 
 
 Textures, Samples and the 0.5f offset
@@ -18,7 +23,7 @@ Consider a 4x4 texture. The array elements would be addressed with integers::
    ix: 0,1,2,3 
    iy: 0,1,2,3 
 
-BUT: in order to retrieve sample values, need to offset float texture coordinates by 0.5 ::
+BUT: in order to retrieve sample values, need to offset float texture coordinates by 0.5::
 
    x:0.5,1.5,2.5,3.5 
    y:0.5,1.5,2.5,3.5 

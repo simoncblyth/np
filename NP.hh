@@ -539,7 +539,25 @@ inline NP::NP(const char* dtype_, int ni, int nj, int nk, int nl, int nm )
 
 inline void NP::init()
 {
-    data.resize( size*ebyte ) ;  // vector of char  
+#ifdef OLD
+    int num_char = size*ebyte ; 
+#else
+    unsigned long long size_ = size ; 
+    unsigned long long ebyte_ = ebyte ; 
+    unsigned long long num_char = size_*ebyte_ ; 
+#endif
+
+#ifdef DEBUG
+    std::cout 
+        << "NP::init"
+        << " size " << size
+        << " ebyte " << ebyte
+        << " num_char " << num_char 
+        << std::endl 
+        ;
+#endif
+
+    data.resize( num_char ) ;  // vector of char  
     std::fill( data.begin(), data.end(), 0 );     
     _prefix.assign(net_hdr::LENGTH, '\0' ); 
     _hdr = make_header(); 
