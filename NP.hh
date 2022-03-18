@@ -174,6 +174,7 @@ struct NP
 
     void clear();   
 
+    static bool Exists(const char* base, const char* rel, const char* name);   
     static bool Exists(const char* dir, const char* name);   
     static bool Exists(const char* path);   
     int load(const char* dir, const char* name);   
@@ -204,6 +205,11 @@ struct NP
     void set_meta( const std::vector<std::string>& lines, char delim='\n' ); 
     void get_meta( std::vector<std::string>& lines,       char delim='\n' ) const ; 
 
+    void set_names( const std::vector<std::string>& lines, char delim='\n' ); 
+    void get_names( std::vector<std::string>& lines,       char delim='\n' ) const ; 
+
+
+
     static std::string               get_meta_string_(const char* metadata, const char* key);  
     static std::string               get_meta_string( const std::string& meta, const char* key) ;  
 
@@ -230,6 +236,7 @@ struct NP
     std::vector<char> data ; 
     std::vector<int>  shape ; 
     std::string       meta ; 
+    std::string       names ; 
 
     // non-persisted transients, set on loading 
     std::string lpath ; 
@@ -2218,6 +2225,30 @@ inline void NP::get_meta( std::vector<std::string>& lines, char delim  ) const
 }
 
 
+
+inline void NP::set_names( const std::vector<std::string>& lines, char delim )
+{
+    std::stringstream ss ; 
+    for(unsigned i=0 ; i < lines.size() ; i++) ss << lines[i] << delim  ; 
+    names = ss.str(); 
+}
+
+inline void NP::get_names( std::vector<std::string>& lines, char delim  ) const 
+{
+    if(names.empty()) return ; 
+
+    std::stringstream ss ; 
+    ss.str(names.c_str())  ;
+    std::string s;
+    while (std::getline(ss, s, delim)) lines.push_back(s) ; 
+}
+
+
+
+
+
+
+
 /**
 NP::get_meta_string_
 ----------------------
@@ -2679,6 +2710,11 @@ inline void NP::clear()
     shape[0] = 0 ;  
 }
 
+inline bool NP::Exists(const char* base, const char* rel,  const char* name) // static 
+{
+    std::string path = form_path(base, rel, name); 
+    return Exists(path.c_str()); 
+}
 inline bool NP::Exists(const char* dir, const char* name) // static 
 {
     std::string path = form_path(dir, name); 
