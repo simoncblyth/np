@@ -1,0 +1,37 @@
+// name=NPSaveLoadTest ; mkdir -p /tmp/$name ; gcc $name.cc -std=c++11 -I.. -lstdc++ -o /tmp/$name/$name && /tmp/$name/$name
+
+#include "NP.hh"
+const char* FOLD = "/tmp/NPSaveLoadTest" ; 
+
+int main(int argc, char** argv)
+{
+    int dom_low = 101 ; 
+    int dom_high = 202 ; 
+
+    NP* a = NP::Make<int>(10, 4); 
+    a->fillIndexFlat(); 
+    a->set_meta<int>("domain_low",  dom_low ) ; 
+    a->set_meta<int>("domain_high", dom_high ) ; 
+    std::vector<std::string> a_names = { "red", "green", "blue" } ;
+    a->set_names( a_names); 
+    a->save(FOLD, "a.npy"); 
+
+    NP* b = NP::Load(FOLD, "a.npy" ); 
+    std::cout << " b.sstr " << b->sstr() <<  std::endl ; 
+
+    std::vector<std::string> b_names ; 
+    b->get_names(b_names) ; 
+    for(unsigned i=0 ; i < b_names.size() ; i++) std::cout << b_names[i] << std::endl ; 
+
+    assert( b_names.size() == a_names.size() ); 
+
+    int dom_low_2 = b->get_meta<int>("domain_low" ); 
+    int dom_high_2 = b->get_meta<int>("domain_high" ); 
+
+    assert( dom_low_2 == dom_low ); 
+    assert( dom_high_2 == dom_high ); 
+
+    return 0 ; 
+}
+
+
