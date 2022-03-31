@@ -5,7 +5,7 @@ name=NPspawn_itemTest
 
 mkdir -p /tmp/$name 
 
-gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name/$name 
+gcc $name.cc -std=c++11 -Wall -lstdc++ -I.. -o /tmp/$name/$name 
 [ $? -ne 0 ] && echo $msg compile error && exit 1 
 
 /tmp/$name/$name

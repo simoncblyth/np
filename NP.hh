@@ -555,10 +555,10 @@ inline const char*  NP::bytes() const { return (char*)data.data() ;  }
 
 inline NP::NP(const char* dtype_, const std::vector<int>& shape_ )
     :
+    shape(shape_),
     dtype(strdup(dtype_)),
     uifc(NPU::_dtype_uifc(dtype)),
     ebyte(NPU::_dtype_ebyte(dtype)),
-    shape(shape_),
     size(NPS::size(shape))
 {
     init(); 
@@ -676,6 +676,7 @@ inline unsigned NP::index( int i,  int j,  int k,  int l, int m) const
 inline unsigned NP::index0( int i,  int j,  int k,  int l, int m) const 
 {
     unsigned nd = shape.size() ; 
+
     unsigned ni = nd > 0 ? shape[0] : 1 ; 
     unsigned nj = nd > 1 ? shape[1] : 1 ; 
     unsigned nk = nd > 2 ? shape[2] : 1 ; 
@@ -687,6 +688,12 @@ inline unsigned NP::index0( int i,  int j,  int k,  int l, int m) const
     unsigned kk = k < 0 ? 0 : k ; 
     unsigned ll = l < 0 ? 0 : l ; 
     unsigned mm = m < 0 ? 0 : m ; 
+
+    assert( ii < ni ); 
+    assert( jj < nj ); 
+    assert( kk < nk ); 
+    assert( ll < nl ); 
+    assert( mm < nm ); 
 
     return  ii*nj*nk*nl*nm + jj*nk*nl*nm + kk*nl*nm + ll*nm + mm ;
 }
