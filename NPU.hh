@@ -329,7 +329,7 @@ struct U
 };
 
 
-int U::GetEnvInt(const char* envkey, int fallback)
+inline int U::GetEnvInt(const char* envkey, int fallback)
 {
     char* val = getenv(envkey);
     int ival = val ? std::atoi(val) : fallback ;
