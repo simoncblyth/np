@@ -2,8 +2,7 @@
 
 #include "NP.hh"
 
-
-NP* MakeRindexArray(double rindex)  // static
+void test_MakeRindexArray(double rindex=1.5)  // static
 {
     NP* a = NP::Make<double>( 1.55/1e6, rindex, 15.5/1e6, rindex ) ; 
 
@@ -14,12 +13,10 @@ NP* MakeRindexArray(double rindex)  // static
     const double* aa = a->cvalues<double>(); 
         
     for(unsigned i=0 ; i < nv ; i++) std::cout << i << " : " << aa[i] << std::endl ; 
-
-
-    return a ; 
+    assert(a) ; 
 }
 
-void test_Make()
+void test_MakeFromValues()
 {
     NP* a = NP::Make<double>( 10. , 100., 20.,  100. );  
 
@@ -27,7 +24,7 @@ void test_Make()
     std::cout << " nv0 " << nv0 << std::endl ; 
 
     a->change_shape(-1,2); 
-    a->pdump<double>("test_Make"); 
+    a->pdump<double>("test_MakeFromValues"); 
 
     unsigned nv1 = a->num_values() ; 
     std::cout << " nv1 " << nv1 << std::endl ; 
@@ -53,13 +50,21 @@ void test_Make()
     }
 }
 
+void test_Make6()
+{
+    NP* a = NP::Make<float>(3, 2, 2, 10, 10, 4); 
+    a->fillIndexFlat(); 
+    a->save("/tmp/NPMakeTest/test_Make6.npy"); 
+}
+
 
 
 
 int main(int argc, char** argv)
 {
-    NP* a = MakeRindexArray(1.5); 
-    assert( a) ;  
-
+    //test_MakeRindexArray(); 
+    //test_MakeFromValues(); 
+    test_Make6(); 
+    
     return 0 ; 
 }
