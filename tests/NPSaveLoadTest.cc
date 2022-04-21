@@ -63,8 +63,8 @@ void test_get_name_index()
 
 int main(int argc, char** argv)
 {
-    //test_save_load(); 
-    test_get_name_index(); 
+    test_save_load(); 
+    //test_get_name_index(); 
     return 0 ; 
 }
 
