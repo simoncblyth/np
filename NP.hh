@@ -235,6 +235,7 @@ struct NP
     void set_names( const std::vector<std::string>& lines ) ; 
     void get_names( std::vector<std::string>& lines ) const ; 
     int  get_name_index( const char* qname ) const ;  
+    int  get_name_index( const char* qname, unsigned& count ) const ;  
 
 
     static std::string               get_meta_string_(const char* metadata, const char* key);  
@@ -2480,43 +2481,32 @@ inline int NP::get_name_index( const char* qname ) const
 
 
 
+/**
+SName::getIndex
+--------------------
 
-/*
-inline void NP::set_names_old( const std::vector<std::string>& lines, char delim )
+Returns the index of the first listed name that exactly matches the query string.
+A count of the number of matches is also provided.
+Returns -1 if not found.
+
+**/
+
+inline int NP::get_name_index( const char* qname, unsigned& count ) const 
 {
-    std::stringstream ss ; 
-    for(unsigned i=0 ; i < lines.size() ; i++) ss << lines[i] << delim  ; 
-    names = ss.str(); 
+    int result(-1); 
+    count = 0 ; 
+    for(unsigned i=0 ; i < names.size() ; i++)
+    {   
+        const std::string& k = names[i] ;
+        if(strcmp(k.c_str(), qname) == 0 ) 
+        {   
+            if(count == 0) result = i ; 
+            count += 1 ;   
+        }   
+    }   
+    return result ; 
 }
 
-inline void NP::get_names_old( std::vector<std::string>& lines, char delim  ) const 
-{
-    if(names.empty()) return ; 
-
-    std::stringstream ss ; 
-    ss.str(names.c_str())  ;
-    std::string s;
-    while (std::getline(ss, s, delim)) lines.push_back(s) ; 
-}
-
-//Returns 0-based index of first matching name, or -1 if the name is not found or the name is nullptr. 
-
-inline int NP::get_name_index_old( const char* name, char delim  ) const 
-{
-    if(names.empty() || name == nullptr) return -1 ; 
-    std::stringstream ss ; 
-    ss.str(names.c_str())  ;
-    std::string s;
-
-    int idx = -1; 
-    while (std::getline(ss, s, delim)) 
-    {
-       idx += 1 ;  
-       if(strcmp(s.c_str(), name) == 0) return idx ;  
-    }
-    return -1 ; 
-}
-*/
 
 
 
@@ -2751,6 +2741,15 @@ inline int NP::DumpCompare( const NP* a, const NP* b , unsigned a_column, unsign
     return mismatch ; 
 }
 
+/**
+NP::Memcmp
+-----------
+
+* -1: array lengths differ
+* 0:bytes of the two arrays match
+* other value indicating the array bytes differ 
+
+**/
 
 inline int NP::Memcmp(const NP* a, const NP* b ) // static
 {
@@ -3573,6 +3572,9 @@ inline void NP::WriteNames(const char* dir, const char* reldir, const char* name
 
 inline void NP::WriteNames(const char* path, const std::vector<std::string>& names, unsigned num_names_ )
 {
+    int rc = U::MakeDirsForFile(path); 
+    assert( rc == 0 ); 
+
     unsigned num_names = num_names_ == 0 ? names.size() : num_names_ ; 
     assert( num_names <= names.size() ); 
     std::ofstream stream(path, std::ios::out|std::ios::binary);
