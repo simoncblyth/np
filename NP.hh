@@ -350,7 +350,7 @@ inline std::istream& operator>>(std::istream& is, NP& a)
 
 
 
-template <typename T> T NP::To( const char* a )   // static 
+template <typename T> inline T NP::To( const char* a )   // static 
 {   
     std::string s(a);
     std::istringstream iss(s);
@@ -360,7 +360,7 @@ template <typename T> T NP::To( const char* a )   // static
 }
 
 // specialization for std::string as the above truncates at the first blank in the string, see tests/NP_set_meta_get_meta_test.cc  
-template<> std::string NP::To(const char* a ) 
+template<> inline std::string NP::To(const char* a ) 
 {
     std::string s(a); 
     return s ; 
