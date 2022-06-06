@@ -12,7 +12,7 @@ struct demo
 }; 
 
 
-int main(int argc, char** argv)
+void test_Make_ellipsis()
 {
     std::vector<demo> dd ; 
 
@@ -22,6 +22,22 @@ int main(int argc, char** argv)
 
     NP* a = NP::Make<int>( (int*)dd.data(), int(dd.size()), 4 ); 
     a->save("/tmp/NP_Make_ellipsis_test/demo.npy") ; 
+}
+
+void test_Make_ellipsis_empty()
+{
+    std::vector<demo> dd ; 
+    NP* a = NP::Make<int>( (int*)dd.data(), int(dd.size()), 4 ); 
+    assert( a == nullptr ); 
+}
+
+
+
+
+int main(int argc, char** argv)
+{
+    //test_Make_ellipsis(); 
+    test_Make_ellipsis_empty(); 
 
     return 0 ; 
 }
