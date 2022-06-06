@@ -46,9 +46,13 @@ struct NP
     template<typename T> static NP*  Linspace( T x0, T x1, unsigned nx, int npayload=-1 ); 
     template<typename T> static NP*  MakeDiv( const NP* src, unsigned mul  ); 
     template<typename T> static NP*  Make( const std::vector<T>& src ); 
+    
+    template<typename T, typename... Args> static NP*  Make(const T* src, Args ... shape );  // Make_ellipsis
+
     template<typename T> static NP*  Make( T d0, T v0, T d1, T v1 ); 
     template<typename T> static T To( const char* a ); 
     template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
+
 
 
     template<typename T> static unsigned NumSteps( T x0, T x1, T dx ); 
@@ -3511,6 +3515,23 @@ template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_,
 {
     std::string dtype = descr_<T>::dtype() ; 
     NP* a = new NP(dtype.c_str(), ni_,nj_,nk_,nl_,nm_, no_) ;    
+    return a ; 
+}
+
+/**
+NP::Make "Make_ellipsis"
+--------------------------
+
+
+
+**/
+
+template<typename T, typename... Args> NP* NP::Make(const T* src, Args ... args ) 
+{
+    std::string dtype = descr_<T>::dtype() ; 
+    std::vector<int> shape = {args...};
+    NP* a = new NP(dtype.c_str(), shape ); 
+    a->read2(src);  
     return a ; 
 }
 
