@@ -23,20 +23,32 @@ void test_slice(const NP* bnd)
 {
     // <f8(44, 4, 2, 761, 4, )
     int species = 0 ; 
-    int group = 1 ; 
+    int group = 0 ; 
     int wavelength = -1 ; 
-    int prop = 0 ; 
 
     for(int boundary=0 ; boundary < bnd->shape[0] ; boundary++)
     {
-        std::vector<double> out ; 
-        bnd->slice(out, boundary, species, group, wavelength, prop );  
-        std::cout 
-            << bnd->names[boundary] << std::endl 
-            << NP::DescSlice(out, 5 ) 
-            ; 
+        for(int prop=0 ; prop < 4 ; prop++)
+        {
+            std::vector<double> out ; 
+            bnd->slice(out, boundary, species, group, wavelength, prop );  
+
+            unsigned offset = bnd->offset_(boundary, species, group, wavelength, prop) ; 
+
+            std::cout 
+                << " prop " << std::setw(3) << prop 
+                << " offset " << std::setw(3) << offset 
+                << " NP::DescSliceBrief " << NP::DescSliceBrief(out) 
+                << " bnd.name  " << bnd->names[boundary] 
+                << std::endl 
+                ; 
+        }
+        std::cout << std::endl ; 
     }
 }
+
+
+
 
 int main(int argc, char** argv)
 {
