@@ -28,6 +28,8 @@ Just copy into your project and ``#include "NP.hh"`` to use.
 
 struct NP
 {
+    static const bool VERBOSE = false ; 
+
     union UIF32
     {
         std::uint32_t u ;
@@ -226,6 +228,7 @@ struct NP
     void save_jsonhdr(const char* dir, const char* name) const ;   
 
     std::string desc() const ; 
+    std::string brief() const ; 
     std::string sstr() const ; 
 
 
@@ -329,7 +332,7 @@ inline std::istream& operator>>(std::istream& is, NP& a)
     unsigned arr_bytes_nh = a.prefix_size(1); 
     unsigned meta_bytes_nh = a.prefix_size(2);  
 
-    std::cout 
+    if(NP::VERBOSE) std::cout 
         << " hdr_bytes_nh " << hdr_bytes_nh 
         << " arr_bytes_nh " << arr_bytes_nh 
         << " meta_bytes_nh " << meta_bytes_nh 
@@ -453,7 +456,7 @@ inline bool NP::decode_prefix()
     unsigned arr_bytes_nh = prefix_size(1); 
     unsigned meta_bytes_nh = prefix_size(2);  
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "NP::decode_prefix"
         << " hdr_bytes_nh " << hdr_bytes_nh
         << " arr_bytes_nh " << arr_bytes_nh
@@ -525,7 +528,7 @@ inline void NP::set_dtype(const char* dtype_)
     int  ebyte_ = NPU::_dtype_ebyte(dtype_) ; 
     assert( ebyte_ == 1 || ebyte_ == 2 || ebyte_ == 4 || ebyte_ == 8 ); 
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "changing dtype/uifc/ebyte from: " 
         << dtype << "/" << uifc << "/" << ebyte 
         << " to: "
@@ -913,7 +916,7 @@ inline NP* NP::MakeNarrow(const NP* a) // static
         }
     }
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "NP::MakeNarrow"
         << " a.dtype " << a->dtype
         << " b.dtype " << b->dtype
@@ -944,7 +947,7 @@ inline NP* NP::MakeWide(const NP* a) // static
         }
     }
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "NP::MakeWide"
         << " a.dtype " << a->dtype
         << " b.dtype " << b->dtype
@@ -987,7 +990,7 @@ inline NP* NP::MakeItemCopy(  const NP* src, int i, int j, int k, int l, int m, 
     src->item_shape(sub_shape, i, j, k, l, m, o ); 
     unsigned idx = src->index0(i, j, k, l, m, o ); 
 
-    std::cout 
+    if(NP::VERBOSE) std::cout 
         << "NP::MakeItemCopy"
         << " i " << i 
         << " j " << j 
@@ -2449,6 +2452,20 @@ inline std::string NP::desc() const
     return ss.str(); 
 }
 
+inline std::string NP::brief() const 
+{
+    std::stringstream ss ; 
+    ss 
+       << " " << dtype
+       << NPS::desc(shape) 
+       ;
+    return ss.str(); 
+}
+
+
+
+
+
 inline void NP::set_meta( const std::vector<std::string>& lines, char delim )
 {
     std::stringstream ss ; 
@@ -3105,7 +3122,7 @@ inline void NP::save_string_(const char* path, const char* ext, const std::strin
 {
     if(str.empty()) return ; 
     std::string str_path = U::ChangeExt(path, ".npy", ext ); 
-    std::cout << "NP::save_string_ str_path [" << str_path  << "]" << std::endl ; 
+    if(VERBOSE) std::cout << "NP::save_string_ str_path [" << str_path  << "]" << std::endl ; 
     std::ofstream fps(str_path.c_str(), std::ios::out);
     fps << str ;  
 }
@@ -3114,7 +3131,7 @@ inline void NP::save_strings_(const char* path, const char* ext, const std::vect
 {
     if(vstr.size() == 0) return ; 
     std::string vstr_path = U::ChangeExt(path, ".npy", ext ); 
-    std::cout << "NP::save_strings_ vstr_path [" << vstr_path  << "]" << std::endl ; 
+    if(VERBOSE) std::cout << "NP::save_strings_ vstr_path [" << vstr_path  << "]" << std::endl ; 
 
     char delim = '\n' ; 
     std::ofstream fps(vstr_path.c_str(), std::ios::out);
@@ -3318,7 +3335,7 @@ template <typename T> void NP::read(const T* src)
 template <typename T> void NP::read2(const T* src) 
 {
     bool consistent = sizeof(T) == ebyte ; 
-    if(!consistent) std::cout << "NP::read2 FAIL not consistent sizeof(T): " << sizeof(T) << " and ebyte: " << ebyte ;  
+    if(!consistent) std::cout << "NP::read2 FAIL not consistent sizeof(T): " << sizeof(T) << " and ebyte: " << ebyte << std::endl ;  
     assert( consistent ); 
     memcpy( bytes(), src, arr_bytes() );    
 }
