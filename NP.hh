@@ -278,8 +278,10 @@ struct NP
 
     void set_names( const std::vector<std::string>& lines ) ; 
     void get_names( std::vector<std::string>& lines ) const ; 
+
     int  get_name_index( const char* qname ) const ;  
     int  get_name_index( const char* qname, unsigned& count ) const ;  
+    static int NameIndex( const char* qname, unsigned& count, const std::vector<std::string>& names ); 
 
 
     static std::string               get_meta_string_(const char* metadata, const char* key);  
@@ -1036,7 +1038,7 @@ template<typename T> inline bool NP::is_allzero() const
 {
     T zero = T(0) ; 
     const T* vv = cvalues<T>(); 
-    unsigned num = 0 ; 
+    int num = 0 ; 
     for(int i=0 ; i < size ; i++) if(vv[i] == zero) num += 1 ; 
     bool allzero = num == size ; 
     return allzero ; 
@@ -1238,7 +1240,7 @@ inline NP* NP::MakeCopy(const NP* a) // static
     memcpy( b->bytes(), a->bytes(), a->arr_bytes() );    
     unsigned nv = a->num_values(); 
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "NP::MakeCopy"
         << " a.dtype " << a->dtype
         << " b.dtype " << b->dtype
@@ -2775,19 +2777,17 @@ inline void NP::get_names( std::vector<std::string>& lines ) const
 //Returns 0-based index of first matching name, or -1 if the name is not found or the name is nullptr. 
 inline int NP::get_name_index( const char* qname ) const 
 {
-    if(names.size() == 0) return -1 ; 
-    for(unsigned idx=0 ; idx < names.size() ; idx++)
-    {
-        const std::string& name = names[idx] ; 
-        if(strcmp(name.c_str(), qname) == 0) return idx ;  
-    }
-    return -1 ; 
+    unsigned count = 0 ; 
+    return NameIndex(qname, count, names); 
+}
+inline int NP::get_name_index( const char* qname, unsigned& count ) const 
+{
+    return NameIndex(qname, count, names); 
 }
 
 
-
 /**
-SName::getIndex
+NP::NameIndex
 --------------------
 
 Returns the index of the first listed name that exactly matches the query string.
@@ -2796,8 +2796,10 @@ Returns -1 if not found.
 
 **/
 
-inline int NP::get_name_index( const char* qname, unsigned& count ) const 
+inline int NP::NameIndex( const char* qname, unsigned& count, const std::vector<std::string>& names ) // static
 {
+    if(names.size() == 0) return -1 ; 
+
     int result(-1); 
     count = 0 ; 
     for(unsigned i=0 ; i < names.size() ; i++)
@@ -2811,7 +2813,6 @@ inline int NP::get_name_index( const char* qname, unsigned& count ) const
     }   
     return result ; 
 }
-
 
 
 
@@ -3192,7 +3193,7 @@ inline NP* NP::Combine(const std::vector<const NP*>& aa, bool annotate)  // stat
     NP* c = new NP(a0->dtype, aa.size(), width, ldim0 ); 
     unsigned item_bytes = c->item_bytes(); 
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "NP::Combine"
         << " ebyte0 " << ebyte0
         << " item_bytes " << item_bytes
@@ -3223,7 +3224,7 @@ inline NP* NP::Combine(const std::vector<const NP*>& aa, bool annotate)  // stat
             {
                 const NP* a = aa[i]; 
                 uif32.u = a->shape[0] ;                  
-                std::cout << " annotate " << i << " uif32.u  " << uif32.u  << std::endl ; 
+                if(VERBOSE) std::cout << "NP::Combine annotate " << i << " uif32.u  " << uif32.u  << std::endl ; 
                 *(cc + (i+1)*item_bytes/ebyte0 - 1) = uif32.f ;   
             }  
         }
@@ -3235,7 +3236,7 @@ inline NP* NP::Combine(const std::vector<const NP*>& aa, bool annotate)  // stat
             {
                 const NP* a = aa[i]; 
                 uif64.u = a->shape[0] ;                  
-                std::cout << " annotate " << i << " uif64.u  " << uif64.u  << std::endl ; 
+                if(VERBOSE) std::cout << "NP::Combine annotate " << i << " uif64.u  " << uif64.u  << std::endl ; 
                 *(cc + (i+1)*item_bytes/ebyte0 - 1) = uif64.f ;   
             }  
         }
@@ -3877,7 +3878,7 @@ template <typename T> void NP::Write(const char* dir, const char* name, const T*
 template <typename T> void NP::Write(const char* path, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_, int no_ ) // static
 {
     std::string dtype = descr_<T>::dtype() ; 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "NP::Write"
         << " dtype " << dtype
         << " ni  " << std::setw(7) << ni_
@@ -3906,7 +3907,7 @@ template void NP::Write<unsigned>(const char*, const char*, const unsigned*,    
 
 template<typename T> void NP::Write(const char* dir, const char* name, const std::vector<T>& values )
 {
-    NP::Write(dir, name, values.data(), values.size() ); 
+    if(values.size() > 0) NP::Write(dir, name, values.data(), values.size() ); 
 }
 
 template void NP::Write<float>(   const char*, const char*, const std::vector<float>& ); 
