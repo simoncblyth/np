@@ -22,9 +22,12 @@ int main(int argc, char** argv)
 
     NP* vv = NP::MakeValues(values, "pink") ; 
     vv->save(FOLD, "values.npy" );    
+    vv->set_meta<std::string>("opt", "U0,U1,U2") ; 
 
     std::cout << "vv0" << std::endl << vv0->descValues() << std::endl; 
     std::cout << "vv" << std::endl << vv->descValues() << std::endl; 
+
+    std::cout << "vv.descMeta" << std::endl << vv->descMeta() << std::endl ; 
 
     return 0 ; 
 
