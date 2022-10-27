@@ -129,6 +129,43 @@ void test_ArrayFromTxt()
     a->save(out.c_str()); 
 }
 
+void test_Accessors()
+{
+    {
+        const char* s = "PMTProperty.R12860.PHC_KINDEX" ; 
+        NP* a = NP::ArrayFromTxt<double>(s) ; 
+        std::cout << " a " << ( a ? a->sstr() : "-" ) << " " << s << std::endl ; 
+    }
+
+    {
+        const char* s = "PMTProperty.R12860.THICKNESS" ; 
+        const char* k = "PHC_THICKNESS" ; 
+        double v = NP::ReadKV_Value<double>(s, k) ;  
+
+        std::cout 
+            << " s " << s 
+            << " k " << k  
+            << " v " << std::scientific << std::setw(10) << std::setprecision(5) << v 
+            << std::endl 
+            ; 
+    }
+
+    {
+        const char* s = "PMTProperty.R12860.THICKNESS" ; 
+        const char* k = "ARC_THICKNESS" ; 
+        double v = NP::ReadKV_Value<double>(s, k) ;  
+
+        std::cout 
+            << " s " << s 
+            << " k " << k  
+            << " v " << std::scientific << std::setw(10) << std::setprecision(5) << v 
+            << std::endl 
+            ; 
+    }
+
+}
+
+
 void test_ConvertsTo()
 {
     std::vector<std::string> strs = 
@@ -179,13 +216,14 @@ int main()
     /*
     test_ReadKV(); 
     test_ReadKV_Value(); 
+    test_Accessors(); 
     test_Resolve();  
     test_ArrayFromTxt_Prop(); 
     test_ArrayFromTxt(); 
     test_ConvertsTo();    
     */
 
-    test_ReadKV_Value(); 
+    test_Accessors(); 
  
 
     return 0 ; 
