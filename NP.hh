@@ -147,10 +147,19 @@ struct NP
     static NP* ArrayFromTxtFile(const char* path); 
 
     template <typename T> 
+    static NP* ArrayFromTxtFile(const char* base, const char* relp); 
+
+    template <typename T> 
     static NP* ArrayFromString(const char* str); 
 
+    static constexpr const char* UNITS = "m eV mm nm" ; 
+    static void GetUnits(std::vector<std::string>& units ); 
+    static bool IsListed(const std::vector<std::string>& ls, const char* str); 
+    static std::string StringConcat(const std::vector<std::string>& ls, char delim=' ' ); 
 
     static unsigned CountChar(const char* str, char q ); 
+    static void ReplaceCharInsitu(       char* str, char q, char n ); 
+    static const char* ReplaceChar(const char* str, char q, char n ); 
 
     static const char* Resolve( const char* spec) ; 
     static const char* ResolveProp(const char* spec); 
@@ -327,6 +336,9 @@ struct NP
     int  get_name_index( const char* qname ) const ;  
     int  get_name_index( const char* qname, unsigned& count ) const ;  
     static int NameIndex( const char* qname, unsigned& count, const std::vector<std::string>& names ); 
+    
+    bool is_named_shape() const ; 
+    template<typename T> T  get_named_value( const char* qname, T fallback ) const ; 
 
 
     static std::string               get_meta_string_(const char* metadata, const char* key);  
@@ -2949,6 +2961,29 @@ inline int NP::NameIndex( const char* qname, unsigned& count, const std::vector<
 }
 
 
+inline bool NP::is_named_shape() const 
+{
+    return shape.size() == 2 && shape[1] == 1 && shape[0] == names.size() ; 
+}
+
+template<typename T>
+inline T NP::get_named_value( const char* qname, T fallback ) const 
+{
+    bool is_named = is_named_shape() ; 
+    if(! is_named) return fallback ; 
+
+    const T* vv = cvalues<T>() ; 
+  
+    unsigned count(0); 
+    int idx = get_name_index(qname, count ); 
+
+    if(count != 1) return fallback ; 
+    if(idx < int(shape[0])) return vv[idx] ; 
+    return fallback ; 
+}
+
+
+
 
 
 
@@ -4267,6 +4302,19 @@ inline T NP::ReadKV_Value(const char* spec_or_path, const char* key)
 }
 
 
+
+template <typename T> 
+inline NP* NP::ArrayFromTxtFile(const char* base, const char* relp )  // static 
+{   
+    std::stringstream ss ;  
+    ss << base << "/" << relp ; 
+    std::string path = ss.str(); 
+    NP* a = ArrayFromTxtFile<T>( path.c_str()); 
+    a->lpath = path ; 
+    return a ; 
+}
+
+
 /**
 NP::ArrayFromTxtFile
 ----------------------
@@ -4294,9 +4342,34 @@ inline NP* NP::ArrayFromTxtFile(const char* spec_or_path )  // static
     }
 
     const char* str = ReadString2(path); 
-    return ArrayFromString<T>(str); 
+    NP* a = ArrayFromString<T>(str); 
+    a->lpath = path ; 
+    return a ; 
 }
 
+
+inline void NP::GetUnits(std::vector<std::string>& units ) // static
+{
+    std::stringstream uss(UNITS) ;
+    std::string unit ; 
+    while(std::getline(uss,unit,' ')) units.push_back(unit) ;   
+}
+inline bool NP::IsListed(const std::vector<std::string>& ls, const char* str) // static
+{
+    return std::find(ls.begin(), ls.end(), str ) != ls.end() ; 
+} 
+inline std::string NP::StringConcat(const std::vector<std::string>& ls, char delim ) // static
+{
+    unsigned num = ls.size() ; 
+    std::stringstream ss ; 
+    for(unsigned i=0 ; i < num ; i++ ) 
+    {
+        ss << ls[i] ; 
+        if( i < num - 1) ss << delim ; 
+    }
+    std::string cls = ss.str() ; 
+    return cls ; 
+}
 
 /**
 NP::ArrayFromString
@@ -4320,10 +4393,14 @@ Would yield an array of shape (5,2) with metadata key "other" of "*eV"
 template <typename T> 
 inline NP* NP::ArrayFromString(const char* str)  // static 
 { 
+    std::vector<std::string> recognized_units ; 
+    GetUnits(recognized_units); 
+
     unsigned UNSET = ~0u ; 
     unsigned num_field = UNSET ; 
     unsigned num_column = UNSET ; 
 
+    std::vector<std::string> units ; 
     std::vector<std::string> other ; 
     std::vector<T> value ; 
 
@@ -4331,6 +4408,12 @@ inline NP* NP::ArrayFromString(const char* str)  // static
     std::stringstream fss(str) ;
     while(std::getline(fss, line)) 
     {
+        ReplaceCharInsitu((char*)line.c_str(), '*', ' '); 
+        // handle a deranged txt file format which fails 
+        // to keep different fields separated with whitespace  
+
+        //std::cout << "[" << line << "]" << std::endl ;
+
         std::vector<std::string> fields ; 
         std::string field ; 
         std::istringstream iss(line);
@@ -4364,12 +4447,13 @@ inline NP* NP::ArrayFromString(const char* str)  // static
                 value.push_back(To<T>(str)) ; 
                 line_column += 1 ;  
             }
+            else if(IsListed(recognized_units, str))
+            {
+                if(!IsListed(units, str)) units.push_back(str); 
+            }
             else
             {
-                if(std::find(other.begin(), other.end(), str) == other.end())
-                {
-                    other.push_back(str); 
-                }
+                if(!IsListed(other, str)) other.push_back(str); 
             }
         }
    
@@ -4399,18 +4483,30 @@ inline NP* NP::ArrayFromString(const char* str)  // static
     unsigned num_row = num_value/num_column ; 
     assert( num_row*num_column == num_value ); 
 
-    std::stringstream ss ; 
-    for(unsigned i=0 ; i < other.size() ; i++ ) ss << other[i] << " " ; 
-    std::string u_other = ss.str() ; 
-
-    //std::cout << " other.size " << other.size() << " u_other " << u_other << std::endl ; 
-
     NP* a = NP::Make<T>( num_row, num_column ); 
     a->read2( value.data() ); 
-    a->set_meta<std::string>("other", u_other ); 
 
+ 
+    if(units.size() > 0)
+    {
+        //for(unsigned i=0 ; i < units.size() ; i++ ) std::cout << "units[" << units[i] << "]" << std::endl  ; 
+        std::string u_units = StringConcat(units, ' '); 
+        a->set_meta<std::string>("units", u_units ); 
+    }
+
+    if(other.size() > 0)
+    {
+        //for(unsigned i=0 ; i < other.size() ; i++ ) std::cout << "other[" << other[i] << "]" << std::endl  ; 
+        std::string u_other = StringConcat(other, ' '); 
+        a->set_meta<std::string>("other", u_other ); 
+
+        if( num_column == 1 && other.size() == num_row ) a->set_names(other) ; 
+    }
     return a ; 
 }
+
+
+
 
 inline unsigned NP::CountChar(const char* str, char q )
 {
@@ -4422,6 +4518,22 @@ inline unsigned NP::CountChar(const char* str, char q )
         c++ ; 
     }  
     return count ; 
+}
+
+inline void NP::ReplaceCharInsitu(char* str, char q, char n )
+{
+    char* c = str ; 
+    while(*c)
+    {
+        if(*c == q) *c = n ; 
+        c++ ; 
+    }     
+}
+inline const char* NP::ReplaceChar(const char* str, char q, char n )
+{
+    char* s = strdup(str); 
+    ReplaceCharInsitu(s, q, n); 
+    return s ; 
 }
 
 inline const char* NP::Resolve( const char* spec) 

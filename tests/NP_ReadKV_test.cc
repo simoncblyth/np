@@ -257,6 +257,78 @@ void test_ArrayFromString()
         ;
 }
 
+void test_ArrayFromString_meta()
+{
+    const char* STR = R"(
+ARC_THICKNESS   36.49e-9*m
+PHC_THICKNESS   21.13e-9*m
+)" ; 
+
+    std::cout << STR << std::endl ; 
+
+    NP* a = NP::ArrayFromString<double>(STR) ; 
+
+    std::cout 
+        << " test_ArrayFromString_meta a.sstr " 
+        << ( a ? a->sstr() : "-" ) 
+        << " a->names.size " << a->names.size() 
+        << std::endl
+        ;
+
+    for(unsigned i=0 ; i < a->names.size() ; i++) std::cout
+        << " a->names[" << i << "] [" << a->names[i] << "]"
+        << std::endl
+        ;
+
+    std::vector<std::string> nn = { "ARC_THICKNESS", "PHC_THICKNESS" } ; 
+
+    const double* vv = a->cvalues<double>() ; 
+
+    std::string units = a->get_meta<std::string>("units", "") ; 
+
+  
+    for(unsigned i=0 ; i < nn.size() ; i++)
+    {
+        const char* n = nn[i].c_str(); 
+        unsigned count(0); 
+        int idx = a->get_name_index(n, count ); 
+
+        double nv = a->get_named_value<double>( n, -1. );  
+
+        std::cout 
+            << " i " << i 
+            << " n " << n 
+            << " idx " << idx 
+            << " count " << count 
+            << " vv[idx] " << vv[idx]
+            << " nv " << nv 
+            << " units [" << units << "]" 
+            << std::endl 
+            ;  
+    }
+
+
+}    
+
+void test_ArrayFromString_get_named_value()
+{
+    const char* STR = R"(
+ARC_THICKNESS   36.49e-9*m
+PHC_THICKNESS   21.13e-9*m
+)" ; 
+
+    std::cout << STR << std::endl ; 
+
+    NP* a = NP::ArrayFromString<double>(STR) ; 
+
+    double d0 = a->get_named_value<double>("ARC_THICKNESS", -1.);  
+    double d1 = a->get_named_value<double>("PHC_THICKNESS", -1.);  
+    assert( d0 == 3.649e-8 ); 
+    assert( d1 == 2.113e-8 ); 
+
+}
+
+
 
 int main()
 {
@@ -269,9 +341,10 @@ int main()
     test_ArrayFromTxtFile(); 
     test_ConvertsTo();    
     test_Accessors(); 
-    */
     test_ArrayFromString(); 
-
+    test_ArrayFromString_meta(); 
+    */
+    test_ArrayFromString_get_named_value(); 
  
 
     return 0 ; 
