@@ -5,7 +5,7 @@ name=NP_ReadKV_test
 arg=${1:-build_run}
 
 if [ "${arg/build}" != "$arg" ]; then
-    gcc $name.cc -g -std=c++11 -lstdc++ -I.. -o /tmp/$name
+    gcc $name.cc -g -std=c++11 -Wall -Wsign-compare -lstdc++ -I.. -o /tmp/$name
     [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1 
 fi 
 
