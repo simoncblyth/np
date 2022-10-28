@@ -1,4 +1,4 @@
-// name=NP_ReadKV_test ; gcc $name.cc -g -std=c++11 -lstdc++ -I.. -o /tmp/$name && lldb__ /tmp/$name
+// ./NP_ReadKV_test.sh
 
 #include "NP.hh"
 
@@ -93,7 +93,7 @@ void test_Resolve()
     }
 }
 
-void test_ArrayFromTxt_Prop()
+void test_ArrayFromTxtFile_Prop()
 {
     std::stringstream ss(SPECS) ;
     std::string spec ;
@@ -101,7 +101,7 @@ void test_ArrayFromTxt_Prop()
     {
         if(spec.empty()) continue ;
         const char* s = spec.c_str();  
-        NP* prop = NP::ArrayFromTxt<double>(s); 
+        NP* prop = NP::ArrayFromTxtFile<double>(s); 
         const char* p = NP::Resolve(s) ; 
         std::cout 
              << " prop " <<  std::setw(15) << ( prop ? prop->sstr() : "-" )
@@ -117,11 +117,11 @@ void test_ArrayFromTxt_Prop()
     }
 }
 
-void test_ArrayFromTxt()
+void test_ArrayFromTxtFile()
 {
     const char* path = "/tmp/PHC_RINDEX" ; 
 
-    NP* a = NP::ArrayFromTxt<double>(path) ;   
+    NP* a = NP::ArrayFromTxtFile<double>(path) ;   
     std::cout << " a.sstr " << ( a ? a->sstr() : "-" ) << std::endl ; 
     std::string out = path ; 
     out += ".npy" ; 
@@ -133,7 +133,7 @@ void test_Accessors()
 {
     {
         const char* s = "PMTProperty.R12860.PHC_KINDEX" ; 
-        NP* a = NP::ArrayFromTxt<double>(s) ; 
+        NP* a = NP::ArrayFromTxtFile<double>(s) ; 
         std::cout << " a " << ( a ? a->sstr() : "-" ) << " " << s << std::endl ; 
     }
 
@@ -209,6 +209,53 @@ void test_ConvertsTo()
     }
 }
 
+const char* STR_0 = R"(1.55     *eV    2.72832
+    2.69531  *eV    2.7101
+    2.7552   *eV    2.5918
+    3.17908  *eV    1.9797
+    15.5     *eV    1.9797)" ; 
+
+
+const char* STR_1 = R"(
+    1.55     *eV    2.72832
+    2.69531  *eV    2.7101
+    2.7552   *eV    2.5918
+    3.17908  *eV    1.9797
+    15.5     *eV    1.9797
+)" ; 
+
+
+
+void test_ArrayFromString()
+{
+    NP* a0 = NP::ArrayFromString<double>(STR_0) ; 
+    std::cout 
+        << " test_ArrayFromString a0.sstr " 
+        << ( a0 ? a0->sstr() : "-" ) 
+        << std::endl
+        ;
+
+    NP* a1 = NP::ArrayFromString<double>(STR_1) ; 
+    std::cout 
+        << " test_ArrayFromString a1.sstr " 
+        << ( a1 ? a1->sstr() : "-" ) 
+        << std::endl
+        ;
+
+    NP* a2 = NP::ArrayFromString<double>(R"(
+    1.55     *eV    2.72832
+    2.69531  *eV    2.7101
+    2.7552   *eV    2.5918
+    3.17908  *eV    1.9797
+    15.5     *eV    1.9797
+)") ; 
+
+    std::cout 
+        << " test_ArrayFromString a2.sstr " 
+        << ( a2 ? a2->sstr() : "-" ) 
+        << std::endl
+        ;
+}
 
 
 int main()
@@ -218,12 +265,13 @@ int main()
     test_ReadKV_Value(); 
     test_Accessors(); 
     test_Resolve();  
-    test_ArrayFromTxt_Prop(); 
-    test_ArrayFromTxt(); 
+    test_ArrayFromTxtFile_Prop(); 
+    test_ArrayFromTxtFile(); 
     test_ConvertsTo();    
-    */
-
     test_Accessors(); 
+    */
+    test_ArrayFromString(); 
+
  
 
     return 0 ; 
