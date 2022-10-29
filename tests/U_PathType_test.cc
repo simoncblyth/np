@@ -23,7 +23,12 @@ int main(int argc, char** argv)
     while(std::getline(ss, path))
     {
         int pt = U::PathType(path.c_str());
-        std::cout << " pt " << std::setw(2) << pt  << " path [" << path << "]" << std::endl ;
+        std::cout << " pt " << std::setw(2) << pt  << " path [" << path << "] " ; 
+        if(pt == U::FILE_PATH) std::cout << "U::FILE_PATH" ; 
+        if(pt == U::DIR_PATH) std::cout << "U::DIR_PATH" ; 
+
+        std::cout << std::endl ;
+
     }
     return 0 ;
 }

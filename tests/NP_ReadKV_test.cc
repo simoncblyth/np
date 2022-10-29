@@ -93,7 +93,7 @@ void test_Resolve()
     }
 }
 
-void test_ArrayFromTxtFile_Prop()
+void test_LoadFromTxtFile_Prop()
 {
     std::stringstream ss(SPECS) ;
     std::string spec ;
@@ -101,7 +101,7 @@ void test_ArrayFromTxtFile_Prop()
     {
         if(spec.empty()) continue ;
         const char* s = spec.c_str();  
-        NP* prop = NP::ArrayFromTxtFile<double>(s); 
+        NP* prop = NP::LoadFromTxtFile<double>(s); 
         const char* p = NP::Resolve(s) ; 
         std::cout 
              << " prop " <<  std::setw(15) << ( prop ? prop->sstr() : "-" )
@@ -117,11 +117,11 @@ void test_ArrayFromTxtFile_Prop()
     }
 }
 
-void test_ArrayFromTxtFile()
+void test_LoadFromTxtFile()
 {
     const char* path = "/tmp/PHC_RINDEX" ; 
 
-    NP* a = NP::ArrayFromTxtFile<double>(path) ;   
+    NP* a = NP::LoadFromTxtFile<double>(path) ;   
     std::cout << " a.sstr " << ( a ? a->sstr() : "-" ) << std::endl ; 
     std::string out = path ; 
     out += ".npy" ; 
@@ -133,7 +133,7 @@ void test_Accessors()
 {
     {
         const char* s = "PMTProperty.R12860.PHC_KINDEX" ; 
-        NP* a = NP::ArrayFromTxtFile<double>(s) ; 
+        NP* a = NP::LoadFromTxtFile<double>(s) ; 
         std::cout << " a " << ( a ? a->sstr() : "-" ) << " " << s << std::endl ; 
     }
 
@@ -226,23 +226,23 @@ const char* STR_1 = R"(
 
 
 
-void test_ArrayFromString()
+void test_LoadFromString()
 {
-    NP* a0 = NP::ArrayFromString<double>(STR_0) ; 
+    NP* a0 = NP::LoadFromString<double>(STR_0) ; 
     std::cout 
-        << " test_ArrayFromString a0.sstr " 
+        << " test_LoadFromString a0.sstr " 
         << ( a0 ? a0->sstr() : "-" ) 
         << std::endl
         ;
 
-    NP* a1 = NP::ArrayFromString<double>(STR_1) ; 
+    NP* a1 = NP::LoadFromString<double>(STR_1) ; 
     std::cout 
-        << " test_ArrayFromString a1.sstr " 
+        << " test_LoadFromString a1.sstr " 
         << ( a1 ? a1->sstr() : "-" ) 
         << std::endl
         ;
 
-    NP* a2 = NP::ArrayFromString<double>(R"(
+    NP* a2 = NP::LoadFromString<double>(R"(
     1.55     *eV    2.72832
     2.69531  *eV    2.7101
     2.7552   *eV    2.5918
@@ -251,13 +251,13 @@ void test_ArrayFromString()
 )") ; 
 
     std::cout 
-        << " test_ArrayFromString a2.sstr " 
+        << " test_LoadFromString a2.sstr " 
         << ( a2 ? a2->sstr() : "-" ) 
         << std::endl
         ;
 }
 
-void test_ArrayFromString_meta()
+void test_LoadFromString_meta()
 {
     const char* STR = R"(
 ARC_THICKNESS   36.49e-9*m
@@ -266,10 +266,10 @@ PHC_THICKNESS   21.13e-9*m
 
     std::cout << STR << std::endl ; 
 
-    NP* a = NP::ArrayFromString<double>(STR) ; 
+    NP* a = NP::LoadFromString<double>(STR) ; 
 
     std::cout 
-        << " test_ArrayFromString_meta a.sstr " 
+        << " test_LoadFromString_meta a.sstr " 
         << ( a ? a->sstr() : "-" ) 
         << " a->names.size " << a->names.size() 
         << std::endl
@@ -310,7 +310,7 @@ PHC_THICKNESS   21.13e-9*m
 
 }    
 
-void test_ArrayFromString_get_named_value()
+void test_LoadFromString_get_named_value()
 {
     const char* STR = R"(
 ARC_THICKNESS   36.49e-9*m
@@ -319,7 +319,7 @@ PHC_THICKNESS   21.13e-9*m
 
     std::cout << STR << std::endl ; 
 
-    NP* a = NP::ArrayFromString<double>(STR) ; 
+    NP* a = NP::LoadFromString<double>(STR) ; 
 
     double d0 = a->get_named_value<double>("ARC_THICKNESS", -1.);  
     double d1 = a->get_named_value<double>("PHC_THICKNESS", -1.);  
@@ -337,14 +337,14 @@ int main()
     test_ReadKV_Value(); 
     test_Accessors(); 
     test_Resolve();  
-    test_ArrayFromTxtFile_Prop(); 
-    test_ArrayFromTxtFile(); 
+    test_LoadFromTxtFile_Prop(); 
+    test_LoadFromTxtFile(); 
     test_ConvertsTo();    
     test_Accessors(); 
-    test_ArrayFromString(); 
-    test_ArrayFromString_meta(); 
+    test_LoadFromString(); 
+    test_LoadFromString_meta(); 
     */
-    test_ArrayFromString_get_named_value(); 
+    test_LoadFromString_get_named_value(); 
  
 
     return 0 ; 

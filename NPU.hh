@@ -373,6 +373,8 @@ struct NPS
 
 struct U
 {
+    enum { ERROR_PATH=-1, DIR_PATH=1 , FILE_PATH=2, OTHER_PATH=3 } ;   
+
     static bool EndsWith( const char* s, const char* q) ; 
     static std::string ChangeExt( const char* s, const char* x1, const char* x2) ; 
     static std::string DirName( const char* path ); 
@@ -580,13 +582,13 @@ inline int U::PathType( const char* base, const char* name )
 }
 inline int U::PathType( const char* path )
 {
-    int rc = -1 ; 
+    int rc = ERROR_PATH ; 
     struct stat st ;
     if(0 == stat(path, &st))
     {   
-        if(     S_ISDIR(st.st_mode)) rc = 1 ; 
-        else if(S_ISREG(st.st_mode)) rc = 2 ;   
-        else                         rc = 3 ; 
+        if(     S_ISDIR(st.st_mode)) rc = DIR_PATH ; 
+        else if(S_ISREG(st.st_mode)) rc = FILE_PATH ;   
+        else                         rc = OTHER_PATH ; 
     }   
     return rc ;   
 }
