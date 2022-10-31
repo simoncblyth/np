@@ -104,7 +104,8 @@ void NPCombineTest<T>::scan()
         {
             T x = dd[j] ; 
             T y0 = a->interp<T>(x) ;     // non-combined interpolation 
-            T y1 = c->interp<T>(i, x) ;  // interpolation from the combined array 
+            //T y1 = c->interp<T>(i, x) ;  // interpolation from the combined array 
+            T y1 = c->combined_interp<T>(i, x) ;  // interpolation from the combined array 
             assert( y0 == y1 ); 
 
 /*
@@ -157,12 +158,26 @@ void NPCombineTest<T>::save()
 
 void test_simple()
 {
+    // make 2D pshape property arrays 
+
     NP* a = NPCombineTest<float>::MakeSrc(7,2); 
-    a->pscale_add<float>(1.0f, 10.f,  1u); 
     NP* b = NPCombineTest<float>::MakeSrc(6,2); 
-    b->pscale_add<float>(1.05f, 20.f,  1u); 
     NP* c = NPCombineTest<float>::MakeSrc(5,2); 
-    c->pscale_add<float>(0.95f, 30.f, 1u); 
+
+
+    // scaling and offsets to make them distinct 
+
+    unsigned col1 = 1u ; 
+    a->pscale_add<float>(1.0f,  10.f, col1); 
+    b->pscale_add<float>(1.05f, 20.f, col1); 
+    c->pscale_add<float>(0.95f, 30.f, col1); 
+
+
+    // change domain too, to demonstrate that there is 
+    // no same domain requirement here 
+     
+    unsigned col0 = 0u ; 
+    a->pscale_add<float>(1.0f,  0.5f, col0); 
 
     std::vector<const NP*> aa = { a, b, c } ; 
 
@@ -205,8 +220,8 @@ void test_RINDEX(unsigned ndom, bool narrow)
 
 int main(int argc, char** argv)
 {
-    //test_simple(); 
-    test_RINDEX(1000, true); 
+    test_simple(); 
+    //test_RINDEX(1000, true); 
     return 0 ;
 }
 

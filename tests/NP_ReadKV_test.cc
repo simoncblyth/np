@@ -329,6 +329,46 @@ PHC_THICKNESS   21.13e-9*m
 }
 
 
+void test_LoadFromString_ConstantProperty()
+{
+    const char* STR = R"(
+#some constant property of LS
+
+#SCINTILLATIONYIELD
+ScintillationYield   9846/MeV
+ResolutionScale      1.0
+
+#birks law
+BirksConstant1  12.05e-3*g/cm2/MeV
+BirksConstant2  0
+
+
+)" ; 
+
+    std::cout << STR << std::endl ; 
+
+    NP* a = NP::LoadFromString<double>(STR) ; 
+
+    std::cout << " a.sstr " << ( a ? a->sstr() : "-" ) << std::endl;  
+
+    double ScintillationYield = a->get_named_value<double>("ScintillationYield", -1.);  
+    double ResolutionScale = a->get_named_value<double>("ResolutionScale", -1.);  
+    double BirksConstant1 = a->get_named_value<double>("BirksConstant1", -1.);  
+    double BirksConstant2 = a->get_named_value<double>("BirksConstant2", -1.);  
+
+    std::cout << "ScintillationYield " << ScintillationYield << std::endl ; 
+    std::cout << "ResolutionScale    " << ResolutionScale << std::endl ; 
+    std::cout << "BirksConstant1     " << BirksConstant1 << std::endl ; 
+    std::cout << "BirksConstant2     " << BirksConstant2 << std::endl ; 
+
+
+}
+
+
+
+
+
+
 
 int main()
 {
@@ -343,8 +383,9 @@ int main()
     test_Accessors(); 
     test_LoadFromString(); 
     test_LoadFromString_meta(); 
-    */
     test_LoadFromString_get_named_value(); 
+    */
+    test_LoadFromString_ConstantProperty(); 
  
 
     return 0 ; 

@@ -152,9 +152,10 @@ struct NP
     template <typename T> 
     static NP* LoadFromString(const char* str, const char* path_for_debug_messages=nullptr ); 
 
-
+    // FindUnit returns last matching unit string, so more specific strings that contain earlier 
+    // ones should come later in list 
     static constexpr const char* UNITS = "eV MeV nm mm cm m ns g/cm2/MeV" ; 
-    static char* FindUnit(const char* line, const std::vector<std::string>& units  ); 
+    static char* FindUnit(const char* line, const std::vector<std::string>& units  );  
     static void GetUnits(std::vector<std::string>& units ); 
     static bool IsListed(const std::vector<std::string>& ls, const char* str); 
     static std::string StringConcat(const std::vector<std::string>& ls, char delim=' ' ); 
@@ -276,7 +277,8 @@ struct NP
 
 
     template<typename T> T    interpHD(T u, unsigned hd_factor, int item=-1 ) const ; 
-    template<typename T> T    interp(unsigned iprop, T x) const ;  // requires NP::Combine of pshaped arrays 
+    template<typename T> T    interp(unsigned iprop, T x) const ;           // requires NP::Combine of pshaped arrays 
+    template<typename T> T    combined_interp(unsigned iprop, T x) const ;  // requires NP::Combine of pshaped arrays 
     template<typename T> NP*  cumsum(int axis=0) const ; 
     template<typename T> void divide_by_last() ; 
 
@@ -2499,19 +2501,19 @@ template<typename T> inline T NP::interp(T x, int item) const
     unsigned num_items = ndim == 3 ? shape[0] : 1 ; 
     assert( item < int(num_items) ); 
     unsigned ni = shape[ndim-2]; 
-    unsigned nj = shape[ndim-1];  // typically 2, but can be more 
+    unsigned nj = shape[ndim-1];  // typically 2 but can be more
     unsigned item_offset = item == -1 ? 0 : ni*nj*item ;   // item=-1 same as item=0
 
     assert( ni > 1 ); 
     assert( nj <= 8 );        // not needed for below, just for sanity of payload
     unsigned jdom = 0 ;       // 1st payload slot is "domain"
-    unsigned jval = nj - 1 ;  // last payload slot is "value" 
+    unsigned jval = nj - 1 ;  // last payload slot is "value"   : TODO: argument to control this
     // note that with nj > 2 this allows other values to be carried 
 
     const T* vv = cvalues<T>() + item_offset ; 
 
     int lo = 0 ;
-    int hi = ni-1 ;
+    int hi = ni-1 ;         // domain must be in ascending order 
 
 /*
     std::cout 
@@ -2544,6 +2546,11 @@ template<typename T> inline T NP::interp(T x, int item) const
     T dy = vv[nj*hi+jval] - vv[nj*lo+jval] ; 
     T dx = vv[nj*hi+jdom] - vv[nj*lo+jdom] ; 
     T y = vv[nj*lo+jval] + dy*(x-vv[nj*lo+jdom])/dx ; 
+
+    // notice how the value only gets here, right at the end.
+    // could split off finding the domain bin ? so could interpolate 
+    // multiple props without repeating the bin finding so long as
+    // they shared the same domain (in first column)
 
     return y ; 
 }
@@ -2615,14 +2622,38 @@ template<typename T> inline T NP::interpHD(T u, unsigned hd_factor, int item) co
 }
 
 
+/**
+NP::combined_interp  (formerly named "interp" too similar to above)
+--------------------------------------------------------------------
 
+Assuming a convention of combined property array layout 
+this provides interpolation of multiple properties with 
+different domain lengths.  Special array preparation 
+is needed with "ni" lengths encoded into last columns, for 
+example with NP::Combine
+
+See ~/np/tests/NPCombineTest.cc
+
+**/
 
 template<typename T> inline T NP::interp(unsigned iprop, T x) const  
+{  
+    std::cerr << "NP::interp DEPRECATED SIGNATURE CHANGE NP::interp TO NP::combined_interp " << std::endl ; 
+
+    // too dangerous to simply remove this method, as the standard NP::interp 
+    // has too similar a signature which via type conversion could lead to 
+    // difficult to find bugs 
+   
+    return combined_interp<T>(iprop, x ); 
+}
+
+
+template<typename T> inline T NP::combined_interp(unsigned iprop, T x) const  
 {
     unsigned ndim = shape.size() ; 
     assert( ndim == 3 && shape[ndim-1] == 2 && iprop < shape[0] && shape[1] > 1 ); 
 
-    unsigned niv = num_itemvalues() ; 
+    unsigned niv = num_itemvalues() ;  // everything after 1st dimension
     const T* vv = cvalues<T>() + iprop*niv ; 
 
     unsigned ni(0) ; 
@@ -2638,6 +2669,9 @@ template<typename T> inline T NP::interp(unsigned iprop, T x) const
         uif64.f = *( vv + niv - 1) ; 
         ni = uif64.u ;   // narrowing doesnt matter, as unsigned will be big enough 
     }
+
+    // ragged array handling, with ni integer encoded into last column ?  
+
 
     int lo = 0 ;
     int hi = ni-1 ;
@@ -3340,7 +3374,7 @@ the implementation could easily be generalized to work with higher dimensions if
 
 Note that if the n0,n1,n2,... dimensions are very different then the combined array will 
 be inefficient with lots of padding so it makes sense to avoid large differences.  
-When all the n are equal the annotation and adding could be disabled by setting annotate=false.  
+When all the n are equal the annotation and padding could be disabled by setting annotate=false.  
 
 See also:
 
@@ -4355,6 +4389,15 @@ inline NP* NP::LoadFromTxtFile(const char* spec_or_path )  // static
     return a ; 
 }
 
+/**
+NP::FindUnit
+--------------
+
+Each unit string is looked for within the line, 
+the last in the units list that matches is returned. 
+
+**/
+
 inline char* NP::FindUnit(const char* line, const std::vector<std::string>& units  ) // static
 {
     char* upos = nullptr ; 
@@ -4362,7 +4405,7 @@ inline char* NP::FindUnit(const char* line, const std::vector<std::string>& unit
     {
         const char* u = units[i].c_str(); 
         upos = (char*)strstr(line, u) ; 
-    }
+    } 
     return upos ; 
 }
 
@@ -4393,10 +4436,26 @@ inline std::string NP::StringConcat(const std::vector<std::string>& ls, char del
 NP::LoadFromString
 ----------------------
 
-The number of fields on each line must be consistent, 
-as must the number of fields that convert to type T. 
+String format example::
 
-For example the below input txt with type "float" or "double"::
+   ScintillationYield   9846/MeV
+   BirksConstant1  12.05e-3*g/cm2/MeV
+
+Each line is cleaned to correct the poor file format 
+regaining whitespace between fields:
+
+1. '/' prior to recognized unit strings are changed to ' ' 
+2. all '*' are changed to ' ' 
+
+After cleanup, the number of fields on each line must be consistent
+for all lines of the string. Also the number of fields that 
+can be converted to type T must be consistent for all lines. 
+
+So for the above example an array of shape (2,1) would be created 
+with a names vector containing the non-unit strings, which 
+allowed named access to values with NP::get_named_value 
+
+Another example, the below input txt with type "float" or "double"::
 
     1.55     *eV    2.72832
     2.69531  *eV    2.7101
@@ -4404,7 +4463,7 @@ For example the below input txt with type "float" or "double"::
     3.17908  *eV    1.9797
     15.5     *eV    1.9797
 
-Would yield an array of shape (5,2) with metadata key "other" of "*eV" 
+would yield an array of shape (5,2) with metadata key "unit" of "eV" 
 
 **/
 
@@ -4436,16 +4495,10 @@ inline NP* NP::LoadFromString(const char* str, const char* path)  // static
         if(strlen(l) > 0 && l[0] == '#') continue ; 
 
 
-        // handle a deranged txt file format 
-        //
-        //  "ScintillationYield   9846/MeV"
-        //  "BirksConstant1  12.05e-3*g/cm2/MeV"
-        // 
-        // which fails to keep different fields separated with whitespace  
-        // and where the first '*' or '/' is used to delimiting 
-        // a value with a unit string
-        // 
 
+        // if a unit string is found which is preceeded by '/' remove that 
+        // to regain whitespace between fields 
+        //
         char* upos = FindUnit(l, recognized_units) ; 
         if(upos && (upos - l) > 0)
         {
