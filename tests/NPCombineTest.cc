@@ -105,7 +105,7 @@ void NPCombineTest<T>::scan()
             T x = dd[j] ; 
             T y0 = a->interp<T>(x) ;     // non-combined interpolation 
             //T y1 = c->interp<T>(i, x) ;  // interpolation from the combined array 
-            T y1 = c->combined_interp<T>(i, x) ;  // interpolation from the combined array 
+            T y1 = c->combined_interp_3<T>(i, x) ;  // interpolation from the combined array 
             assert( y0 == y1 ); 
 
 /*

@@ -364,9 +364,12 @@ BirksConstant2  0
 
 }
 
-
-
-
+void test_ZEROProp()
+{
+    NP* a = NP::ZEROProp<double>() ; 
+    std::cout << " a.sstr " << ( a ? a->sstr() : "-" ) << std::endl;  
+    a->dump(); 
+}
 
 
 
@@ -384,8 +387,9 @@ int main()
     test_LoadFromString(); 
     test_LoadFromString_meta(); 
     test_LoadFromString_get_named_value(); 
-    */
     test_LoadFromString_ConstantProperty(); 
+    */
+    test_ZEROProp(); 
  
 
     return 0 ; 
