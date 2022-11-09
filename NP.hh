@@ -244,6 +244,7 @@ struct NP
     static NP* MakeLike(  const NP* src);  
     static NP* MakeNarrow(const NP* src); 
     static NP* MakeWideIfNarrow(  const NP* src); 
+    static NP* MakeNarrowIfWide(  const NP* src); 
     static NP* MakeWide(  const NP* src); 
     static NP* MakeCopy(  const NP* src); 
 
@@ -1355,6 +1356,11 @@ inline NP* NP::MakeWideIfNarrow(const NP* a) // static
 {
     return a->ebyte == 4 ? MakeWide(a) : MakeCopy(a) ; 
 }
+inline NP* NP::MakeNarrowIfWide(const NP* a) // static 
+{
+    return a->ebyte == 8 ? MakeNarrow(a) : MakeCopy(a) ; 
+}
+
 
 inline NP* NP::MakeWide(const NP* a) // static 
 {
