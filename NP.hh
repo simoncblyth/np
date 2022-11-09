@@ -243,10 +243,15 @@ struct NP
 
     static NP* MakeLike(  const NP* src);  
     static NP* MakeNarrow(const NP* src); 
-    static NP* MakeWideIfNarrow(  const NP* src); 
-    static NP* MakeNarrowIfWide(  const NP* src); 
     static NP* MakeWide(  const NP* src); 
     static NP* MakeCopy(  const NP* src); 
+
+    static NP* MakeWideIfNarrow(  const NP* src); 
+    static NP* MakeNarrowIfWide(  const NP* src); 
+
+    template<typename T>
+    static NP* MakeType(const NP* src); 
+
 
     static NP* MakeItemCopy(  const NP* src, int i,int j=-1,int k=-1,int l=-1,int m=-1, int o=-1 ); 
     void  item_shape(std::vector<int>& sub, int i, int j=-1, int k=-1, int l=-1, int m=-1, int o=-1 ) const ; 
@@ -1321,7 +1326,6 @@ inline void NP::CopyMeta( NP* b, const NP* a ) // static
     b->names = a->names ; 
 }
 
-
 inline NP* NP::MakeNarrow(const NP* a) // static 
 {
     assert( a->ebyte == 8 ); 
@@ -1349,18 +1353,8 @@ inline NP* NP::MakeNarrow(const NP* a) // static
         << " b.dtype " << b->dtype
         << std::endl 
         ;
-
     return b ; 
 }
-inline NP* NP::MakeWideIfNarrow(const NP* a) // static 
-{
-    return a->ebyte == 4 ? MakeWide(a) : MakeCopy(a) ; 
-}
-inline NP* NP::MakeNarrowIfWide(const NP* a) // static 
-{
-    return a->ebyte == 8 ? MakeNarrow(a) : MakeCopy(a) ; 
-}
-
 
 inline NP* NP::MakeWide(const NP* a) // static 
 {
@@ -1411,6 +1405,54 @@ inline NP* NP::MakeCopy(const NP* a) // static
         << std::endl 
         ;
 
+    return b ; 
+}
+
+inline NP* NP::MakeWideIfNarrow(const NP* a) // static 
+{
+    return a->ebyte == 4 ? MakeWide(a) : MakeCopy(a) ; 
+}
+inline NP* NP::MakeNarrowIfWide(const NP* a) // static 
+{
+    return a->ebyte == 8 ? MakeNarrow(a) : MakeCopy(a) ; 
+}
+
+/**
+NP::MakeType
+--------------
+
+Copies, Narrows or Widens as needed to transform the 
+source array into the template type.  
+Copies are done when there is no need to narrow or widen 
+for memory management consistency.  
+
+**/
+
+template<typename T>
+inline NP* NP::MakeType(const NP* a) // static 
+{
+    if(VERBOSE) std::cout << " source type a->ebyte " << a->ebyte << " sizeof(T) " << sizeof(T) << std::endl ; 
+
+    assert( sizeof(T) == 4 || sizeof(T) == 8 ); 
+    assert( a->ebyte == 4 || a->ebyte == 8 ); 
+
+    NP* b = nullptr ; 
+    if( a->ebyte == 4 && sizeof(T) == 4)  
+    {
+        b = MakeCopy(a); 
+    } 
+    else if( a->ebyte == 8 && sizeof(T) == 8)
+    {
+        b = MakeCopy(a); 
+    }
+    else if( a->ebyte == 8 && sizeof(T) == 4)
+    {
+        b = MakeNarrow(a) ;  
+    }
+    else if( a->ebyte == 4 && sizeof(T) == 8)
+    {
+        b = MakeWide(a) ;  
+    }
     return b ; 
 }
 
