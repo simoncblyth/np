@@ -87,5 +87,47 @@ After fix the annotation survives being narrowed::
     In [1]: t.fabc[...,-1,-1].view(np.int32)
     Out[1]: array([10,  2,  5], dtype=int32)
 
+
+This works for simple 3D case but with higher dimensions
+only the final of each cat gets preserved::
+
+    In [3]: t.src_rindex.view(np.int64)[...,-1,-1]
+    Out[3]: 
+    array([[[10,  2],
+            [14,  2],
+            [14, 14],
+            [ 4,  2]],
+
+           [[10,  2],
+            [14,  2],
+            [14, 14],
+            [ 4,  2]],
+
+           [[10,  2],
+            [14,  2],
+            [14, 14],
+            [ 4,  2]]])
+
+
+    In [4]: t.rindex.view(np.int32)[...,-1,-1]
+    Out[4]: 
+    array([[[0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 2]],
+
+           [[0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 2]],
+
+           [[0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 2]]], dtype=int32)
+
+
+
+
 **/
 

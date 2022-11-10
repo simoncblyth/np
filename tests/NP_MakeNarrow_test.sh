@@ -1,6 +1,7 @@
 #!/bin/bash -l 
 
-name=NP_MakeNarrow_test 
+deftest=NP_MakeNarrow_test
+name=${TEST:-$deftest}
 
 fold=/tmp/$name
 bin=$fold/$name
