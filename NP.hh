@@ -257,6 +257,8 @@ struct NP
     static NP* MakeNarrow(const NP* src); 
     static NP* MakeWide(  const NP* src); 
     static NP* MakeCopy(  const NP* src); 
+    static NP* MakeCopy3D(const NP* src); 
+    static NP* ChangeShape3D(NP* src); 
 
     static NP* MakeWideIfNarrow(  const NP* src); 
     static NP* MakeNarrowIfWide(  const NP* src); 
@@ -1481,6 +1483,31 @@ inline NP* NP::MakeCopy(const NP* a) // static
 
     return b ; 
 }
+
+/**
+NP::MakeCopy3D
+----------------
+
+Copy and change shape to 3D, original dimensions must be 3D or more. 
+
+**/
+
+inline NP* NP::MakeCopy3D(const NP* a) // static 
+{
+    NP* b = MakeCopy(a); 
+    b->change_shape_to_3D(); 
+    return b ; 
+}
+
+inline NP* NP::ChangeShape3D(NP* a) // static 
+{
+    a->change_shape_to_3D(); 
+    return a ; 
+}
+
+
+
+
 
 inline NP* NP::MakeWideIfNarrow(const NP* a) // static 
 {
