@@ -1,4 +1,4 @@
-// name=NP_slice_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name
+// name=NP_slice_test ; gcc $name.cc -DNOT_WITH_VERBOSE -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name
 
 #include "NP.hh"
 
@@ -48,21 +48,38 @@ void test_slice(const NP* bnd)
 }
 
 
+void test_item_slice()
+{
+    const int NI = 10 ; 
+    const int NJ = 4 ; 
+
+    NP* states = NP::Make<unsigned long>(NI, NJ) ;
+    states->fillIndexFlat();  
+
+    std::vector<unsigned long> state ;
+
+    for(int i=0 ; i < NI ; i++)
+    {
+        states->slice(state, i, -1); 
+        for(int j=0 ; j < NJ ; j++) std::cout << std::setw(5) << state[j] << " " ; 
+        std::cout << std::endl ; 
+    }
+}
+
 
 
 int main(int argc, char** argv)
 {
+    /*
     const char* defpath = "/Users/blyth/.opticks/geocache/DetSim0Svc_pWorld_g4live/g4ok_gltf/41c046fe05b28cb70b1fc65d0e6b7749/1/CSG_GGeo/CSGFoundry/SSim/bnd.npy" ; 
     const char* path = argc > 1 ? argv[1] : defpath ; 
     NP* bnd = NP::Load(path); 
     if(bnd == nullptr) return 1 ; 
-
     std::cout << bnd->brief() << std::endl ; 
-
-    /*
     test_index(bnd); 
-    */
     test_slice(bnd); 
+    */
+    test_item_slice(); 
 
     return 0 ; 
 }

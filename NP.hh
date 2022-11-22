@@ -29,7 +29,11 @@ Just copy into your project and ``#include "NP.hh"`` to use.
 struct NP
 {
     static constexpr const char* EXT = ".npy" ; 
+#ifdef WITH_VERBOSE
+    static const bool VERBOSE = true ; 
+#else
     static const bool VERBOSE = false ; 
+#endif
 
     union UIF32
     {
@@ -210,8 +214,12 @@ struct NP
     unsigned offset_(Args ... idxx ) const ; 
 
 
+    // use -1 to mark the last dimension to select upon 
+    // eg to select first item use (0, -1) 
     template<typename T, typename... Args> 
     void slice(std::vector<T>& out, Args ... idxx ) const ;  // slice_ellipsis
+
+   
 
     template<typename T> 
     void slice_(std::vector<T>& out, const std::vector<int>& idxx ) const ; 
@@ -1066,6 +1074,13 @@ template<typename T, typename... Args> inline void NP::slice(std::vector<T>& out
 
 template<typename T> inline void NP::slice_(std::vector<T>& out, const std::vector<int>& idxx ) const 
 {
+    if(NP::VERBOSE) 
+    std::cout 
+        << " DescIdx(idxx) " << DescIdx(idxx)
+        << " sstr() " << sstr() 
+        << std::endl
+        ;
+
     bool all_dim =  idxx.size() == shape.size() ; 
     if(!all_dim) std::cerr << " idxx.size " << idxx.size() << " shape.size " << shape.size() << " all_dim " << all_dim << std::endl ; 
     assert(all_dim) ; 
@@ -1137,8 +1152,13 @@ inline std::string NP::DescIdx(const std::vector<int>& idxx ) // static
 }
 
 
+/**
+NP::pickdim__
+----------------
 
+Returns ordinal of first -1 in idxx ?
 
+**/
 
 inline int NP::pickdim__(const std::vector<int>& idxx) const
 {
