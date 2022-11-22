@@ -267,6 +267,15 @@ struct NP
     static NP* MakeWithType(const NP* src); 
 
 
+    template<typename... Args> 
+    static NP* MakeSelectCopy(  const NP* src, Args ... items );  // MakeSelectCopy_ellipsis
+
+    static NP* MakeSelectCopyE_( const NP* src, const char* ekey, const char* fallback=nullptr, char delim=',' ); 
+    static NP* MakeSelectCopy_( const NP* src, const char* items ); 
+    static NP* MakeSelectCopy_( const NP* src, const std::vector<int>* items ); 
+    static NP* MakeSelectCopy_( const NP* src, const int* items, int num_items ); 
+
+
     static NP* MakeItemCopy(  const NP* src, int i,int j=-1,int k=-1,int l=-1,int m=-1, int o=-1 ); 
     void  item_shape(std::vector<int>& sub, int i, int j=-1, int k=-1, int l=-1, int m=-1, int o=-1 ) const ; 
     NP*   spawn_item(  int i, int j=-1, int k=-1, int l=-1, int m=-1, int o=-1  ) const ; 
@@ -1565,14 +1574,66 @@ inline NP* NP::MakeWithType(const NP* a) // static
 
 
 /**
+NP::MakeSelectCopy
+--------------------
+
+**/
+
+template<typename... Args> 
+inline NP* NP::MakeSelectCopy( const NP* src, Args ... items_ )  // MakeSelectCopy_ellipsis
+{
+   std::vector<int> items = {items_...};
+   return MakeSelectCopy_(src, &items ); 
+}
+
+template NP* NP::MakeSelectCopy( const NP* , int ); 
+template NP* NP::MakeSelectCopy( const NP* , int, int ); 
+template NP* NP::MakeSelectCopy( const NP* , int, int, int ); 
+template NP* NP::MakeSelectCopy( const NP* , int, int, int, int ); 
+
+inline NP* NP::MakeSelectCopyE_(  const NP* src, const char* ekey, const char* fallback, char delim )
+{
+    std::vector<int>* items = U::GetEnvVec<int>(ekey, fallback, delim ); 
+    return NP::MakeSelectCopy_( src, items )  ; 
+}
+inline NP* NP::MakeSelectCopy_(  const NP* src, const char* items_ )
+{
+    std::vector<int>* items = U::MakeVec<int>(items_); 
+    return NP::MakeSelectCopy_( src, items ); 
+}
+inline NP* NP::MakeSelectCopy_(  const NP* src, const std::vector<int>* items )
+{
+    return items ? MakeSelectCopy_(src, items->data(), int(items->size()) ) : NP::MakeCopy(src) ; 
+}
+inline NP* NP::MakeSelectCopy_(  const NP* src, const int* items, int num_items )
+{
+    assert( items ); 
+    for(int i=0 ; i < num_items ; i++) assert( items[i] < int(src->shape[0]) ); 
+    std::vector<int> dst_shape(src->shape) ; 
+    dst_shape[0] = num_items ; 
+    NP* dst = new NP(src->dtype, dst_shape); 
+    assert( src->item_bytes() == dst->item_bytes() );  
+    unsigned size = src->item_bytes(); 
+    for(int i=0 ; i < num_items ; i++) 
+    {
+        memcpy( dst->bytes() + i*size, src->bytes() + items[i]*size , size ); 
+    }
+    return dst ; 
+}
+
+/**
 NP::MakeItemCopy
 ------------------
+
+Finds the index of a single item from the src array specified by (i,j,k,l,m,n) 
+and copies that item into the destination array. 
+
 **/
 
 inline NP* NP::MakeItemCopy(  const NP* src, int i, int j, int k, int l, int m, int o )
 {
     std::vector<int> sub_shape ; 
-    src->item_shape(sub_shape, i, j, k, l, m, o ); 
+    src->item_shape(sub_shape, i, j, k, l, m, o );   // shape of the item specified by (i,j,k,l,m,n)
     unsigned idx = src->index0(i, j, k, l, m, o ); 
 
     if(NP::VERBOSE) std::cout 
