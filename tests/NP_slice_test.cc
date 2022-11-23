@@ -63,6 +63,8 @@ void test_item_slice()
         states->slice(state, i, -1); 
         for(int j=0 ; j < NJ ; j++) std::cout << std::setw(5) << state[j] << " " ; 
         std::cout << std::endl ; 
+
+        std::cout << states->sliceArrayString<unsigned long>(i, -1 ) << std::endl ; 
     }
 }
 
