@@ -9,6 +9,10 @@ mkdir -p $fold
 
 export FOLD=$fold
 
+other=
+export OTHER=$other
+
+
 defarg="build_run_ana" 
 arg=${1:-$defarg}
 
