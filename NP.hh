@@ -303,6 +303,9 @@ struct NP
  
     NP* copy() const ; 
 
+
+    template<typename T> int find_value_index(T value, T epsilon) const ; 
+
     bool is_pshaped() const ; 
     template<typename T> T    plhs(unsigned column ) const ;  
     template<typename T> T    prhs(unsigned column ) const ;  
@@ -2176,6 +2179,27 @@ inline NP* NP::LoadNarrow(const char* path)
 
 
 
+template<typename T> inline int NP::find_value_index(T value, T epsilon) const
+{
+    const T* vv = cvalues<T>(); 
+    unsigned ni = shape[0] ;
+    unsigned ndim = shape.size() ; 
+    int idx = -1 ; 
+    if(ndim == 1)
+    {
+        for(unsigned i=0 ; i < ni ; i++) 
+        {  
+            T v = vv[i]; 
+            if(std::abs(v-value) < epsilon)
+            {
+                idx = i ; 
+                break ; 
+            }
+        }
+    }
+    return idx ; 
+} 
+
 
 
 
@@ -2347,7 +2371,6 @@ template<typename T> inline void  NP::get_edges(T& lo, T& hi, unsigned column, i
         hi  = vv[nj*(i+1)+column] ; 
     }
 }
-
 
 
 
