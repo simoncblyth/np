@@ -4,7 +4,6 @@
 #include "NP.hh"
 
 
-
 int main(int argc, char** argv)
 {
     const char* npath = getenv("NPATH"); 

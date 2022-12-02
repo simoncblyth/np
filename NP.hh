@@ -3334,24 +3334,26 @@ template<typename T>
 inline std::string NP::repr() const 
 {
     const T* vv = cvalues<T>(); 
-    int ndim = shape.size() ; 
-    int ni = ndim > 0 ? shape[0] : 0 ; 
+    int nv = num_values() ; 
     const int edge = 5 ; 
 
     std::stringstream ss ; 
     ss << "{" ; 
-    if(ndim == 1)
-    {
-        for(int i=0 ; i < ni ; i++) 
-        {     
-            if( i < edge || i > ni - edge )
+    for(int i=0 ; i < nv ; i++) 
+    {     
+        if( i < edge || i > nv - edge )
+        {
+            switch(uifc)
             { 
-                ss << std::setw(10) << std::fixed << std::setprecision(5) << vv[i] << " " ; 
+                case 'f': ss << std::setw(10) << std::fixed << std::setprecision(5) << vv[i] << " " ; break ; 
+                case 'u': ss << std::setw(5) << vv[i] << " " ; break ; 
+                case 'i': ss << std::setw(5) << vv[i] << " " ; break ; 
+                case 'c': ss << std::setw(10) << vv[i] << " " ; break ;   // TODO: check array of std::complex 
             }
-            else if( i == edge )
-            {
-                ss << "... " ;  
-            }
+        }
+        else if( i == edge )
+        {
+            ss << "... " ;  
         }
     }
     ss << "}" ; 
@@ -3929,9 +3931,16 @@ template<typename... Args> inline NP* NP::Combine(Args ... args)  // Combine_ell
 
 
 
-inline NP* NP::Load(const char* path)
+inline NP* NP::Load(const char* path_)
 {
-    if(VERBOSE) std::cerr << "[ NP::Load " << path << std::endl ; 
+    const char* path = U::Resolve(path_); 
+    if(VERBOSE) 
+        std::cerr 
+            << "[ NP::Load " 
+            << " path_ " << path_ 
+            << " path " << path
+            << std::endl 
+            ; 
 
     bool npy_ext = U::EndsWith(path, EXT) ; 
     NP* a = nullptr ; 
