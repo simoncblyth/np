@@ -16,6 +16,12 @@ int main(int argc, char** argv)
     NP* c = NP::Load("$FOLD/c.npy") ; 
     std::cout << " c " << ( c ? c->sstr() : "-" ) << std::endl ; 
 
+    NP* d = NP::Load("$UNDEFINED/d.npy") ; 
+    std::cout << " d " << ( d ? d->sstr() : "-" ) << std::endl ; 
+
+    NP* e = NP::Load("$UNDEFINED") ; 
+    std::cout << " e " << ( e ? e->sstr() : "-" ) << std::endl ; 
+
 
     return 0 ; 
 }
