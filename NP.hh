@@ -201,7 +201,7 @@ struct NP
     static const char* ReadString2( const char* path );
 
     template<typename T>
-    static void LoadVec(std::vector<T>& vec, const char* path_); 
+    static long LoadVec(std::vector<T>& vec, const char* path_); 
 
 
     template<typename T> T*       values() ; 
@@ -5190,7 +5190,7 @@ inline NP* NP::CategoryArrayFromString(const char* str, int catfield, const char
     std::vector<std::string> cats ; 
     U::MakeVec(cats, cats_, delim );  
 
-    unsigned num_field = 0 ; 
+    int num_field = 0 ; 
     std::vector<int> data ; 
     std::string line ; 
     std::stringstream fss(str) ;
@@ -5202,10 +5202,10 @@ inline NP* NP::CategoryArrayFromString(const char* str, int catfield, const char
         while( iss >> field ) fields.push_back(field) ;
             
         if(num_field == 0) num_field = fields.size() ; 
-        else  assert( fields.size() == num_field ); // require consistent number of fields
+        else  assert( int(fields.size()) == num_field ); // require consistent number of fields
 
         assert( catfield < num_field );  
-        for(unsigned i=0 ; i < num_field ; i++)
+        for(int i=0 ; i < num_field ; i++)
         {   
             const std::string& field = fields[i] ; 
             int val =  i == catfield  ? U::Category(cats, field ) : std::atoi(field.c_str()) ;   
@@ -5368,7 +5368,7 @@ The type is expected to be "char" or "unsigned char"
 
 **/
 template<typename T>
-inline void NP::LoadVec(std::vector<T>& vec, const char* path_)
+inline long NP::LoadVec(std::vector<T>& vec, const char* path_)
 {
     assert( sizeof(T) == 1 ) ; 
 
@@ -5384,6 +5384,8 @@ inline void NP::LoadVec(std::vector<T>& vec, const char* path_)
     long bytes_read = fread(vec.data(), sizeof(T), file_size, fp );
     fclose(fp);
     assert( file_size == bytes_read ); 
+
+    return bytes_read ; 
 }
 
 inline std::string NP::descValues() const 
