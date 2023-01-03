@@ -200,6 +200,9 @@ struct NP
 
     static const char* ReadString2( const char* path );
 
+    template<typename T>
+    static void LoadVec(std::vector<T>& vec, const char* path_); 
+
 
     template<typename T> T*       values() ; 
     template<typename T> const T*  cvalues() const  ; 
@@ -5356,6 +5359,32 @@ inline const char* NP::ReadString2(const char* path_)  // static
 }
 
 
+/**
+NP::LoadVec
+------------
+
+Load bytes from binary file into vector that is sized accordingly. 
+The type is expected to be "char" or "unsigned char" 
+
+**/
+template<typename T>
+inline void NP::LoadVec(std::vector<T>& vec, const char* path_)
+{
+    assert( sizeof(T) == 1 ) ; 
+
+    const char* path = U::Resolve(path_); 
+    FILE *fp = fopen(path,"rb");
+
+    fseek(fp, 0L, SEEK_END);
+    long file_size = ftell(fp);
+    rewind(fp);
+
+    vec.resize(file_size); 
+
+    long bytes_read = fread(vec.data(), sizeof(T), file_size, fp );
+    fclose(fp);
+    assert( file_size == bytes_read ); 
+}
 
 inline std::string NP::descValues() const 
 {
