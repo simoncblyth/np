@@ -373,8 +373,6 @@ struct NP
     std::string get_jsonhdr_path() const ; // .npy -> .npj on loaded path
     void save_jsonhdr() const ;    
 
-
-
     template<typename T> std::string _present(T v) const ; 
     template<typename T> void _dump(int i0=-1, int i1=-1, int j0=-1, int j1=-1) const ;   
 
@@ -383,9 +381,6 @@ struct NP
     template<typename T> void read2(const T* src);
     template<typename T> void write(T* dst) const ; 
 
-
-
-   
 
     template<typename T> static void Write(const char* dir, const char* name, const std::vector<T>& values ); 
     template<typename T> static void Write(const char* dir, const char* name, const T* data, int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
@@ -689,7 +684,7 @@ inline NP*  NP::Make( const std::vector<T>& src ) // static
 template<typename T, typename S, typename... Args> 
 inline NP* NP::ArrayFromVec(const std::vector<S>& v, Args ... itemshape )   // ArrayFromVec_ellipsis
 {
-    assert( sizeof(S) > sizeof(T) );  
+    assert( sizeof(S) >= sizeof(T) );  
     int ni = v.size() ; 
     int nj = sizeof(S) / sizeof(T) ; 
 
