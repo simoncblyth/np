@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <limits>
 #include <random>
+#include <map>
 
 #include "NPU.hh"
 
@@ -49,20 +50,44 @@ struct NP
         double         f ;  
     };            
 
+
+    // STATIC CREATION METHODS 
+
     static NP* MakeValues( const std::vector<std::pair<std::string, double>>& values, const char* contains=nullptr ); 
     static NP* MakeDemo(const char* dtype="<f4" , int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
 
     template<typename T> static NP*  Linspace( T x0, T x1, unsigned nx, int npayload=-1 ); 
     template<typename T> static NP*  MakeDiv( const NP* src, unsigned mul  ); 
-    template<typename T> static NP*  Make( const std::vector<T>& src ); 
-    //template<typename T, typename ... Args> static NP*  Make_( Args ... shape ) ; 
 
-    //template<typename T, typename S, typename... Args> NP* ArrayFromVec(const std::vector<S>& v, Args ... args );   // ArrayFromVec_ellipsis
-    template<typename T, typename... Args> static NP*  Make(const T* src, Args ... shape );  // Make_ellipsis  OOP
+    template<typename T> static NP*  Make( const std::vector<T>& src ); 
+
+    template<typename T, typename S, typename... Args> 
+    static NP* ArrayFromVec(const std::vector<S>& v, Args ... args );   // ArrayFromVec_ellipsis
+
+    template<typename S>
+    static int VecFromMap( std::vector<S>& v,  const std::map<int, S>& m, bool contiguous_key=true ); 
+
+    template<typename T, typename S>
+    static NP* ArrayFromMap( const std::map<int, S>& m, bool contiguous_key=true ); 
+    
+
+    template<typename T, typename... Args> static NP*  Make(const T* src, Args ... shape );  // TODO rename ArrayFromData
 
     template<typename T> static NP*  Make( T d0, T v0, T d1, T v1 ); 
     template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
 
+
+    template<typename T> static NP* Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1, int no_=-1 );
+    template<typename T, typename ... Args> static NP*  Make_( Args ... shape ) ;  // Make_shape
+
+    template<typename T> static NP* MakeFlat(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
+
+
+
+
+
+
+    //  MEMBER FUNCTIONS 
 
     template<typename T> const T*  cvalues() const  ; 
     template<typename T> T*       values() ; 
@@ -90,7 +115,7 @@ struct NP
 
 
 
-    // ctor
+    // CTOR
     NP(const char* dtype_, const std::vector<int>& shape_ ); 
     NP(const char* dtype_="<f4", int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
 
@@ -174,6 +199,8 @@ struct NP
     void set_preserve_last_column_integer_annotation(); 
     bool is_preserve_last_column_integer_annotation() const ; 
     static float PreserveNarrowedDoubleInteger( double f ); 
+
+    // STATIC CONVERSION METHODS 
 
     static NP* MakeNarrow(const NP* src); 
     static NP* MakeWide(  const NP* src); 
@@ -350,8 +377,7 @@ struct NP
 
 
 
-    template<typename T> static NP* Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1, int no_=-1 );  // dtype from template type
-    template<typename T> static NP* MakeFlat(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
+   
 
     template<typename T> static void Write(const char* dir, const char* name, const std::vector<T>& values ); 
     template<typename T> static void Write(const char* dir, const char* name, const T* data, int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
@@ -452,7 +478,7 @@ struct NP
 
 };
 
-
+// STATIC CREATION METHODS 
 
 inline NP* NP::MakeValues( const std::vector<std::pair<std::string, double>>& values, const char* contains ) // static
 {
@@ -652,23 +678,101 @@ inline NP*  NP::Make( const std::vector<T>& src ) // static
     return a ; 
 }
 
-/*
-template<typename T, typename S, typename... Args> NP* NP::ArrayFromVec(const std::vector<S>& v, Args ... args )   // ArrayFromVec_ellipsis
+template<typename T, typename S, typename... Args> 
+inline NP* NP::ArrayFromVec(const std::vector<S>& v, Args ... itemshape )   // ArrayFromVec_ellipsis
 {
-
     assert( sizeof(S) > sizeof(T) );  
     int ni = v.size() ; 
     int nj = sizeof(S) / sizeof(T) ; 
 
+    const T* src = (T*)v.data() ; 
 
-    std::string dtype = descr_<T>::dtype() ; 
-    std::vector<int> shape = {args...};
-    if(shape.size() > 0 && shape[0] == 0) return nullptr ; 
-    NP* a = new NP(dtype.c_str(), shape ); 
+    std::vector<int> shape ; 
+    shape.push_back(ni) ; 
+
+    std::vector<int> itemshape_ = {itemshape...};
+
+    if(itemshape_.size() == 0 )
+    {
+        shape.push_back(nj) ; 
+    }
+    else 
+    {
+        int itemcheck = 1 ; 
+        for(unsigned i=0 ; i < itemshape_.size() ; i++)  
+        {
+            shape.push_back(itemshape_[i]) ; 
+            itemcheck *= itemshape_[i] ; 
+        }
+        assert( itemcheck == nj ); 
+    }
+
+
+    NP* a = NP::Make_<T>(shape) ; 
     a->read2(src);  
     return a ; 
 }
-*/
+
+
+
+template<typename S>
+inline int NP::VecFromMap( std::vector<S>& v,  const std::map<int, S>& m, bool contiguous_key ) // static
+{
+    int ni = int(m.size()) ; 
+
+    v.clear(); 
+    v.resize(ni); 
+
+    typename std::map<int,S>::const_iterator it = m.begin()  ;
+    int k0 = it->first ; 
+
+    for(int idx=0 ; idx < ni ; idx++)
+    {   
+        int k = it->first ; 
+        v[idx] = it->second ;
+
+        if(contiguous_key) assert( k == k0 + idx );  
+        //std::cout << " k0 " << k0 << " idx " << idx << " k " << k << " v " << it->second << std::endl ;  
+
+        std::advance(it, 1);  
+    }   
+    return k0 ; 
+}
+
+
+/**
+NP::ArrayFromMap
+-------------------
+
+A vector of S structs is populated from the map in the default key order of the map. 
+An NP array is then created from the contiguous vector data.  
+
+When contiguous_key:true the map keys are required to contiguously increment
+from the first. The first key is recorded into the metadata of the array with name "k0". 
+For example with keys: 100,101,102 the k0 would be 100. 
+
+Serializing maps is most useful for contiguous_key:true as 
+map access by key can then be mimicked by simply obtaining the 
+array index by subtracting k0 from the map key.  
+
+**/
+
+template<typename T, typename S>
+inline NP* NP::ArrayFromMap( const std::map<int, S>& m, bool contiguous_key )
+{
+    assert( sizeof(S) >= sizeof(T) );
+
+    std::vector<S> v ;    
+    int k0 = NP::VecFromMap<S>( v, m, contiguous_key ); 
+    NP* a = NP::ArrayFromVec<T,S>(v) ;
+    a->set_meta<int>("k0", k0) ;
+
+    return a ;
+}
+
+
+
+
 
 
 
@@ -695,7 +799,7 @@ When the first int shape dimension is zero a nullptr is returned.
 
 **/
 
-template<typename T, typename... Args> NP* NP::Make(const T* src, Args ... args )   // Make_ellipsis
+template<typename T, typename... Args> NP* NP::Make(const T* src, Args ... args )   // TODO rename ArrayFromData
 {
     std::string dtype = descr_<T>::dtype() ; 
     std::vector<int> shape = {args...};
@@ -705,14 +809,12 @@ template<typename T, typename... Args> NP* NP::Make(const T* src, Args ... args 
     return a ; 
 }
 
-
 template <typename T> 
 inline NP*  NP::Make(T d0, T v0, T d1, T v1 ) // static
 {
     std::vector<T> src = {d0, v1, d1, v1 } ; 
     return NP::Make<T>(src) ; 
 }
-
 
 template <typename T> NP* NP::FromString(const char* str, char delim)  // static 
 {   
@@ -724,8 +826,32 @@ template <typename T> NP* NP::FromString(const char* str, char delim)  // static
     return a ; 
 }
 
+template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_, int no_ ) // static
+{
+    std::string dtype = descr_<T>::dtype() ; 
+    NP* a = new NP(dtype.c_str(), ni_,nj_,nk_,nl_,nm_, no_) ;    
+    return a ; 
+}
+
+template<typename T, typename ... Args> NP*  NP::Make_( Args ... shape_ )   // Make_shape static 
+{
+    std::string dtype = descr_<T>::dtype() ; 
+    std::vector<int> shape = {shape_ ...};
+    NP* a = new NP(dtype.c_str(), shape ) ;    
+    return a ; 
+}
+
+template<typename T> NP* NP::MakeFlat(int ni, int nj, int nk, int nl, int nm, int no ) // static
+{
+    NP* a = NP::Make<T>(ni, nj, nk, nl, nm, no );  
+    a->fillIndexFlat(); 
+    return a ; 
+}
 
 
+
+
+//  MEMBER FUNCTIONS 
 
 template<typename T> inline const T*  NP::cvalues() const { return (T*)data.data() ;  } 
 template<typename T> inline T*        NP::values() { return (T*)data.data() ;  } 
@@ -872,7 +998,7 @@ inline unsigned NP::prefix_size(unsigned index) const { return net_hdr::unpack(_
 
 
 
-// ctor
+// CTOR
 inline NP::NP(const char* dtype_, const std::vector<int>& shape_ )
     :
     shape(shape_),
@@ -4466,20 +4592,6 @@ inline void NP::write(T* dst) const
 }
 
 
-
-template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_, int no_ )
-{
-    std::string dtype = descr_<T>::dtype() ; 
-    NP* a = new NP(dtype.c_str(), ni_,nj_,nk_,nl_,nm_, no_) ;    
-    return a ; 
-}
-
-template<typename T> NP* NP::MakeFlat(int ni, int nj, int nk, int nl, int nm, int no )
-{
-    NP* a = NP::Make<T>(ni, nj, nk, nl, nm, no );  
-    a->fillIndexFlat(); 
-    return a ; 
-}
 
 
 template <typename T> void NP::Write(const char* dir, const char* reldir, const char* name, const T* data, int ni_, int nj_, int nk_, int nl_, int nm_, int no_ ) // static
