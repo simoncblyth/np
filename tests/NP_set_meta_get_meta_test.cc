@@ -1,4 +1,4 @@
-// name=NP_set_meta_get_meta_test ; mkdir -p /tmp/$name ; gcc $name.cc -std=c++11 -lstdc++ -I.. -DDEBUG -o /tmp/$name/$name && /tmp/$name/$name
+// ./NP_set_meta_get_meta_test.sh
 
 const char* PATH = "/tmp/NP_set_meta_get_meta_test/a.npy" ; 
 
