@@ -1,4 +1,27 @@
 #pragma once
+/**
+NP : Header-only Array Creation and persisting as NumPy .npy files
+====================================================================
+
+Related headers in dependency order:
+
+NPU.hh
+    underpinnings of NP.hh
+NP.hh
+    core of save/load arrays into .npy NumPy format files 
+
+    * TODO: relocate more NP.hh functionality down to NPU.hh OR up to NPX.h
+
+NPX.h
+    extras such as static converters 
+NPFold.h
+    managing and persisting collections of arrays 
+
+
+Primary source is https://github.com/simoncblyth/np/
+but the headers are also copied into opticks/sysrap. 
+
+**/
 
 #include <iostream>
 #include <iomanip>
@@ -13,19 +36,6 @@
 
 #include "NPU.hh"
 
-/**
-NP 
-===
-
-This is developed in https://github.com/simoncblyth/np/
-but given the header-only nature is often just incorporated into 
-other projects together with NPU.hh
-
-NP.hh(+NPU.hh) provides lightweight header only NPY writing/reading. 
-Just copy into your project and ``#include "NP.hh"`` to use. 
-
-
-**/
 
 struct NP
 {
@@ -67,7 +77,6 @@ struct NP
 
     template<typename T> static NP* Linspace( T x0, T x1, unsigned nx, int npayload=-1 ); 
     template<typename T> static NP* MakeDiv( const NP* src, unsigned mul  ); 
-    template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
 
     template<typename T> static NP* Make( int ni_=-1, int nj_=-1, int nk_=-1, int nl_=-1, int nm_=-1, int no_=-1 );
     template<typename T, typename ... Args> static NP*  Make_( Args ... shape ) ;  // Make_shape
@@ -685,15 +694,6 @@ inline NP* NP::MakeDiv( const NP* src, unsigned mul  )
 }
 
 
-template <typename T> NP* NP::FromString(const char* str, char delim)  // static 
-{   
-    std::vector<T> vec ; 
-    std::stringstream ss(str);
-    std::string s ; 
-    while(getline(ss, s, delim)) vec.push_back(U::To<T>(s.c_str()));
-    NP* a = NP::Make<T>(vec) ; 
-    return a ; 
-}
 
 template <typename T> NP* NP::Make( int ni_, int nj_, int nk_, int nl_, int nm_, int no_ ) // static
 {

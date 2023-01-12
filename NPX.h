@@ -14,10 +14,12 @@ struct NPX
     static NP* MakeValues( const std::vector<std::pair<std::string, double>>& values, const char* contains=nullptr ); 
     static NP* MakeDemo(const char* dtype="<f4" , int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ); 
 
-
     template<typename T> static NP*  Make( const std::vector<T>& src ); 
     template<typename T> static NP*  Make( T d0, T v0, T d1, T v1 ); 
     template<typename T, typename... Args> static NP*  Make(const T* src, Args ... shape );  // TODO rename ArrayFromData
+
+    template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
+
 
     template<typename T, typename S, typename... Args> 
     static NP* ArrayFromVec(const std::vector<S>& v, Args ... args );   // ArrayFromVec_ellipsis
@@ -45,6 +47,10 @@ struct NPX
     static NP* CategoryArrayFromString(const char* str, int catfield, const char* cats, char delim=','); 
     static NP* LoadCategoryArrayFromTxtFile(const char* base, const char* relp, int catfield, const char* cats, char delim=',');
     static NP* LoadCategoryArrayFromTxtFile(const char* path, int catfield, const char* cats, char delim=',');
+
+    static void Import_MSD(           std::map<std::string,double>& msd, const NP* a); 
+    static NP* Serialize_MSD(   const std::map<std::string,double>& msd );  
+    static std::string Desc_MSD(const std::map<std::string,double>& msd); 
 
 }; 
 
@@ -157,6 +163,16 @@ template<typename T, typename... Args> NP* NPX::Make(const T* src, Args ... args
     return a ; 
 }
 
+
+template <typename T> NP* NPX::FromString(const char* str, char delim)  // static 
+{   
+    std::vector<T> vec ; 
+    std::stringstream ss(str);
+    std::string s ; 
+    while(getline(ss, s, delim)) vec.push_back(U::To<T>(s.c_str()));
+    NP* a = Make<T>(vec) ; 
+    return a ; 
+}
 
 
 
@@ -488,6 +504,65 @@ inline NP* NPX::LoadCategoryArrayFromTxtFile(const char* path, int catfield, con
     if(str == nullptr) return nullptr ; 
     NP* a = CategoryArrayFromString(str, catfield, cats, delim ); 
     return a ; 
+}
+
+
+inline void NPX::Import_MSD( std::map<std::string, double>& msd, const NP* a) // static
+{
+    assert( a && a->uifc == 'f' && a->ebyte == 8 );
+    assert( a->shape.size() == 1 );
+    assert( int(a->names.size()) == a->shape[0] );
+
+    const double* vv = a->cvalues<double>() ;
+    unsigned num_vals = a->shape[0] ;
+
+    for(unsigned i=0 ; i < num_vals ; i++)
+    {
+        const std::string& key = a->names[i] ;
+        const double& val = vv[i] ;
+        msd[key] = val ;
+    }
+}
+
+inline NP* NPX::Serialize_MSD( const std::map<std::string, double>& msd ) // static
+{
+    typedef std::map<std::string, double> MSD ; 
+    MSD::const_iterator it = msd.begin(); 
+
+    std::vector<std::string> keys ; 
+    std::vector<double>      vals ; 
+
+    for(unsigned i=0 ; i < msd.size() ; i++)
+    { 
+        const std::string& key = it->first ; 
+        const double&      val = it->second ; 
+
+        keys.push_back(key);
+        vals.push_back(val); 
+
+        std::advance(it, 1);  
+    }
+ 
+    NP* a = MakeValues( keys, vals ); 
+    return a ; 
+} 
+
+inline std::string NPX::Desc_MSD(const std::map<std::string, double>& msd) // static
+{
+    std::stringstream ss ; 
+    ss << "NPX::Desc_MSD" << std::endl ; 
+
+    typedef std::map<std::string, double> MSD ; 
+    MSD::const_iterator it = msd.begin(); 
+    for(unsigned i=0 ; i < msd.size() ; i++)
+    { 
+        const std::string& key = it->first ; 
+        const double& val = it->second ; 
+        ss << " key " << key << " val " << val << std::endl ;  
+        std::advance(it, 1);  
+    }
+    std::string s = ss.str(); 
+    return s ; 
 }
 
  
