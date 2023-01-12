@@ -1,6 +1,6 @@
 #!/bin/bash -l 
 
-name=NP_ArrayFromDiscoMap_test
+name=NPX_ArrayFromDiscoMap_test
 
 export FOLD=/tmp/$name
 mkdir -p $FOLD

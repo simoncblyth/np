@@ -1,5 +1,5 @@
-// ./NP_ArrayFromDiscoMap_test.sh
-#include "NP.hh"
+// ./NPX_ArrayFromDiscoMap_test.sh
+#include "NPX.h"
 
 const char* FOLD = getenv("FOLD"); 
 
@@ -17,15 +17,15 @@ int main(int argc, char** argv)
     m0[12] = 3 ;  
     m0[13] = 3 ;  
 
-    std::cout << "m0" << std::endl << NP::DescDiscoMap(m0) ; 
+    std::cout << "m0" << std::endl << NPX::DescDiscoMap(m0) ; 
 
 
-    NP* a = NP::ArrayFromDiscoMap<int>( m0 ); 
+    NP* a = NPX::ArrayFromDiscoMap<int>( m0 ); 
 
     std::map<int, int> m1 ; 
-    NP::DiscoMapFromArray<int>( m1, a ); 
+    NPX::DiscoMapFromArray<int>( m1, a ); 
 
-    std::cout << "m1" << std::endl << NP::DescDiscoMap(m1) ; 
+    std::cout << "m1" << std::endl << NPX::DescDiscoMap(m1) ; 
 
     a->save(FOLD, "a.npy" ); 
 

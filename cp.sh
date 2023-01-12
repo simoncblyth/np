@@ -1,6 +1,6 @@
 #!/bin/bash -l 
 
-names="NP.hh NPU.hh NPFold.h"
+names="NP.hh NPU.hh NPFold.h NPX.h"
 
 for name in $names ; do 
     cmd="diff $name ~/opticks/sysrap/$name"
