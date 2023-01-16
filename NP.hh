@@ -28,6 +28,7 @@ but the headers are also copied into opticks/sysrap.
 #include <string>
 #include <vector>
 #include <cassert>
+#include <csignal>
 #include <fstream>
 #include <cstdint>
 #include <limits>
@@ -3579,13 +3580,22 @@ inline int NP::NameIndex( const char* qname, unsigned& count, const std::vector<
 
 inline bool NP::is_named_shape() const 
 {
-    return int(shape.size()) == 2 && shape[1] == 1 && shape[0] == int(names.size()) ; 
+    //return int(shape.size()) == 2 && shape[1] == 1 && shape[0] == int(names.size()) ; 
+    return int(shape.size()) > 0 && shape[0] == int(names.size()) ; 
 }
 
 template<typename T>
 inline T NP::get_named_value( const char* qname, T fallback ) const 
 {
     bool is_named = is_named_shape() ; 
+
+    if(NP::VERBOSE) std::cerr 
+        << "NP::get_named_value [" << qname << "]" 
+        << " is_named " << is_named
+        << " sstr " << sstr()
+        << std::endl 
+        ; 
+
     if(! is_named) return fallback ; 
 
     const T* vv = cvalues<T>() ; 
@@ -4112,6 +4122,7 @@ inline int NP::load(const char* path)
     if(fp.fail())
     {
         std::cerr << "NP::load Failed to load from path " << path << std::endl ; 
+        std::raise(SIGINT); 
         return 1 ; 
     }
 
