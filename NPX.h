@@ -214,7 +214,16 @@ template <typename T> NP* NPX::FromString(const char* str, char delim)  // stati
 }
 
 
+/**
+NPX::ArrayFromVec
+-------------------
 
+The optional itemshape integers override the flat item element count 
+obtained from the type sizeof ratio *sizeof(S)/sizeof(T)*.
+Note that the product of the itemshape integers must match the 
+flat item count however.  
+
+**/
 
 template<typename T, typename S, typename... Args> 
 inline NP* NPX::ArrayFromVec(const std::vector<S>& v, Args ... itemshape )   // ArrayFromVec_ellipsis
