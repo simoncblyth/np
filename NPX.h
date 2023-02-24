@@ -529,8 +529,8 @@ inline NP* NPX::CategoryArrayFromString(const char* str, int catfield, const cha
         assert( catfield < num_field );  
         for(int i=0 ; i < num_field ; i++)
         {   
-            const std::string& field = fields[i] ; 
-            int val =  i == catfield  ? U::Category(cats, field ) : std::atoi(field.c_str()) ;   
+            const std::string& fld = fields[i] ; 
+            int val =  i == catfield  ? U::Category(cats, fld ) : std::atoi(fld.c_str()) ;   
             data.push_back(val); 
         }   
     }   

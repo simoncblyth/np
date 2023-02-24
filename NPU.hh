@@ -315,7 +315,7 @@ struct NPS
         int sz = 1;
         if( dim0 < shape.size() )
         {
-            for(unsigned i=dim0; i<shape.size(); ++i) sz *= shape[i] ;
+            for(unsigned d=dim0; d<shape.size(); ++d) sz *= shape[d] ;
         }
 #ifdef DEBUG_NPU
         std::cout 
