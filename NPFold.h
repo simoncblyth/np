@@ -234,17 +234,19 @@ inline std::string NPFold::FormKey(const char* k) // adds .npy extension if not 
     return s ; 
 }
 
-inline NPFold* NPFold::Load(const char* base)
+inline NPFold* NPFold::Load(const char* base_)
 {
+    const char* base = U::Resolve(base_); 
     NPFold* nf = new NPFold ; 
     nf->load(base); 
     return nf ;  
 }
 
-inline NPFold* NPFold::Load(const char* base, const char* relp)
+inline NPFold* NPFold::Load(const char* base_, const char* relp_)
 {
+    const char* base = U::Resolve(base_, relp_); 
     NPFold* nf = new NPFold ; 
-    nf->load(base, relp); 
+    nf->load(base); 
     return nf ;  
 }
 
