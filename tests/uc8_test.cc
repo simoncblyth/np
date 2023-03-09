@@ -6,14 +6,17 @@ struct ModelTrigger_Debug
 {
     static std::vector<ModelTrigger_Debug> record ; 
     void add(){ record.push_back(*this); }
+    static NP* Array(){ return NPX::ArrayFromVec<double, ModelTrigger_Debug>( ModelTrigger_Debug::record ) ; }
 
     double x ; 
     double y ; 
     double z ; 
-    uc8   etrig ; 
+    uc8    w ; 
 };
 
 std::vector<ModelTrigger_Debug> ModelTrigger_Debug::record = {} ; 
+
+
 
 void test_uc8()
 {
@@ -32,18 +35,16 @@ void test_ModelTrigger_Debug()
     dbg.x = 10. ; 
     dbg.y = 100. ; 
     dbg.z = 1000. ; 
-    dbg.etrig.set("HELLO"); 
+    dbg.w.set("HELLO"); 
     dbg.add();
 
     dbg.x = 20. ; 
     dbg.y = 200. ; 
     dbg.z = 2000. ; 
-    dbg.etrig.set("WORLD");     
+    dbg.w.set("WORLD");     
     dbg.add(); 
 
-    NP* a = NPX::ArrayFromVec<double, ModelTrigger_Debug>( ModelTrigger_Debug::record ) ; 
-
-    a->save("$FOLD/a.npy"); 
+    ModelTrigger_Debug::Array()->save("$FOLD/a.npy"); 
 }
 
 
