@@ -1744,3 +1744,67 @@ inline std::string UName::desc() const
 
 
 
+
+
+
+union uc4 
+{
+    char c[4] ; 
+    unsigned u ; 
+
+    void set(const char* s4) ; 
+    std::string get() const ; 
+    std::string desc() const ; 
+}; 
+
+inline void uc4::set(const char* s4)
+{
+    for(unsigned i=0 ; i < 4 ; i++) c[i] = i < strlen(s4) ? s4[i] : '\0' ;  
+}
+inline std::string uc4::get() const 
+{
+    const char* p = &c[0] ; 
+    std::string str(p, p+4) ; 
+    return str ; 
+}
+inline std::string uc4::desc() const 
+{
+    std::stringstream ss ; 
+    ss << get() << " " << u  ; 
+    std::string str = ss.str(); 
+    return str ; 
+}
+
+
+
+
+
+
+union uc8
+{
+    char     c[8] ; 
+    uint64_t u ; 
+
+    void set(const char* s8) ; 
+    std::string get() const ; 
+    std::string desc() const ; 
+}; 
+inline void uc8::set(const char* s8)
+{
+    for(unsigned i=0 ; i < 8 ; i++) c[i] = i < strlen(s8) ? s8[i] : '\0' ;  
+}
+inline std::string uc8::get() const 
+{
+    const char* p = &c[0] ; 
+    std::string str(p, p+8) ; 
+    return str ; 
+}
+inline std::string uc8::desc() const 
+{
+    std::stringstream ss ; 
+    ss << get() << " " << u  ; 
+    std::string str = ss.str(); 
+    return str ; 
+}
+
+
