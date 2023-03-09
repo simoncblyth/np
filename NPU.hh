@@ -13,6 +13,7 @@ other projects together with NP.hh
 
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <cstring>
 #include <vector>
@@ -1708,6 +1709,38 @@ template<> NVIEW_METHOD unsigned nview::uint_from<double>( double f )
      return u64.uu.x ; 
 }
 
+
+
+
+
+
+struct UName
+{
+    std::vector<std::string> names ;  
+
+    int get(const std::string& name) ; 
+    int add(const std::string& name) ; 
+    std::string desc() const ; 
+}; 
+
+inline int UName::add(const std::string& name )
+{
+    if(std::find(names.begin(), names.end(), name) == names.end()) names.push_back(name) ; 
+    return get(name);  
+}
+inline int UName::get(const std::string& name)
+{
+    size_t idx = std::distance( names.begin(), std::find(names.begin(), names.end(), name) ) ; 
+    return idx == names.size() ? -1 : idx ; 
+} 
+inline std::string UName::desc() const
+{
+    std::stringstream ss ; 
+    ss << "UName::desc" << std::endl ; 
+    for(int i=0 ; i < int(names.size()) ; i++ ) ss << std::setw(5) << i << " : " << names[i] << std::endl ; 
+    std::string str = ss.str(); 
+    return str ; 
+}
 
 
 
