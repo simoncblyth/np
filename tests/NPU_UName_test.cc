@@ -18,6 +18,10 @@ int main()
 
     std::cout << un.desc() ; 
 
+    std::string str = un.as_str(); 
+
+    std::cout << "[" << str << "]" << std::endl ; 
+
     return 0 ; 
 }
 
