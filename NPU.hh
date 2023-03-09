@@ -1721,6 +1721,7 @@ struct UName
     int get(const std::string& name) ; 
     int add(const std::string& name) ; 
     std::string desc() const ; 
+    std::string as_str() const ; 
 }; 
 
 inline int UName::add(const std::string& name )
@@ -1741,7 +1742,18 @@ inline std::string UName::desc() const
     std::string str = ss.str(); 
     return str ; 
 }
-
+inline std::string UName::as_str() const
+{
+    int num_names = names.size(); 
+    std::stringstream ss ; 
+    for(int i=0 ; i < num_names ; i++ ) 
+    {
+        ss << names[i] ; 
+        if( i < num_names - 1 ) ss << std::endl ; 
+    }
+    std::string str = ss.str(); 
+    return str ; 
+}
 
 
 
