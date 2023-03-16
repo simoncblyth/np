@@ -6,15 +6,21 @@ int main()
 {
     UName un ; 
 
-    un.add("red") ; 
-    un.add("green") ; 
-    un.add("blue") ; 
-    un.add("blue"); 
+    un.add("Water/Pyrex:Water_lv_pv/AroundCircle1"); 
+    un.add("Pyrex/Pyrex:AroundCircle1/nnvt_body_phys");
+    un.add("Vacuum/Vacuum:nnvt_inner1_phys/nnvt_inner2_phys");
+    un.add("Vacuum/Pyrex:nnvt_inner2_phys/nnvt_body_phys");
+    un.add("Vacuum/Vacuum:nnvt_inner2_phys/nnvt_inner1_phys");
+    un.add("Vacuum/Steel:nnvt_inner2_phys/nnvt_tube_phy");
+    un.add("Vacuum/Steel:nnvt_inner2_phys/nnvt_edge_phy");
+    un.add("Vacuum/Steel:nnvt_inner2_phys/nnvt_plate_phy");
+    un.add("Vacuum/Steel:nnvt_inner2_phys/nnvt_mcp_phy");
+    un.add("Water/Rock:Water_lv_pv/Rock_lv_pv"); 
 
-    assert( un.get("red") == 0 ); 
-    assert( un.get("green") == 1 ); 
-    assert( un.get("blue") == 2 ); 
-    assert( un.get("cyan") == -1 ); 
+    const char* spec = "Vacuum/Vacuum:nnvt_inner1_phys/nnvt_inner1_phys" ; 
+    int idx = un.add(spec); 
+
+    std::cout << " idx " << idx << std::endl ; 
 
     std::cout << un.desc() ; 
 
