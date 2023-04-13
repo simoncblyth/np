@@ -4,7 +4,8 @@ const char* PATH = "/tmp/NP_set_meta_get_meta_test/a.npy" ;
 
 #include "NP.hh"
 
-int main()
+
+void test_string()
 {
     const char* o_msg = "metadata_string with some blank spaces on the line" ; 
 
@@ -23,13 +24,29 @@ int main()
     std::cout << "b_msg:[" << b_msg << "]" << std::endl ; 
 
     /**
-
-
     epsilon:tests blyth$ cat /tmp/NP_set_meta_get_meta_test/a_meta.txt
     msg:metadata_string with some blank spaces on the line
-
     **/
+}
 
+
+void test_uint64()
+{
+    NP* a = NP::Make<float>(1,4,4); 
+    uint64_t u0 = std::numeric_limits<uint64_t>::max() ; 
+    a->set_meta<uint64_t>("u", u0 ); 
+    a->save(PATH);  
+    NP* b = NP::Load(PATH);  
+ 
+    uint64_t u1 = b->get_meta<uint64_t>("u", 0) ; 
+
+    std::cout << " u0 " << u0 << std::endl ; 
+    std::cout << " u1 " << u1 << std::endl ; 
+}
+
+int main()
+{
+    test_uint64(); 
 
     return 0 ; 
 }
