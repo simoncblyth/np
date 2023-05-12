@@ -282,6 +282,7 @@ struct NP
     void fillIndexFlat(); 
     void dump(int i0=-1, int i1=-1, int j0=-1, int j1=-1) const ; 
 
+    static std::string Brief(const NP* a); 
     std::string sstr() const ; 
     std::string desc() const ; 
     std::string brief() const ; 
@@ -3437,7 +3438,10 @@ inline void NP::dump(int i0, int i1, int j0, int j1) const
 
 
 
-
+inline std::string NP::Brief(const NP* a)
+{
+    return a ? a->sstr() : "-" ; 
+}
 inline std::string NP::sstr() const 
 {
     std::stringstream ss ; 
@@ -3714,19 +3718,28 @@ template double   NP::get_meta<double>(const char*, double ) const ;
 template std::string NP::get_meta<std::string>(const char*, std::string ) const ; 
 
 
+/**
+NP::SetMeta
+-----------
+
+Updates the single *mt* string 
+
+**/
 
 template<typename T> inline void NP::SetMeta( std::string& mt, const char* key, T value ) // static
 {
-    std::stringstream nn;
-    std::stringstream ss;
+    std::stringstream nn;  // stringstream for creating the updated mt string 
+
+    std::stringstream ss;  // stringstream for parsing the initial mt string
     ss.str(mt);
+
     std::string s;
     char delim = ':' ; 
     bool changed = false ; 
     while (std::getline(ss, s))
     { 
        size_t pos = s.find(delim); 
-       if( pos != std::string::npos )
+       if( pos != std::string::npos )  // lines has the delim, so extract (k,v)  
        {
            std::string k = s.substr(0, pos);
            std::string v = s.substr(pos+1);
@@ -3737,15 +3750,15 @@ template<typename T> inline void NP::SetMeta( std::string& mt, const char* key, 
            }
            else
            {
-               nn << s << std::endl ;  
+               nn << s << std::endl ;    // leaving line asis 
            }
        }
        else
        {
-           nn << s << std::endl ;  
+           nn << s << std::endl ;     // leaving line as is 
        }    
     }
-    if(!changed) nn << key << delim << value << std::endl ; 
+    if(!changed) nn << key << delim << value << std::endl ;  // didnt find the key, so add it 
     mt = nn.str() ; 
 }
 
@@ -4236,9 +4249,11 @@ inline void NP::old_save(const char* path)  // non-const due to update_headers
 
 inline void NP::save(const char* path_) const 
 {
-    const char* path = U::Resolve(path_); 
-    if(VERBOSE) std::cout << "NP::save path [" << path  << "]" << std::endl ; 
-
+    const char* path = U::Resolve(path_);  // path is nullptr with unexpanded envvar token 
+    if(path == nullptr) std::cerr << "NP::save failed to U::Resolve path_ " << ( path_ ? path_ : "-" ) << std::endl ; 
+    if(path == nullptr) return ; 
+ 
+    if(VERBOSE) std::cout << "NP::save path [" << ( path ? path : "-" ) << "]" << std::endl ; 
     int rc = U::MakeDirsForFile(path); 
     assert( rc == 0 ); 
 
