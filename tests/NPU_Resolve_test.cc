@@ -1,4 +1,4 @@
-// name=NPU_Resolve_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name 
+// name=NPU_Resolve_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && GEOM=V1J009 :/tmp/$name 
 
 #include "NPU.hh"
 
