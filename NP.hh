@@ -4547,7 +4547,7 @@ inline void NP::WriteString(const char* dir, const char* name_, const char* ext,
     const char* path = path_.c_str(); 
     const char* xpath = U::Resolve(path); 
 
-    std::cout 
+    if(VERBOSE) std::cout 
        << "NP::WriteString"
        << " path " << ( path ? path : "-" )
        << " xpath " << ( xpath ? xpath : "-" )
