@@ -420,7 +420,7 @@ struct NP
     static std::string StringConcat(const std::vector<std::string>& ls, char delim=' ' );
 
     template <typename T> 
-    static NP* ZEROProp(); 
+    static NP* ZEROProp(T dscale=1.); 
 
     template <typename T> 
     static NP* LoadFromString(const char* str, const char* path_for_debug_messages=nullptr ); 
@@ -4773,13 +4773,15 @@ inline std::string NP::StringConcat(const std::vector<std::string>& ls, char del
 
 
 template <typename T> 
-inline NP* NP::ZEROProp()  // static 
+inline NP* NP::ZEROProp(T dscale)  // static 
 { 
-    return NP::LoadFromString<T>(R"(
+    NP* a = NP::LoadFromString<T>(R"(
     1.55     *eV    0.0
     15.5     *eV    0.0
 )" ); 
 
+   a->pscale(dscale, 0); 
+   return a ; 
 }
 
 

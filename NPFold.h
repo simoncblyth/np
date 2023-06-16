@@ -95,6 +95,8 @@ struct NPFold
     std::vector<std::string> kk ; 
     std::vector<const NP*>   aa ; 
     std::string meta ; 
+    std::vector<std::string>  names ;  // recent addition
+
     const char* savedir ; 
     const char* loaddir ; 
 
@@ -108,6 +110,7 @@ struct NPFold
     static constexpr const char* TOP = "/" ; 
     static constexpr const char* INDEX = "NPFold_index.txt" ; 
     static constexpr const char* META  = "NPFold_meta.txt" ; 
+    static constexpr const char* NAMES = "NPFold_names.txt" ; 
     static constexpr const char* kNP_PROP_BASE = "NP_PROP_BASE" ; 
 
 
@@ -784,6 +787,7 @@ inline void NPFold::save(const char* base_)  // not const as sets savedir
     _save_subfold_r(base); 
 
     if(!meta.empty()) U::WriteString(base, META, meta.c_str() );  
+    if(names.size() > 0 )  NP::WriteNames(base, NAMES, names) ; 
 }
 
 inline void NPFold::_save_arrays(const char* base) // using the keys with .npy ext as filenames
@@ -988,6 +992,9 @@ inline int NPFold::load(const char* base)
     loaddir = strdup(base); 
     bool has_meta = NP::Exists(base, META) ; 
     if(has_meta) meta = U::ReadString( base, META ); 
+
+    bool has_names = NP::Exists(base, NAMES) ; 
+    if(has_names) NP::ReadNames( base, NAMES, names ); 
 
     bool has_index = NP::Exists(base, INDEX) ; 
     int rc = has_index ? load_index(base) : load_dir(base) ; 
