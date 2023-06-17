@@ -115,6 +115,9 @@ struct NPFold
 
 
     static bool IsNPY(const char* k); 
+    static bool HasSuffix( const char* k, const char* s ); 
+    static bool HasPrefix( const char* k, const char* p ); 
+
     static const char* BareKey(const char* k);  // without .npy 
     static std::string FormKey(const char* k); 
 
@@ -220,7 +223,15 @@ struct NPFold
 
 inline bool NPFold::IsNPY(const char* k) // key ends with EXT ".npy"
 {
-    return strlen(k) > strlen(EXT) && strcmp( k + strlen(k) - strlen(EXT), EXT ) == 0 ; 
+    return HasSuffix(k, EXT) ; 
+}
+inline bool NPFold::HasSuffix(const char* k, const char* s ) 
+{
+    return k && s && strlen(k) >= strlen(s) && strncmp( k + strlen(k) - strlen(s), s, strlen(s)) == 0 ; 
+}
+inline bool NPFold::HasPrefix( const char* k, const char* p )
+{
+    return k && p && strlen(p) <= strlen(k) && strncmp(k, p, strlen(p)) == 0 ;  
 }
 
 inline const char* NPFold::BareKey(const char* k) 
@@ -229,6 +240,10 @@ inline const char* NPFold::BareKey(const char* k)
     if(IsNPY(bk)) bk[strlen(bk)-4] = '\0' ;  
     return bk ; 
 }
+
+
+
+
 
 inline std::string NPFold::FormKey(const char* k) // adds .npy extension if not present already
 {
@@ -673,10 +688,20 @@ inline int NPFold::num_items() const
     check(); 
     return kk.size(); 
 }
+
+
 inline const char* NPFold::get_key(unsigned idx) const 
 {
     return idx < kk.size() ? kk[idx].c_str() : nullptr ;
 }
+/*
+inline const std::string& NPFold::get_keystring( unsigned idx) const
+{  
+    assert( idx < kk.size() ; 
+    return kk[idx] ; 
+}
+*/
+
 inline const NP* NPFold::get_array(unsigned idx) const 
 {
     return idx < aa.size() ? aa[idx] : nullptr ;
