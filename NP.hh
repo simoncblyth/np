@@ -75,6 +75,7 @@ struct NP
 
     // STATIC CREATION METHODS 
 
+    template<typename T> static NP* MakeFromValues( const T* vals, int num_vals ); 
     template<typename T> static int ALength(  T x0, T x1, T st ); 
     template<typename T> static NP* ARange(   T x0, T x1, T st ); 
     template<typename T> static NP* Linspace( T x0, T x1, unsigned nx, int npayload=-1 ); 
@@ -577,6 +578,14 @@ template   void NP::_fillIndexFlat<unsigned long long>(unsigned long long) ;
 
 // STATIC CREATION METHODS 
 
+template<typename T> 
+inline NP* NP::MakeFromValues( const T* vals, int num_vals )
+{
+    NP* a = NP::Make<T>(num_vals) ; 
+    T* aa = a->values<T>(); 
+    for(int i=0 ; i < num_vals ; i++) aa[i] = vals[i] ; 
+    return a ; 
+}
 
 template <typename T>
 inline int NP::ALength(T x0, T x1, T dx) // static
