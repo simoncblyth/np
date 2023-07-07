@@ -29,8 +29,16 @@ int main(int argc, char** argv)
 
 
     std::vector<const NPFold*> subs0 ; 
-    ff->find_subfold_with_all_keys( subs0, "red" ); 
+    ff->find_subfold_with_all_keys(subs0,  "red" ); 
     assert( subs0.size() == 3 ); 
+
+    std::vector<const NPFold*> subs0_ ; 
+    std::vector<std::string> names0 ; 
+    ff->find_subfold_with_all_keys(subs0_, names0,  "red" ); 
+    assert( subs0_.size() == subs0.size() ); 
+    assert( subs0_.size() == names0.size() ); 
+    assert( subs0_.size() == 3 ); 
+    
 
 
     std::vector<const NPFold*> subs1 ; 
