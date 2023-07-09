@@ -2,12 +2,21 @@
 
 #include "NPFold.h"
 
+const char* BASE = "$HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim" ;    
+
+void test_LS()
+{
+    const char* name = "LS" ; 
+    NPFold* ls = NPFold::Load(BASE,"stree/material",name) ;   
+    std::cout << ls->desc() ; 
+}
+
+
 int main()
 {
-    const char* BASE = "$HOME/.opticks/GEOM/$GEOM/CSGFoundry" ;    
-    const char* name = "LS" ; 
-    NPFold* ls = NPFold::Load(BASE,"SSim/stree/material",name) ;   
-    std::cout << ls->desc() ; 
+    NPFold* fold = NPFold::Load(BASE) ;   
+    std::cout << fold->desc() ; 
+
 
     return 0 ; 
 }
