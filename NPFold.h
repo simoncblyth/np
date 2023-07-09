@@ -121,7 +121,7 @@ struct NPFold
     static bool HasPrefix( const char* k, const char* p ); 
 
     static const char* BareKey(const char* k);  // without .npy 
-    static std::string FormKey(const char* k, bool is_empty ); 
+    static std::string FormKey(const char* k, bool change_txt_to_npy ); 
 
     static NPFold* Load_(const char* base ); 
     static const char* Resolve(const char* base_, const char* rel1_=nullptr, const char* rel2_=nullptr); 
@@ -293,14 +293,14 @@ swapped to .npy for more standard handling.
 
 **/
 
-inline std::string NPFold::FormKey(const char* k, bool is_empty) 
+inline std::string NPFold::FormKey(const char* k, bool change_txt_to_npy) 
 {
     std::stringstream ss ; 
 
     bool is_npy = IsNPY(k); 
     bool is_txt = IsTXT(k); 
 
-    if(is_empty && is_txt)  
+    if(change_txt_to_npy && is_txt)  
     {
         const char* bk = BareKey(k) ; 
         ss << bk << DOT_NPY ; 
@@ -673,12 +673,20 @@ inline int NPFold::total_items() const
 /**
 NPFold::add
 ------------
+
+When *k* ends with ".txt" the key is changed to ".npy"
+to simplify handling of empty NPX::Holder arrays. 
+
+Previously only did that for "a->is_empty()" but 
+as also need the change on find decided its simpler
+to always do that. 
+
 **/
 
 inline void NPFold::add(const char* k, const NP* a) 
 {
-    bool is_empty = a->is_empty() ; 
-    std::string key = FormKey(k, is_empty ); 
+    bool change_txt_to_npy = true ; 
+    std::string key = FormKey(k, change_txt_to_npy ); 
     add_(key.c_str(), a ); 
 }
 
@@ -830,7 +838,8 @@ std::find returns iterator to the first match
 **/
 inline int NPFold::find(const char* k) const
 {
-    std::string key = FormKey(k, false); 
+    bool change_txt_to_npy = true ; 
+    std::string key = FormKey(k, change_txt_to_npy); 
     size_t idx = std::distance( kk.begin(), std::find( kk.begin(), kk.end(), key.c_str() )) ; 
     return idx < kk.size() ? idx : UNDEF ; 
 }
