@@ -125,6 +125,7 @@ struct NP
     bool has_shape(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ) const ;  
     void change_shape(int ni=-1, int nj=-1, int nk=-1, int nl=-1, int nm=-1, int no=-1 ) ;   // one dimension entry left at -1 can be auto-set
     void change_shape_to_3D() ; 
+    void reshape( const std::vector<int>& new_shape ); // product of shape before and after must be the same  
 
     void set_dtype(const char* dtype_); // *set_dtype* may change shape and size of array while retaining the same underlying bytes 
 
@@ -291,6 +292,8 @@ struct NP
     template<typename T> T    combined_interp_5(int i, int j, int k, T x) const ;  // requires NP::Combine of pshapes arrays 
 
     template<typename T> T    _combined_interp(const T* vv, int niv, T x) const  ; 
+
+    template<typename T> static T FractionalRange( T x, T x0, T x1 ); 
 
 
     template<typename T> NP*  cumsum(int axis=0) const ; 
@@ -1103,6 +1106,10 @@ inline void NP::change_shape_to_3D()
     }   
 }
 
+inline void NP::reshape( const std::vector<int>& new_shape )
+{
+    NPS::reshape(shape, new_shape); 
+}
 
 
 /**
@@ -3455,7 +3462,7 @@ template<typename T> inline T NP::_combined_interp(const T* vv, int niv, T x) co
     int nj = shape[ndim-1] ;  // normally 2 with (dom, val)
 
     int jdom = 0 ;       // 1st payload slot is "domain"
-    int jval = nj - 1 ;  // last payload slot is "value", normally 1  
+    int jval = nj - 1 ;  // last payload slot is "value", with nj 2 (typical) that is 1  
 
     int lo = 0 ;
     int hi = ni-1 ;
@@ -3476,6 +3483,30 @@ template<typename T> inline T NP::_combined_interp(const T* vv, int niv, T x) co
     return y ; 
 }
 
+/**
+NP::FractionalRange
+---------------------
+
+Return fraction of x within range x0 to x1 or 0 below and 1 above the range. 
+
++-------------------+-------------+
+| x <= x0           | T(0)        |
++-------------------+-------------+
+| x >= x1           | T(1)        |
++-------------------+-------------+
+| x0 < x < x1       | T(0->1)     |  
++-------------------+-------------+
+ 
+**/
+
+template<typename T> inline T NP::FractionalRange( T x, T x0, T x1 )  // static 
+{
+    assert( x1 > x0 ); 
+    if( x <= x0 ) return T(0) ; 
+    if( x >= x1 ) return T(1) ; 
+    T xf = (x-x0)/(x1-x0) ;    
+    return xf ; 
+}
 
 
 
@@ -4062,7 +4093,8 @@ inline int NP::DumpCompare( const NP* a, const NP* b , unsigned a_column, unsign
             ;
         if(is_diff) mismatch += 1 ;  
     }
-    std::cout 
+    if(mismatch > 0) std::cout 
+        << "NP::DumpCompare "
         << std::setw(4) << "sum" 
         << " a " << std::setw(10) << std::fixed << std::setprecision(4) << av_sum 
         << " b " << std::setw(10) << std::fixed << std::setprecision(4) << bv_sum 
