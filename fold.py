@@ -1,4 +1,18 @@
 #!/usr/bin/env python
+"""
+fold.py : quick access to directory trees of NumPy .npy files eg created with NPFold.j
+=========================================================================================
+
+::
+
+   In [1]: from np.fold import Fold
+   In [2]: f = Fold(".")
+
+From bash use "f"::
+
+   f(){ ~/np/f.sh ;  }
+
+"""
 
 import os, sys, logging, numpy as np, datetime, builtins
 from .npmeta import NPMeta
