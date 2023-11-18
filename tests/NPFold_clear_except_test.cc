@@ -24,7 +24,8 @@ int main()
         << std::endl   
         ; 
 
-    bool copy = true ; 
+    bool copy = false ; 
+    //bool copy = true ; 
     f->clear_except("b", copy); 
 
     std::cout 

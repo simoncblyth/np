@@ -1,8 +1,8 @@
 #!/bin/bash -l 
 
-name=NPFold_nodata_test
+name=NPFold_stamps_test
 
-FOLD=${TMP:-/tmp/$USER/opticks}/$name
+export FOLD=${TMP:-/tmp/$USER/opticks}/$name
 bin=$FOLD/$name
 mkdir -p $FOLD
 
@@ -12,9 +12,15 @@ SDIR=$(pwd)
 #opt=-DWITH_VERBOSE
 opt=
 
-
-defarg="build_run_info"
+vars="0 BASH_SOURCE SDIR FOLD PWD bin"
+defarg="build_run_info_ana"
+#defarg="run_info"
 arg=${1:-$defarg}
+
+
+if [ "${arg/info}" != "$arg" ]; then
+    for var in $vars ; do printf "%25s : %s \n" "$var" "${!var}" ; done 
+fi 
 
 if [ "${arg/build}" != "$arg" ]; then
    gcc $name.cc -I.. -g -std=c++11 -lstdc++ $opt -o $bin
@@ -48,8 +54,11 @@ if [ "${arg/run}" != "$arg" ]; then
     [ $? -ne 0 ] && echo $BASH_SOURCE : run1 error && exit 3
 fi
 
+if [ "${arg/ana}" != "$arg" ]; then 
+    ${IPYTHON:-ipython} --pdb -i $SDIR/$name.py 
+    [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
+fi
 
-vars="0 BASH_SOURCE SDIR FOLD PWD bin"
 if [ "${arg/info}" != "$arg" ]; then
     for var in $vars ; do printf "%25s : %s \n" "$var" "${!var}" ; done 
 fi 
