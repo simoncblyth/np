@@ -1,8 +1,21 @@
 #!/bin/bash -l 
+usage(){ cat << EOU
+NPFold_stamps_test.sh
+=======================
+
+::
+
+   ~/np/tests/NPFold_stamps_test.sh ana
+
+
+EOU
+}
+
 
 name=NPFold_stamps_test
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name
+export MODE=2
 bin=$FOLD/$name
 mkdir -p $FOLD
 

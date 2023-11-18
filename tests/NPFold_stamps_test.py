@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+NPFold_stamps_test.py
+=======================
+
+
+"""
 
 import numpy as np
 from np.fold import Fold 
@@ -6,61 +12,65 @@ MODE =  int(os.environ.get("MODE", "2"))
 
 if MODE != 0:
     from opticks.ana.pvplt import * 
-    WM = mp.pyplot.get_current_fig_manager()  
-else:
-    WM = None
 pass
 
+labels_ = lambda l:l.view("|S%d" % l.shape[1])[:,0]  
+tv_     = lambda a:a.view("datetime64[us]")  
 
-
-
-labels_ = lambda f:f.labels.view("|S%d" % f.labels.shape[1])[:,0]  
-delta_  = lambda s:np.diff(s, axis=1 )
-tv_ = lambda a:a.view("datetime64[us]")  
-
+# https://matplotlib.org/stable/gallery/color/named_colors.html
+palette = ["red","green", "blue", 
+           "cyan", "magenta", "yellow", 
+           "tab:orange", "tab:pink", "tab:olive",
+           "tab:purple", "tab:grey", "tab:cyan"
+           ]
 
 if __name__ == '__main__':
     pn = Fold.Load(symbol="pn")
     print(repr(pn))
-    n = pn.n 
-    p = pn.p 
-    plabel = " ".join(p.stamps_meta) 
 
-    #ns = n.stamps
-    #dns = ns[:,-1]-ns[:,2]  ## maybe that includes the above in mode:3 
-    #nl = labels_(n)[:1] 
-    #nd = delta_(n)
-    #ntab = np.c_[nl, nd.T ]   
-    #print(ntab)
-    #fac = dns/dps  
+    #f = pn.p 
+    f = pn.n
 
-    ps = p.stamps
-    dps = ps[:,-1]-ps[:,2]  ## t_BeginOfEvent -> t_EndOfEvent
-    _pl = labels_(p)
 
-    pss =  p.stamps[1:,2:] # skip 1st event and first 2 stamps (init, BeginOfRun) 
+    meta = " ".join(f.stamps_meta) 
 
-    pd = np.diff( pss, axis=1 )  
-    pl = _pl[3:]                # 3 as the diff removes 1 
-    assert len(pl) == pd.shape[1]
+    s = f.stamps
 
-    pp = p.stamps_names[1:]   
-    assert len(pp) == pd.shape[0]
+    e_sel = slice(1,None)              # skip 1st event, as initialization messes timings
+    t_sel = slice(2,None)              # skip first two stamps (init, BeginOfRun) 
 
-    ptab = np.c_[pl, pd.T ]   
-    print(ptab)
+    e_rel = f.stamps_names[e_sel]      # rel path of the evt folds, eg shape (9,)
+    t_lab = labels_(f.labels)[t_sel]
 
-    label = "NPFold_stamps_test "
-    label += plabel
+    ss =  f.stamps[e_sel,t_sel]        # selected timestamps, eg shape (9,13)
+
+    dss = ss - ss[:,0,np.newaxis]      # subtract first column stamp from all stamps row by row
+                                       # hence giving begin of event relative time delta in microseconds
+
+    assert len(e_rel) == dss.shape[0]  # event dimension 
+    assert len(t_lab) == dss.shape[1]  # time stamp dimension 
+
+    tab = np.c_[t_lab, dss.T ]   
+    print(tab)
+
+    title = "NPFold_stamps_test "
+    title += meta
+    print("MODE:%d" % MODE) 
 
     if MODE == 2:
-        fig, axs = mpplt_plotter(nrows=1, ncols=1, label=label, equal=False)
+        print(title)
+        fig, axs = mpplt_plotter(nrows=1, ncols=1, label=title, equal=False)
         ax = axs[0]
 
-        
-
-        
-
+        for i in range(len(dss)):
+            for j in range(len(dss[i])):
+                label = None if i > 0 else t_lab[j].decode("utf-8")
+                color = palette[j % len(palette)]
+                ax.vlines( dss[i,j], i-0.5, i+0.5, label=label , colors=[color] ) 
+            pass
+        pass
+        ax.legend(loc="center")
+        fig.show()
     pass    
     
 
