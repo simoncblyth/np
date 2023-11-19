@@ -1854,7 +1854,7 @@ inline NPFold* NPFold::subprofile(const char* prefix) const
             const char* v = vals[j].c_str(); 
             std::vector<int64_t> elem ; 
             U::MakeVec<int64_t>( elem, v, ',' ); 
-            assert( elem.size() == nk ); 
+            assert( int(elem.size()) == nk ); 
             for(int k=0 ; k < nk ; k++)  tt[i*nj*nk+j*nk+k] = elem[k] ; 
         }
         t->names.push_back(subpath); 
