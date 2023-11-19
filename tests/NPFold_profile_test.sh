@@ -1,19 +1,14 @@
 #!/bin/bash -l 
 usage(){ cat << EOU
-NPFold_stamps_test.sh
+NPFold_profile_test.sh 
 =======================
-
-::
-
-   PICK=AB ~/np/tests/NPFold_stamps_test.sh ana
-   PICK=A TLIM=-5,500  ~/np/tests/NPFold_stamps_test.sh ana
 
 
 EOU
 }
 
 
-name=NPFold_stamps_test
+name=NPFold_profile_test
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name
 export MODE=2
@@ -27,8 +22,7 @@ SDIR=$(pwd)
 opt=
 
 vars="0 BASH_SOURCE SDIR FOLD PWD bin"
-defarg="build_run_info_ana"
-#defarg="run_info"
+defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
 
@@ -73,9 +67,9 @@ if [ "${arg/ana}" != "$arg" ]; then
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
 fi
 
-if [ "${arg/info}" != "$arg" ]; then
-    for var in $vars ; do printf "%25s : %s \n" "$var" "${!var}" ; done 
-fi 
+#if [ "${arg/info}" != "$arg" ]; then
+#    for var in $vars ; do printf "%25s : %s \n" "$var" "${!var}" ; done 
+#fi 
 
 exit 0 
 

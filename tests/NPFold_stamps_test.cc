@@ -8,8 +8,8 @@ int main(int argc, char** argv)
     NPFold* f = NPFold::Load(path); 
     //std::cout << " path " << path << std::endl << f->desc() << std::endl ; 
 
-    NPFold* pn = f->substamps_pn(); 
-    pn->save("$FOLD"); 
+    NPFold* ab = f->substamp_ab("//p", "//n"); 
+    ab->save("$FOLD"); 
 
     return 0 ; 
 } 
