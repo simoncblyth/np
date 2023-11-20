@@ -1,23 +1,18 @@
 #!/bin/bash -l 
 usage(){ cat << EOU
-NPFold_profile_test.sh 
+NPFold_submeta_test.sh 
 =======================
 
 ::
 
-   ~/np/tests/NPFold_profile_test.sh info
-
-   PICK=CF TLIM=1290000,1350000 ~/np/tests/NPFold_profile_test.sh ana
-
-   PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh ana
-   PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh mpcap
+   ~/np/tests/NPFold_submeta_test.sh info
 
 
 EOU
 }
 
 
-name=NPFold_profile_test
+name=NPFold_submeta_test
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name
 export MODE=2
@@ -35,6 +30,7 @@ SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
 #cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
 [ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
+
 
 #opt=-DWITH_VERBOSE
 opt=
@@ -67,22 +63,6 @@ if [ "${arg/ana}" != "$arg" ]; then
     ${IPYTHON:-ipython} --pdb -i $SDIR/$name.py 
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
 fi
-
-if [ "$arg" == "pvcap" -o "$arg" == "pvpub" -o "$arg" == "mpcap" -o "$arg" == "mppub" ]; then
-    export CAP_STEM=NPFold_profile_test_$PICK_$PLOT   # stem of the .png screencaptures
-    export CAP_BASE=$PWD
-    export CAP_REL=NPFold_profile
-    case $arg in  
-       pvcap) source pvcap.sh cap  ;;  
-       mpcap) source mpcap.sh cap  ;;  
-       pvpub) source pvcap.sh env  ;;  
-       mppub) source mpcap.sh env  ;;  
-    esac
-    if [ "$arg" == "pvpub" -o "$arg" == "mppub" ]; then 
-        source epub.sh 
-    fi  
-fi 
-
 
 exit 0 
 

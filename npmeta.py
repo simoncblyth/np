@@ -77,7 +77,7 @@ class NPMeta(object):
         return cfm  
 
     @classmethod
-    def AsDict(cls, lines):
+    def AsDict_OLD(cls, lines):
         d = odict()
         key = "" 
         d[key] = []
@@ -91,6 +91,18 @@ class NPMeta(object):
                 val = line 
             pass
             d[key].append(val)
+        pass    
+        return d 
+
+    @classmethod
+    def AsDict(cls, lines):
+        d = odict()
+        for line in lines:
+            dpos = line.find(":") 
+            if dpos == -1: continue
+            key = line[:dpos] 
+            val = line[dpos+1:] 
+            d[key] = val 
         pass    
         return d 
 
@@ -121,7 +133,6 @@ class NPMeta(object):
         if not k in self.d:
              raise AttributeError("No attribute %s " % k) 
         return self.find(k)
-
 
     def get_value(self,k,fallback=""):
         if not k in self.d:return fallback
@@ -154,6 +165,49 @@ class NPMeta(object):
     def __str__(self):
         return repr(self.d)
 
+
+    def has_key(self, k):
+        return k in self.d
+
+    def keys(self):
+        return self.d.keys()
+
+    def values(self):
+        return self.d.values()
+
+    def smry(self, keys="red,green,blue"):
+        kv = []
+        for k in keys.split(","):
+            if self.has_key(k):
+                v = self.d[k]
+                kv.append("%s:%s" % (k,v) )
+            pass
+        return " ".join(kv)     
+           
+    @classmethod
+    def Summarize(cls, label):
+        """
+        Shorten stamp labels via heuristics of distinctive chars
+        """
+        smry = "" 
+        p = None
+        for i,c in enumerate(label):
+            if p is None:                      # always take first char 
+                smry += c 
+            elif c.isalnum() and p == "_":     # first alnum char after _
+                smry += c 
+            elif c.isupper() and p.islower():  # upper char following lower
+                smry += c 
+            elif p == "P" and c in "ro":       #  accept r or o after P to distinguish Pre and Post 
+                smry += c 
+            pass 
+            p = c 
+        pass
+        return smry 
+
+
+
+ 
 
 
 def test_load():

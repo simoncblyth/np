@@ -7,7 +7,9 @@ NPFold_stamps_test.py
 """
 
 import numpy as np
-from np.fold import Fold 
+from np.fold import Fold
+from np.npmeta import NPMeta
+
 MODE =  int(os.environ.get("MODE", "2"))
 PICK =  os.environ.get("PICK", "AB")
 TLIM =  np.array(list(map(int,os.environ.get("TLIM", "0,0").split(","))),dtype=np.int32)
@@ -31,28 +33,6 @@ palette = ["red","green", "blue",
       
 
 class Stamps(object):
-    @classmethod
-    def Summarize(cls, label):
-        """
-        Shorten stamp labels via heuristics of distinctive chars
-        """
-        smry = "" 
-        p = None
-        for i,c in enumerate(label):
-            if p is None:                      # always take first char 
-                smry += c 
-            elif c.isalnum() and p == "_":     # first alnum char after _
-                smry += c 
-            elif c.isupper() and p.islower():  # upper char following lower
-                smry += c 
-            elif p == "P" and c in "ro":       #  accept r or o after P to distinguish Pre and Post 
-                smry += c 
-            pass 
-            p = c 
-        pass
-        return smry 
-
-
     def __init__(self, f):
 
         s = f.stamps
@@ -66,8 +46,9 @@ class Stamps(object):
         e_rel = f.stamps_names[e_sel]      # rel path of the evt folds, eg shape (9,)
         t_lab = labels_(f.labels)[t_sel]
 
-        smry_ = lambda _:self.Summarize(_.decode("utf-8"))
+        smry_ = lambda _:NPMeta.Summarize(_.decode("utf-8"))
         s_lab = list(map(smry_, t_lab))
+
         hdr = (" " * 8  + " %5s " * len(s_lab) ) % tuple(s_lab) 
 
 
