@@ -11,6 +11,7 @@ NPFold_profile_test.sh
 
    PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh ana
    PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh mpcap
+   PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh mppub
 
 
 EOU

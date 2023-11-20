@@ -113,6 +113,8 @@ struct NPFold
     static constexpr const bool VERBOSE = false ; 
     static constexpr const char* DOT_NPY = ".npy" ;  // formerly EXT
     static constexpr const char* DOT_TXT = ".txt" ; 
+    static constexpr const char* DOT_PNG = ".png" ; 
+    static constexpr const char* DOT_JPG = ".jpg" ; 
     static constexpr const char* TOP = "/" ; 
     static constexpr const char* INDEX = "NPFold_index.txt" ; 
     static constexpr const char* META  = "NPFold_meta.txt" ; 
@@ -122,6 +124,8 @@ struct NPFold
 
     static bool IsNPY(const char* k); 
     static bool IsTXT(const char* k); 
+    static bool IsPNG(const char* k); 
+    static bool IsJPG(const char* k); 
     static bool HasSuffix( const char* k, const char* s ); 
     static bool HasPrefix( const char* k, const char* p ); 
 
@@ -300,6 +304,8 @@ public:
 
 inline bool NPFold::IsNPY(const char* k) { return HasSuffix(k, DOT_NPY) ; }
 inline bool NPFold::IsTXT(const char* k) { return HasSuffix(k, DOT_TXT) ; }
+inline bool NPFold::IsPNG(const char* k) { return HasSuffix(k, DOT_PNG) ; }
+inline bool NPFold::IsJPG(const char* k) { return HasSuffix(k, DOT_JPG) ; }
 
 
 inline bool NPFold::HasSuffix(const char* k, const char* s ) 
@@ -1329,10 +1335,23 @@ NPFold::load_array
 **/
 inline void NPFold::load_array(const char* _base, const char* relp)
 {
-    bool npy = IsNPY(relp) ; 
+    bool is_npy = IsNPY(relp) ; 
+    bool is_txt = IsTXT(relp) ; 
 
-    NP* a = npy ? NP::Load(_base, relp) : NP::LoadFromTxtFile<double>(_base, relp) ;  
-    
+    NP* a = nullptr ; 
+
+    if(is_txt)
+    {
+        a = NP::LoadFromTxtFile<double>(_base, relp) ; 
+    }
+    else if(is_npy)  
+    {
+        a = NP::Load(_base, relp) ; 
+    }
+    else
+    {
+        a = nullptr ; 
+    } 
     if(a) add(relp,a ) ; 
 }
 
@@ -1444,6 +1463,10 @@ inline int NPFold::load_dir(const char* _base)
         else if( type == U::FILE_PATH ) 
         {
             load_array(_base, name) ; 
+        }
+        else if( type == U::DIR_PATH && U::StartsWith(name, "_"))
+        {
+            if(VERBOSE) std::cerr << "NPFold::load_dir SKIP directory starting with _" << name << std::endl ;
         }
         else if( type == U::DIR_PATH ) 
         {
