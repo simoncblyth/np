@@ -213,6 +213,7 @@ public:
 
 
     NPFold* copy( const char* keylist, bool shallow, char delim=',' ) const ; 
+    NPFold* copy_all(bool shallow) const ; 
     static void CopyMeta( NPFold* b , const NPFold* a ); 
 
 
@@ -1034,9 +1035,11 @@ inline void NPFold::clear_except(const char* keeplist, bool copy, char delim )
 NPFold::copy
 ---------------
 
-If none of this folds keys are specified in the keylist 
-then nullptr is returned. When keys are selected a new NPFold 
-is created and populated with the arrays from this fold.
+Formerly returned nullptr when none of this folds keys 
+are specified in the keylist. However changed this 
+as sometimes want just the fold metadata.
+A new NPFold is created and populated with any keylist 
+selected arrays from this fold.
 
 shallow:true 
     array pointers are copied as is
@@ -1057,7 +1060,17 @@ inline NPFold* NPFold::copy( const char* keylist, bool shallow, char delim ) con
     if(keylist) SplitKeys(keys, keylist, delim); 
 
     int count = count_keys(&keys) ; 
-    if( count == 0 ) return nullptr ; 
+    if( count == 0 ) std::cerr
+        << "NPFold::copy"
+        << " keylist " << ( keylist ? keylist : "-" )
+        << " count " << count 
+        << " kk.size " << kk.size() 
+        << " meta " << ( meta.empty() ? "EMPTY" : meta )  
+        << std::endl 
+        ; 
+
+    //if( count == 0 ) return nullptr ; 
+    // sometimes want fold metadata without any arrays
 
     NPFold* f = new NPFold ; 
     CopyMeta(f, this);  // copy metadata to the new fold
@@ -1074,6 +1087,28 @@ inline NPFold* NPFold::copy( const char* keylist, bool shallow, char delim ) con
     } 
     return f ; 
 }
+
+inline NPFold* NPFold::copy_all(bool shallow) const 
+{
+    check_integrity(); 
+
+    NPFold* f = new NPFold ; 
+    CopyMeta(f, this);  // copy metadata to the new fold
+
+    for(unsigned i=0 ; i < aa.size() ; i++)
+    {
+        const NP* a = aa[i]; 
+        const char* k = kk[i].c_str() ; 
+        f->add_( k, shallow ? a : NP::MakeCopy(a) ); 
+    } 
+    return f ; 
+}
+
+
+
+
+
+
 
 inline void NPFold::CopyMeta( NPFold* b , const NPFold* a ) // static
 {

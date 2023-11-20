@@ -16,7 +16,7 @@ EOU
 name=NPFold_stamps_test
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name
-export MODE=2
+export MODE=${MODE:-2}
 bin=$FOLD/$name
 mkdir -p $FOLD
 

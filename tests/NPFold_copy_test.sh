@@ -1,7 +1,19 @@
 #!/bin/bash -l 
+usage(){ cat << EOU
+
+::
+
+   ~/np/tests/NPFold_copy_test.sh  
+
+
+EOU
+}
+
 
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
+
+cd $(dirname $BASH_SOURCE)
 
 name=NPFold_copy_test 
 export FOLD=/tmp/$name
@@ -29,10 +41,7 @@ if [ "${arg/run}" != "$arg" ]; then
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-   case $(uname) in 
-      Darwin) lldb__ $bin  ;;
-      Linux)  gdb__ $bin  ;;
-   esac
+   dbg__ $bin 
    [ $? -ne 0 ] && echo $BASH_SOURCE : dbg error && exit 3
 fi 
 

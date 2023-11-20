@@ -6,7 +6,7 @@ NPFold_stamps_test.py
 
 """
 
-import numpy as np
+import os, numpy as np
 from np.fold import Fold
 from np.npmeta import NPMeta
 
@@ -30,7 +30,13 @@ palette = ["red","green", "blue",
            ]
 
 
-      
+def make_title(meta, method):
+    base = meta.base.replace("/data/blyth/opticks/GEOM/", "")
+    smry = meta.smry("GPUMeta,prefix,creator")
+    sfmt = meta.smry("stampFmt") 
+    titl = "%s:%s %s " % (symbol,method, sfmt) 
+    title = " ".join([titl,base,smry]) 
+    return title
 
 class Stamps(object):
     def __init__(self, f):
@@ -38,7 +44,8 @@ class Stamps(object):
         s = f.stamps
         assert len(s.shape) == 2 
 
-        title = "Stamps " + " ".join(f.stamps_meta)
+        meta = f.stamps_meta
+        title = make_title(meta, method="Stamps")
 
         e_sel = slice(1,None)              # skip 1st event, as initialization messes timings
         t_sel = slice(2,None)              # skip first two stamps (init, BeginOfRun) 
@@ -73,6 +80,7 @@ class Stamps(object):
 
     def plot(self):
         st = self
+        ax = None
         if MODE == 2:
             fig, axs = mpplt_plotter(nrows=1, ncols=1, label=st.title, equal=False)
             ax = axs[0]
@@ -100,23 +108,13 @@ if __name__ == '__main__':
     print(repr(ab))
     print("MODE:%d" % MODE) 
 
-    if PICK == "A":
-       ff = [ab.a,] 
-    elif PICK == "B":
-       ff = [ab.b,] 
-    elif PICK == "AB":
-       ff = [ab.a,ab.b]
-    elif PICK == "BA":
-       ff = [ab.b,ab.a]
-    else:
-       print("PICK [%s] unhandled" % PICK)
-       ff = []
-    pass
-
-    for f in ff:
-        st = Stamps(f)
-        print(repr(st))
-        ax = st.plot()
+    if PICK in ["AB", "BA", "A", "B"]:
+        for symbol in PICK:
+            f = getattr(ab, symbol.lower())
+            st = Stamps(f)
+            print(repr(st))
+            ax = st.plot()
+        pass
     pass
 
 

@@ -73,7 +73,6 @@ class ProfileWithinEvent(object):
         smry = meta.smry("GPUMeta,prefix,creator")
         sfmt = meta.smry("stampFmt") 
         titl = "%s:ProfileWithinEvent %s " % (symbol, sfmt) 
- 
         title = " ".join([titl,base,smry]) 
 
         t = f.profile[:,:,0] - f.profile[:,0,0, np.newaxis] 
@@ -113,6 +112,10 @@ class ProfileWithinEvent(object):
         """
         A = cls(a, symbol="A")
         B = cls(b, symbol="B") 
+
+ 
+        avB = np.average(B.t[1:,-1])
+        avA = np.average(A.t[1:,-1])
 
         BOA = B.t[:,-1]/A.t[:,-1]  
         _BOA = ( "%4.1f " * len(BOA) ) % tuple(BOA) 

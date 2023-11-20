@@ -2,7 +2,9 @@
 
 #include "NPFold.h"
 
-int main()
+
+
+void test_copy()
 {
     const char* _a = "0 0\n1 1\n2 2\n3 3" ; 
     const char* _b = "0 0\n1 1\n2 2\n3 3\n4 4" ; 
@@ -47,9 +49,28 @@ int main()
         assert( b2 != b ); 
     }
 
-
-
     f->save("$FOLD");  
+}
+
+void test_copy_all()
+{ 
+    NPFold* f = new NPFold ; 
+    f->meta = "hello:world" ; 
+
+    bool shallow = true ; 
+    NPFold* c = f->copy_all(shallow) ; 
+
+    c->save("$FOLD"); 
+    std::cout << c->descMetaKV() << std::endl ; 
+}
+
+
+int main()
+{
+    /*
+    test_copy(); 
+    */
+    test_copy_all(); 
 
     return 0 ; 
 }

@@ -68,7 +68,7 @@ if [ "${arg/run}" != "$arg" ]; then
 fi
 
 if [ "${arg/grab}" != "$arg" ]; then 
-    ~/opticks/bin/rsync.sh $FOLD
+    source ~/opticks/bin/rsync.sh $FOLD
     [ $? -ne 0 ] && echo $BASH_SOURCE : grab error && exit 4
 fi
 
