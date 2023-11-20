@@ -27,7 +27,7 @@ from np.fold import Fold
 from np.npmeta import NPMeta
 
 MODE =  int(os.environ.get("MODE", "2"))
-PICK =  os.environ.get("PICK", "AB")
+PICK =  os.environ.get("PICK", "CF")
 PLOT =  os.environ.get("PLOT", "PWE")
 TLIM =  np.array(list(map(int,os.environ.get("TLIM", "0,0").split(","))),dtype=np.int32)
 QWN = os.environ.get("QWN", "vm")
@@ -68,11 +68,12 @@ class ProfileWithinEvent(object):
         lab = f.labels_names   # of the timestamps
         slab = list(map(NPMeta.Summarize, lab))
 
-
         meta = f.profile_meta
-        base = f.profile_meta.base.replace("/data/blyth/opticks/GEOM/", "")
-        smry = f.profile_meta.smry("GPUMeta,prefix,creator")
-        titl = "%s:ProfileWithinEvent " % symbol 
+        base = meta.base.replace("/data/blyth/opticks/GEOM/", "")
+        smry = meta.smry("GPUMeta,prefix,creator")
+        sfmt = meta.smry("stampFmt") 
+        titl = "%s:ProfileWithinEvent %s " % (symbol, sfmt) 
+ 
         title = " ".join([titl,base,smry]) 
 
         t = f.profile[:,:,0] - f.profile[:,0,0, np.newaxis] 

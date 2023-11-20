@@ -13,6 +13,8 @@ NPFold_profile_test.sh
    PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh mpcap
    PICK=CF PLOT=PWE ~/np/tests/NPFold_profile_test.sh mppub
 
+   MODE=0 ~/np/tests/NPFold_profile_test.sh ana   ## non-graphical remote node
+
 
 EOU
 }
@@ -21,9 +23,10 @@ EOU
 name=NPFold_profile_test
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name
-export MODE=2
-bin=$FOLD/$name
-mkdir -p $FOLD
+export MODE=${MODE:-2}
+bin=${FOLD}.build/$name
+mkdir -p ${FOLD}.build
+mkdir -p $FOLD 
 
 SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 
@@ -64,6 +67,11 @@ if [ "${arg/run}" != "$arg" ]; then
     [ $? -ne 0 ] && echo $BASH_SOURCE : run1 error && exit 3
 fi
 
+if [ "${arg/grab}" != "$arg" ]; then 
+    ~/opticks/bin/rsync.sh $FOLD
+    [ $? -ne 0 ] && echo $BASH_SOURCE : grab error && exit 4
+fi
+
 if [ "${arg/ana}" != "$arg" ]; then 
     ${IPYTHON:-ipython} --pdb -i $SDIR/$name.py 
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
@@ -83,7 +91,6 @@ if [ "$arg" == "pvcap" -o "$arg" == "pvpub" -o "$arg" == "mpcap" -o "$arg" == "m
         source epub.sh 
     fi  
 fi 
-
 
 exit 0 
 
