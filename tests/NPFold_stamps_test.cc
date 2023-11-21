@@ -8,7 +8,7 @@ int main(int argc, char** argv)
     NPFold* f = NPFold::Load(path); 
     //std::cout << " path " << path << std::endl << f->desc() << std::endl ; 
 
-    NPFold* ab = f->substamp_ab("//p", "//n"); 
+    NPFold* ab = f->subfold_summary('S', "a://p", "b://n"); 
     ab->save("$FOLD"); 
 
     return 0 ; 

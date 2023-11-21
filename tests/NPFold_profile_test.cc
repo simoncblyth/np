@@ -9,9 +9,9 @@ int main(int argc, char** argv)
     NPFold* f = NPFold::Load(path); 
     std::cout << "NPFold::Load(\"" << path << "\")" << std::endl ; 
 
-    NPFold* ab = f->subprofile_ab("//p", "//n"); 
+    NPFold* ab = f->subfold_summary('P', "a://p", "b://n"); 
     ab->save("$FOLD"); 
-    std::cout << "NPFold::subprofile_ab created and saved subprofile symmary NPFold to $FOLD " << std::endl ; 
+    std::cout << "NPFold::subprofile_summary.P created and saved subprofile symmary NPFold to $FOLD " << std::endl ; 
 
     return 0 ; 
 }

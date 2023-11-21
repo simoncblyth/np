@@ -46,9 +46,10 @@ fi
 #cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
 #cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/n010
 ##N
-cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
+#cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
 #cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
 
+cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/ALL
 
 [ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
 

@@ -39,7 +39,7 @@ def make_title(meta, method):
     return title
 
 class Stamps(object):
-    def __init__(self, f):
+    def __init__(self, f, symbol="A"):
 
         s = f.stamps
         assert len(s.shape) == 2 
@@ -56,7 +56,7 @@ class Stamps(object):
         smry_ = lambda _:NPMeta.Summarize(_.decode("utf-8"))
         s_lab = list(map(smry_, t_lab))
 
-        hdr = (" " * 8  + " %5s " * len(s_lab) ) % tuple(s_lab) 
+        hdr = (" " * 8  + " %4s " * len(s_lab) ) % tuple(s_lab) 
 
 
         ss =  f.stamps[e_sel,t_sel]        # selected timestamps, eg shape (9,13)
@@ -74,9 +74,10 @@ class Stamps(object):
         self.s_lab = s_lab
         self.hdr = hdr
         self.title = title
+        self.symbol = symbol
  
     def __repr__(self):
-        return "\n".join([self.title, self.hdr, repr(self.dss)])
+        return "\n".join([self.title, self.hdr, "%s.dss" % self.symbol, repr(self.dss)])
 
     def plot(self):
         st = self
@@ -110,8 +111,13 @@ if __name__ == '__main__':
 
     if PICK in ["AB", "BA", "A", "B"]:
         for symbol in PICK:
-            f = getattr(ab, symbol.lower())
-            st = Stamps(f)
+            sym = symbol.lower()  
+            f = getattr(ab, sym, None)
+            if f is None: 
+                print("sym:%s MISSING " % sym)
+                continue 
+            pass 
+            st = Stamps(f, symbol=symbol)
             print(repr(st))
             ax = st.plot()
         pass

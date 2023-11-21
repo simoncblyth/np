@@ -256,12 +256,16 @@ if __name__ == '__main__':
     print(repr(ab))
     a = ab.a
     b = ab.b 
-    ap = a.profile  
-    bp = b.profile
+    have_both = not a is None and not b is None
+    ap = a.profile if not a is None else None 
+    bp = b.profile if not b is None else None
 
-    print("PICK:%s" % PICK)
+    yn_ = lambda _:"NO " if _ is None else "YES"
+    print("PICK:%s a:%s b:%s  have_both:%s " % (PICK, yn_(a), yn_(b), have_both ))
 
-    if PICK == "CF":
+    if PICK == "CF" and not have_both:
+        print("PICK=CF requires both a and b to exist, use PICK=A or PICK=B if otherwise" )
+    elif PICK == "CF":
         if PLOT == "PRO":
             A,B = Profile.ABPlot(a, b)
         elif PLOT == "PWE":
@@ -270,8 +274,13 @@ if __name__ == '__main__':
             A,B = None,None
         pass
     elif PICK in ["AB", "BA", "A", "B"]:
-        for i, symbol in enumerate(PICK):
-            e = getattr(ab, symbol.lower())
+        for symbol in PICK:
+            sym = symbol.lower()
+            e = getattr(ab, sym, None)
+            if e is None:
+                print("%s:SKIP as MISSING" % sym )
+                continue
+            pass
             if PLOT == "PRO":
                 p = Profile(e, symbol=symbol)
             elif PLOT == "PWE":

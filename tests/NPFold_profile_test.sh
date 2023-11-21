@@ -32,18 +32,20 @@ SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 
 
 ##L
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p001
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/n010
+#dir=/hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p001
+#dir=/hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
+#dir=/hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/n010
 ##N
-cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
-#cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
-[ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
+#dir=/data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
+#dir=/data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
+dir=/data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/ALL
+cd $dir
+[ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY : $dir && exit 0 
 
 #opt=-DWITH_VERBOSE
 opt=
 
-vars="0 BASH_SOURCE SDIR FOLD PWD bin"
+vars="0 BASH_SOURCE SDIR FOLD dir PWD bin"
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
