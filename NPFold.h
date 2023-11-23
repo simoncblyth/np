@@ -1602,7 +1602,7 @@ inline int NPFold::load(const char* base_, const char* rel0, const char* rel1)
 
 inline std::string NPFold::descKeys() const  
 {
-    int num_key = kk.size()
+    int num_key = kk.size() ; 
     std::stringstream ss ; 
     ss << "NPFold::descKeys" 
        << " kk.size " << num_key
