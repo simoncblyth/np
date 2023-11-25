@@ -41,16 +41,23 @@ def make_title(meta, method):
 class Stamps(object):
     def __init__(self, f, symbol="A"):
 
-        s = f.stamps
+        s = f.substamp
+        meta = f.substamp_meta
+        names = f.substamp_names
+
+
         assert len(s.shape) == 2 
 
-        meta = f.stamps_meta
         title = make_title(meta, method="Stamps")
 
-        e_sel = slice(1,None)              # skip 1st event, as initialization messes timings
-        t_sel = slice(2,None)              # skip first two stamps (init, BeginOfRun) 
+        #e_sel = slice(1,None)              # skip 1st event, as initialization messes timings
+        #t_sel = slice(2,None)              # skip first two stamps (init, BeginOfRun) 
+        ## TODO: arrange stamps to avoid these 
+        e_sel = slice(None)
+        t_sel = slice(None)
+        
 
-        e_rel = f.stamps_names[e_sel]      # rel path of the evt folds, eg shape (9,)
+        e_rel = names[e_sel]      # rel path of the evt folds, eg shape (9,)
         t_lab = labels_(f.labels)[t_sel]
 
         smry_ = lambda _:NPMeta.Summarize(_.decode("utf-8"))
@@ -59,7 +66,7 @@ class Stamps(object):
         hdr = (" " * 8  + " %4s " * len(s_lab) ) % tuple(s_lab) 
 
 
-        ss =  f.stamps[e_sel,t_sel]        # selected timestamps, eg shape (9,13)
+        ss =  s[e_sel,t_sel]        # selected timestamps, eg shape (9,13)
 
         dss = ss - ss[:,0,np.newaxis]      # subtract first column stamp from all stamps row by row
                                            # hence giving begin of event relative time delta in microseconds

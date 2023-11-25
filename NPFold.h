@@ -135,10 +135,17 @@ struct NPFold
     static NPFold* LoadIfExists(const char* base);  
     static bool    Exists(const char* base); 
     static NPFold* Load_(const char* base ); 
+    static NPFold* LoadNoData_(const char* base ); 
+
     static const char* Resolve(const char* base_, const char* rel1_=nullptr, const char* rel2_=nullptr); 
     static NPFold* Load(const char* base); 
     static NPFold* Load(const char* base, const char* rel ); 
     static NPFold* Load(const char* base, const char* rel1, const char* rel2 ); 
+
+    static NPFold* LoadNoData(const char* base); 
+    static NPFold* LoadNoData(const char* base, const char* rel ); 
+    static NPFold* LoadNoData(const char* base, const char* rel1, const char* rel2 ); 
+
 
     static NPFold* LoadProp(const char* rel0, const char* rel1=nullptr ); 
 
@@ -292,11 +299,11 @@ public:
 
     // TIMESTAMP/PROFILE COMPARISON USING SUBFOLD METADATA
 
-    NPFold* substamp(  const char* prefix) const ; 
-    NPFold* subprofile(const char* prefix) const ; 
+    NPFold* substamp(  const char* prefix, const char* keyname) const ; 
+    NPFold* subprofile(const char* prefix, const char* keyname) const ; 
 
     template<typename ... Args>
-    NPFold* subfold_summary(char method, Args ... args_  ) const  ; 
+    NPFold* subfold_summary(const char* method, Args ... args_  ) const  ; 
  
 
     static void Subkey(std::vector<std::string>& ukey, const std::vector<const NPFold*>& subs ); 
@@ -395,6 +402,24 @@ inline NPFold* NPFold::Load_(const char* base )
     nf->load(base); 
     return nf ;  
 }
+
+/**
+NPFold::LoadNoData_
+--------------------
+
+Loads folder and array metadata only, no array data. 
+
+**/
+
+inline NPFold* NPFold::LoadNoData_(const char* base_ )
+{
+    if(base_ == nullptr) return nullptr ; 
+    const char* base = NP::PathWithNoDataPrefix(base_);
+    NPFold* nf = new NPFold ; 
+    nf->load(base); 
+    return nf ;  
+}
+
 inline const char* NPFold::Resolve(const char* base_, const char* rel1_, const char* rel2_ )
 {
     const char* base = U::Resolve(base_, rel1_, rel2_ ); 
@@ -409,6 +434,8 @@ inline const char* NPFold::Resolve(const char* base_, const char* rel1_, const c
         ;
     return base ; 
 }
+
+
 inline NPFold* NPFold::Load(const char* base_)
 {
     const char* base = Resolve(base_); 
@@ -424,6 +451,27 @@ inline NPFold* NPFold::Load(const char* base_, const char* rel1_, const char* re
     const char* base = Resolve(base_, rel1_, rel2_ ); 
     return Load_(base); 
 }
+
+
+
+inline NPFold* NPFold::LoadNoData(const char* base_)
+{
+    const char* base = Resolve(base_); 
+    return LoadNoData_(base); 
+}
+inline NPFold* NPFold::LoadNoData(const char* base_, const char* rel_)
+{
+    const char* base = Resolve(base_, rel_); 
+    return LoadNoData_(base); 
+}
+inline NPFold* NPFold::LoadNoData(const char* base_, const char* rel1_, const char* rel2_ )
+{
+    const char* base = Resolve(base_, rel1_, rel2_ ); 
+    return LoadNoData_(base); 
+}
+
+
+
 
 
 
@@ -926,7 +974,7 @@ NPFold::clear (clearing this fold and all subfold recursively)
 **/
 inline void NPFold::clear()
 {
-    if(verbose_) std::cerr << "NPFold::clear() ALL" << std::endl ; 
+    if(verbose_) std::cerr << "NPFold::clear ALL" << std::endl ; 
     clear_(nullptr);     
 }
 
@@ -1188,8 +1236,8 @@ inline const NP* NPFold::get_array(unsigned idx) const
 }
 
 /**
-NPFold::find
--------------
+NPFold::find (non recursive)
+-----------------------------
 
 If the query key *k* does not end with the DOT_NPY ".npy" then that is added before searching.
 
@@ -1334,6 +1382,15 @@ inline void NPFold::save(const char* base_)  // not const as sets savedir
     assert( !nodata ); 
 
     const char* base = U::Resolve(base_); 
+
+    if(base == nullptr) std::cerr 
+        << "NPFold::save(\"" << ( base_ ? base_ : "-" ) << "\")"
+        << " did not resolve all tokens in argument "
+        << std::endl
+        ;
+    if(base == nullptr) return ; 
+
+
     savedir = strdup(base); 
 
     NP::WriteNames(base, INDEX, kk );  
@@ -1579,7 +1636,7 @@ How to avoid this structural difference and allow booting from property text fil
 
 inline int NPFold::load(const char* _base) 
 {
-    nodata = NP::NoData(_base) ;  // _path starting with '@' 
+    nodata = NP::NoData(_base) ;  // _path starting with NP::NODATA_PREFIX eg '@' 
     const char* base = nodata ? _base + 1 : _base ;  
 
     loaddir = strdup(base); 
@@ -1832,7 +1889,7 @@ NPFold::substamp
 
 **/
 
-inline NPFold* NPFold::substamp(const char* prefix) const 
+inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const 
 { 
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
@@ -1862,6 +1919,7 @@ inline NPFold* NPFold::substamp(const char* prefix) const
         t->set_meta<std::string>("creator","NPFold::substamp"); 
         t->set_meta<std::string>("base", loaddir ? loaddir : "-" ); 
         t->set_meta<std::string>("prefix", prefix ? prefix : "-" ); 
+        t->set_meta<std::string>("keyname", keyname ? keyname : "-" ); 
 
         // collect metadata (k,v) pairs that are the same for all the subs
         std::vector<std::string> ckey ;  
@@ -1893,8 +1951,11 @@ inline NPFold* NPFold::substamp(const char* prefix) const
         NP* l = NPX::MakeCharArray(comkeys); 
         l->names = comkeys ; 
 
+        NP* dt = NP::DeltaColumn<int64_t>(t); 
+
         out = new NPFold ; 
-        out->add("stamps", t );
+        out->add(keyname, t );
+        out->add(U::FormName("delta_",keyname,nullptr), dt );
         out->add("labels", l );  
     }
     std::cout 
@@ -1922,7 +1983,7 @@ NPFold::subprofile
 
 **/
 
-inline NPFold* NPFold::subprofile(const char* prefix) const 
+inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const 
 {
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
@@ -1956,6 +2017,7 @@ inline NPFold* NPFold::subprofile(const char* prefix) const
         t->set_meta<std::string>("creator","NPFold::subprofile"); 
         t->set_meta<std::string>("base", loaddir ? loaddir : "-" ); 
         t->set_meta<std::string>("prefix", prefix ? prefix : "-" ); 
+        t->set_meta<std::string>("keyname", keyname ? keyname : "-" ); 
 
         // collect metadata (k,v) pairs that are the same for all the subs
         std::vector<std::string> ckey ;  
@@ -2009,7 +2071,7 @@ inline NPFold* NPFold::subprofile(const char* prefix) const
         l->names = comkeys ; 
 
         out = new NPFold ; 
-        out->add("profile", t );
+        out->add(keyname, t );
         out->add("labels", l ) ; 
     }
     std::cout 
@@ -2033,7 +2095,7 @@ NPFold::subfold_summary
 **/
 
 template<typename ... Args>
-inline NPFold* NPFold::subfold_summary(char method, Args ... args_  ) const 
+inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) const 
 {
     std::vector<std::string> args = {args_...};
     NPFold* spec_ff = nullptr ; 
@@ -2051,10 +2113,13 @@ inline NPFold* NPFold::subfold_summary(char method, Args ... args_  ) const
             const char* v = _v.c_str(); 
 
             NPFold* sub = nullptr ; 
-            switch(method)
+            if(strcmp(method, "substamp")==0)
             {
-               case 'S': sub = substamp(v); break ; 
-               case 'P': sub = subprofile(v); break ; 
+                sub = substamp(v, "substamp") ; 
+            }
+            else if(strcmp(method, "subprofile")==0)
+            {
+                sub = subprofile(v, "subprofile") ; 
             } 
 
             if(sub == nullptr ) continue ; 
@@ -2065,9 +2130,9 @@ inline NPFold* NPFold::subfold_summary(char method, Args ... args_  ) const
     return spec_ff ;  
 }
 
-template NPFold* NPFold::subfold_summary( char, const char* ) const ;
-template NPFold* NPFold::subfold_summary( char, const char*, const char* ) const ;
-template NPFold* NPFold::subfold_summary( char, const char*, const char*, const char* ) const ;
+template NPFold* NPFold::subfold_summary( const char*, const char* ) const ;
+template NPFold* NPFold::subfold_summary( const char*, const char*, const char* ) const ;
+template NPFold* NPFold::subfold_summary( const char*, const char*, const char*, const char* ) const ;
 
 
 

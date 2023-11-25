@@ -411,6 +411,13 @@ struct U
     static std::string ChangeExt( const char* s, const char* x1, const char* x2) ; 
     static std::string DirName( const char* path ); 
     static std::string BaseName( const char* path ); 
+    static const char* BaseName_( const char* path ); 
+
+    static std::string FormSiblingPath( const char* sibname , const char* dirpath ); 
+    static std::string FormExecutableSiblingPath( const char* argv0 , const char* dirpath ); 
+    static int SetEnvDefaultExecutableSiblingPath(const char* ekey, char* argv0, const char* dirpath ); 
+
+    static int setenvvar( const char* ekey, const char* value, bool overwrite=true, char special_empty_token='\0' );
 
     static std::string FormName_( int idx, int wid=3 ); 
     static const char* FormName( int idx, int wid=3 ); 
@@ -463,6 +470,7 @@ struct U
     template<typename T> static T To( const char* a ); 
     template<typename T> static bool ConvertsTo( const char* a ); 
 
+    static char* PWD(); 
 
     template<typename T>
     static std::vector<T>* GetEnvVec(const char* ekey, const char* fallback, char delim=','); 
@@ -507,6 +515,11 @@ struct U
 
     static std::string Format(uint64_t t=0, const char* fmt="%FT%T."); 
     static std::string FormatInt(int64_t t, int wid ); 
+
+    static char* LastDigit(const char* str); 
+    static char* FirstDigit(const char* str); 
+    static char* FirstToLastDigit(const char* str); 
+
 };
 
 
@@ -676,9 +689,10 @@ template <typename T> inline bool U::ConvertsTo( const char* a )   // static
 }
 
 
-
-
-
+inline char* U::PWD() // static
+{
+    return getenv("PWD"); 
+}
 
 template<typename T>
 inline std::vector<T>* U::GetEnvVec(const char* ekey, const char* fallback, char delim)
@@ -759,6 +773,111 @@ inline std::string U::BaseName( const char* path )
     std::size_t pos = p.find_last_of("/") ; 
     return pos == std::string::npos ? "" : p.substr(pos+1); 
 }
+
+inline const char* U::BaseName_( const char* path )
+{
+    std::string name = BaseName(path); 
+    return strdup(name.c_str()); 
+}
+
+/**
+U::FormSiblingPath
+---------------------
+
+For example::
+
+   sibname : NPFold_stamps_test
+   dirpath : /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/ALL
+   returns : /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/NPFold_stamps_test  
+
+**/
+
+inline std::string U::FormSiblingPath( const char* sibname , const char* dirpath )
+{
+    std::string container = DirName(dirpath) ; 
+    std::stringstream ss ; 
+    ss << container << "/" << sibname ; 
+    std::string str = ss.str(); 
+    return str ; 
+}
+
+inline std::string U::FormExecutableSiblingPath( const char* argv0 , const char* dirpath )
+{
+    std::string exename = BaseName(argv0) ; 
+    return FormSiblingPath( exename.c_str(), dirpath ); 
+}
+
+inline int U::SetEnvDefaultExecutableSiblingPath(const char* ekey, char* argv0, const char* dirpath )
+{
+    std::string sibfold = FormExecutableSiblingPath(argv0, dirpath); 
+    bool overwrite = false ; 
+    int rc = setenvvar( ekey, sibfold.c_str(), overwrite ); 
+    return rc ; 
+}
+
+
+
+
+/**
+U::setenvvar (similar to opticks/sysrap/ssys.h ssys::setenvvar)
+-----------------------------------------------------------------
+
+overwrite:false 
+    preexisting envvar is not overridden. 
+
+As shell handling of empty strings is inconvenient the special_empty_token char 
+allows a single char to represent the empty string, eg '-' 
+
+**/
+
+inline int U::setenvvar( const char* ekey, const char* value, bool overwrite, char special_empty_token)
+{
+    std::stringstream ss ;
+    ss << ekey << "=" ;
+
+    if(value)
+    {   
+        if(special_empty_token != '\0' && strlen(value) == 1 && value[0] == special_empty_token)
+        {   
+            ss << "" ; 
+        }   
+        else
+        {   
+            ss << value ; 
+        }   
+    }   
+
+    std::string ekv = ss.str();
+    const char* prior = getenv(ekey) ;
+
+    char* ekv_ = const_cast<char*>(strdup(ekv.c_str()));
+
+    int rc = ( overwrite || !prior ) ? putenv(ekv_) : 0  ;   
+
+    const char* after = getenv(ekey) ;
+
+    if(VERBOSE) std::cerr
+        << "U::setenvvar"
+        << " ekey " << ekey 
+        << " ekv " << ekv 
+        << " overwrite " << overwrite
+        << " prior " << ( prior ? prior : "NULL" )
+        << " value " << ( value ? value : "NULL" )   
+        << " after " << ( after ? after : "NULL" )   
+        << " rc " << rc  
+        << std::endl 
+        ;   
+
+    return rc ;
+}
+
+
+
+
+
+
+
+
 
 inline std::string U::FormName_( int idx, int wid )
 { 
@@ -1065,6 +1184,8 @@ This resolves spec with multiple tokens, eg::
 
     $HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim/jpmt/PMTSimParamData/MPT
 
+Any unresolved token causes nullptr to be returned.
+
 **/
 
 inline const char* U::Resolve(const char* spec_, const char* rel1_, const char* rel2_ )
@@ -1287,6 +1408,62 @@ inline std::string U::FormatInt(int64_t t, int wid ) // static
     std::string str = ss.str(); 
     return str ; 
 }
+
+/**
+U::LastDigit
+-------------
+
+Start from the end of the string, returning when reach 
+first digit from end (aka last digit from front). 
+
+**/
+
+inline char* U::LastDigit(const char* str)
+{
+    if(str == nullptr) return nullptr ; 
+    char* s = const_cast<char*>(str); 
+    char* p = s+strlen(s)-1 ; 
+    while( p > s )
+    {
+       if( *p >= '0' && *p <= '9' ) break ; 
+       p-- ; 
+    }
+    return p ; 
+}
+
+inline char* U::FirstDigit(const char* str)
+{
+    if(str == nullptr) return nullptr ; 
+    char* s = const_cast<char*>(str); 
+    char* p = s ; 
+    while( p )
+    {
+       if( *p >= '0' && *p <= '9' ) break ; 
+       p++ ; 
+    }
+    return p ; 
+}
+
+inline char* U::FirstToLastDigit(const char* str)
+{
+    const char* s = strdup(str); 
+    char* f = FirstDigit(s); 
+    char* l = LastDigit(s); 
+    char* r = nullptr ; 
+    if(f && l && l + 1  > f)
+    {
+        if(*(l+1) != '\0') *(l+1) = '\0' ; 
+        r = f ; 
+    }
+    return r ; 
+}
+
+
+
+
+
+
+
 
 
 

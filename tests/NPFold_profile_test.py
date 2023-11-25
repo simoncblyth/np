@@ -66,17 +66,19 @@ class ProfileWithinEvent(object):
     def __init__(self, f, symbol="A"):
 
         lab = f.labels_names   # of the timestamps
-        slab = list(map(NPMeta.Summarize, lab))
+        prof = f.subprofile
+        meta = f.subprofile_meta
 
-        meta = f.profile_meta
+        slab = list(map(NPMeta.Summarize, lab))
         base = meta.base.replace("/data/blyth/opticks/GEOM/", "")
         smry = meta.smry("GPUMeta,prefix,creator")
         sfmt = meta.smry("stampFmt") 
         titl = "%s:ProfileWithinEvent %s " % (symbol, sfmt) 
         title = " ".join([titl,base,smry]) 
 
-        t = f.profile[:,:,0] - f.profile[:,0,0, np.newaxis] 
+        t = prof[:,:,0] - prof[:,0,0, np.newaxis] 
 
+        self.prof = prof
         self.lab = lab
         self.slab = slab
         self.title = title
