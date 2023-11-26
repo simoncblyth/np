@@ -25,23 +25,28 @@ int main(int argc, char** argv)
         << std::endl
         << "NPFold::LoadNoData(\"" << dirp << "\")" 
         << std::endl
+        ;
+
+    if(getenv("VERBOSE")!=nullptr) std::cout
+        << "[NPFold_profile_test.VERBOSE" 
+        << std::endl 
         << f->desc() 
+        << std::endl 
+        << "]NPFold_profile_test.VERBOSE" 
         << std::endl 
         ; 
 
-    NPFold* ab = f->subfold_summary("subprofile", "a://p", "b://n"); 
+    NPFold* smry = f->subfold_summary("subprofile", "a://p", "b://n"); 
     std::cout 
-        << "NPFold* ab = NPFold::subfold_summary('P', \"a://p\", \"b://n\") ; ab->desc() "
+        << "NPFold* smry = NPFold::subfold_summary(\"subprofile\", \"a://p\", \"b://n\") ; smry->desc() "
         << std::endl 
-        << ab->desc()
+        << (smry ? smry->desc() : "smry NULL" ) 
         << std::endl 
         ;
 
-    ab->save("$FOLD"); 
+    if(smry) smry->save("$FOLD"); 
 
     return 0 ; 
 }
-
-
 
 

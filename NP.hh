@@ -5499,9 +5499,9 @@ inline void NP::WriteNames(
     int rc = U::MakeDirsForFile(path); 
     assert( rc == 0 ); 
 
-    unsigned num_names = num_names_ == 0 ? names.size() : num_names_ ; 
-    assert( num_names <= names.size() ); 
-    assert( num_names <= 1000 ) ; // sanity check 
+    unsigned names_size = names.size() ; 
+    unsigned num_names = num_names_ == 0 ? names_size : num_names_ ; 
+    assert( num_names <= names_size ); 
 
     std::ios_base::openmode mode = std::ios::out|std::ios::binary ; 
     if(append) mode |= std::ios::app ;
