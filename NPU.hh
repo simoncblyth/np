@@ -841,7 +841,7 @@ inline std::string U::FormExecutableSiblingPath( const char* argv0 , const char*
     const char* exename = BaseName_NoSepAsis_(argv0) ; 
     std::string sibpath = FormSiblingPath( exename, dirpath ); 
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "[U::FormExecutableSiblingPath"
         << std::endl 
         << " argv0 " << ( argv0 ? argv0 : "-" ) 
@@ -866,7 +866,7 @@ inline int U::SetEnvDefaultExecutableSiblingPath(const char* ekey, char* argv0, 
     bool overwrite = false ; 
     int rc = setenvvar( ekey, sibfold, overwrite ); 
 
-    std::cout 
+    if(VERBOSE) std::cout 
         << "[U::SetEnvDefaultExecutableSiblingPath"
         << std::endl 
         << " ekey " << ( ekey ? ekey : "-" ) 

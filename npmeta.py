@@ -5,7 +5,17 @@ NPMeta.py
 
 Parsing metadata lines from NP.hh 
 
-TODO: introspective listing of keys, rather than current needing to know whats there 
+Currently have two copies of this source at::
+
+    ~/np/npmeta.py
+    ~/opticks/ana/npmeta.py
+
+The np repository version is regarded as the 
+primary and is occasionally copied together with
+NP.hh NPFold.h headers via::
+
+    cd ~/np
+    ./cp.sh 
 
 """
 
