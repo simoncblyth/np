@@ -1,6 +1,8 @@
 /**
 ~/np/tests/NPFold_stamps_test.sh 
 
+See ~/opticks/sysrap/tests/sstampfold_test.cc for an encapsulation of this 
+
 **/
 
 #include "NPFold.h"

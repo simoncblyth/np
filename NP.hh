@@ -200,7 +200,11 @@ struct NP
     std::string descValues() const ; 
 
     template<typename T>
-    std::string descTable(int wid=7) const ; 
+    std::string descTable(
+       int wid=7, 
+       const std::vector<std::string>* column_labels=nullptr, 
+       const std::vector<std::string>* row_labels=nullptr
+       ) const ; 
 
     static NP* MakeLike(  const NP* src);  
     static void CopyMeta( NP* b, const NP* a ); 
@@ -1720,7 +1724,10 @@ NP::descTable
 **/
 
 template<typename T>
-inline std::string NP::descTable(int wid) const 
+inline std::string NP::descTable(int wid, 
+    const std::vector<std::string>* column_labels, 
+    const std::vector<std::string>* row_labels
+  ) const 
 {
     assert( shape.size() == 2 ); 
     int ni = shape[0] ; 
@@ -1728,11 +1735,61 @@ inline std::string NP::descTable(int wid) const
     std::stringstream ss ; 
     ss << "NP::descTable " << sstr() << std::endl ; 
     const T* vv = cvalues<T>() ; 
-    for(int i=0 ; i < ni ; i++)
+
+
+    int cwid = wid ; 
+    int rwid = 2*wid ; 
+    
+    std::vector<std::string> column_smry ; 
+    U::Summarize( column_smry, column_labels, cwid ); 
+    bool with_column_labels = int(column_smry.size()) == nj ;
+
+    std::vector<std::string> row_smry ; 
+    U::Summarize( row_smry, row_labels, rwid ); 
+    bool with_row_labels = int(row_smry.size()) == ni ;
+
+
+    if(with_column_labels) for(int j=0 ; j < nj ; j++) ss 
+        << U::Space( with_row_labels && j == 0  ? rwid+1 : 0 ) 
+        << std::setw(cwid) 
+        << column_smry[j] 
+        << ( j < nj -1 ? " " : "\n" ) 
+        ;  
+
+    for(int i=0 ; i < ni ; i++) 
     {
-        for(int j=0 ; j < nj ; j++) ss << std::setw(wid) << vv[i*nj+j] << " " ; 
-        ss << std::endl ; 
+        if(with_row_labels) ss << std::setw(rwid) << row_smry[i] << " " ; 
+        for(int j=0 ; j < nj ; j++) 
+        {
+            ss
+                << std::setw(cwid) 
+                << vv[i*nj+j] 
+                << ( j < nj -1 ? " " : "\n" ) 
+                ; 
+        }
     }
+
+    if(with_column_labels) for(int j=0 ; j < nj ; j++) ss 
+        << ( j == 0 ? "\n" : "" ) 
+        << std::setw(cwid) 
+        << column_smry[j] 
+        << " : " 
+        << (*column_labels)[j] 
+        << std::endl 
+        ;  
+
+    if(with_row_labels) for(int i=0 ; i < ni ; i++) ss 
+        << ( i == 0 ? "\n" : "" ) 
+        << std::setw(rwid) 
+        << row_smry[i] 
+        << " : " 
+        << (*row_labels)[i] 
+        << std::endl 
+        ;  
+
+
+
+
     std::string str = ss.str(); 
     return str ; 
 }
@@ -4991,7 +5048,7 @@ inline bool NP::NoData(const char* path) // static
     return path && strlen(path) > 0 && path[0] == NODATA_PREFIX ; 
 }
 
-const char* NP::PathWithNoDataPrefix(const char* path) // static
+inline const char* NP::PathWithNoDataPrefix(const char* path) // static
 {
     if(path == nullptr) return nullptr ; 
     if(NoData(path)) return path ;   // dont add prefix if one already present 

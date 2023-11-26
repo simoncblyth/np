@@ -99,7 +99,7 @@ struct NPFold
     std::vector<NPFold*> subfold ;  
 
     // METADATA FIELDS 
-
+    std::string               headline ; 
     std::string               meta ; 
     std::vector<std::string>  names ;
     const char*               savedir ; 
@@ -252,6 +252,9 @@ public:
 
     void save(const char* base, const char* rel) ; 
     void save(const char* base) ; 
+    void save_verbose(const char* base) ; 
+
+    void _save(const char* base) ; 
     void _save_arrays(const char* base); 
     void _save_subfold_r(const char* base); 
 
@@ -1377,10 +1380,8 @@ SO THE INDEX ALWAYS GETS TRUNCATED
 
 **/
 
-inline void NPFold::save(const char* base_)  // not const as sets savedir
+inline void NPFold::save(const char* base_)  // not const as calls _save
 {
-    assert( !nodata ); 
-
     const char* base = U::Resolve(base_); 
 
     if(base == nullptr) std::cerr 
@@ -1390,7 +1391,26 @@ inline void NPFold::save(const char* base_)  // not const as sets savedir
         ;
     if(base == nullptr) return ; 
 
+    _save(base) ; 
+}
 
+inline void NPFold::save_verbose(const char* base_)  // not const as calls _save
+{
+    const char* base = U::Resolve(base_); 
+    std::cerr 
+        << "NPFold::save(\"" << ( base_ ? base_ : "-" ) << "\")" 
+        << std::endl 
+        << " resolved to  [" << ( base ? base : "ERR-FAILED-TO-RESOLVE-TOKENS" ) << "]" 
+        << std::endl
+        ;
+    if(base == nullptr) return ; 
+    _save(base) ; 
+}
+
+
+inline void NPFold::_save(const char* base)  // not const as sets savedir
+{
+    assert( !nodata ); 
     savedir = strdup(base); 
 
     NP::WriteNames(base, INDEX, kk );  
@@ -1398,11 +1418,15 @@ inline void NPFold::save(const char* base_)  // not const as sets savedir
     _save_arrays(base); 
 
     NP::WriteNames(base, INDEX, ff, 0, true  ); // append:true : write subfold keys (without .npy ext) to INDEX  
+
     _save_subfold_r(base); 
 
     if(!meta.empty()) U::WriteString(base, META, meta.c_str() );  
     if(names.size() > 0 )  NP::WriteNames(base, NAMES, names) ; 
 }
+
+
+
 
 inline void NPFold::_save_arrays(const char* base) // using the keys with .npy ext as filenames
 {
@@ -1673,12 +1697,15 @@ inline std::string NPFold::descKeys() const
 inline std::string NPFold::desc() const  
 {
     std::stringstream ss ; 
+    ss << "[NPFold::desc" << std::endl ; 
+    if(!headline.empty()) ss << headline << std::endl ; 
     ss << "NPFold::desc_subfold"  << std::endl ; 
     ss << desc_subfold() ; 
     ss << "NPFold::desc(0) "  << std::endl ; 
     ss << desc(0) << std::endl ; 
-    std::string s = ss.str(); 
-    return s ; 
+    ss << "]NPFold::desc" << std::endl ; 
+    std::string str = ss.str(); 
+    return str ; 
 }
 
 inline std::string NPFold::descMetaKVS() const
@@ -2089,8 +2116,8 @@ NPFold::subfold_summary
 
 ::
 
-   NPFold* ab = NPFold::subfold_summary('S', "a://p", "b://n" ) ; 
-   NPFold* ab = NPFold::subfold_summary('P', "a://p", "b://n" ) ; 
+   NPFold* ab = NPFold::subfold_summary("substamp",   "a://p", "b://n" ) ; 
+   NPFold* ab = NPFold::subfold_summary("subprofile", "a://p", "b://n" ) ; 
 
 **/
 
@@ -2098,35 +2125,52 @@ template<typename ... Args>
 inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) const 
 {
     std::vector<std::string> args = {args_...};
-    NPFold* spec_ff = nullptr ; 
+
+    std::vector<std::string> uargs ; 
     char delim = ':' ;
     for(int i=0 ; i < int(args.size()) ; i++)
     {   
         const std::string& arg = args[i] ; 
-        if(arg.empty()) continue ; 
-        size_t pos = arg.find(delim); 
-        if( pos != std::string::npos )
+        size_t pos = arg.empty() ? std::string::npos : arg.find(delim) ; 
+        if( pos == std::string::npos ) continue ; 
+        uargs.push_back( arg ); 
+    }
+    int num_uargs = uargs.size() ; 
+
+
+    std::stringstream hh ; 
+    hh << "NPFold::subfold_summary(\"" << method << "\"," ; 
+
+    NPFold* spec_ff = nullptr ; 
+
+    for(int i=0 ; i < num_uargs ; i++)
+    {
+        const std::string& arg = uargs[i] ; 
+        hh << "\"" << arg << "\"" << ( i < num_uargs - 1 ? "," : " " ) ; 
+
+        size_t pos = arg.find(delim) ; 
+        std::string _k = arg.substr(0, pos);
+        std::string _v = arg.substr(pos+1);
+        const char* k = _k.c_str(); 
+        const char* v = _v.c_str(); 
+
+        NPFold* sub = nullptr ; 
+        if(strcmp(method, "substamp")==0)
         {
-            std::string _k = arg.substr(0, pos);
-            std::string _v = arg.substr(pos+1);
-            const char* k = _k.c_str(); 
-            const char* v = _v.c_str(); 
-
-            NPFold* sub = nullptr ; 
-            if(strcmp(method, "substamp")==0)
-            {
-                sub = substamp(v, "substamp") ; 
-            }
-            else if(strcmp(method, "subprofile")==0)
-            {
-                sub = subprofile(v, "subprofile") ; 
-            } 
-
-            if(sub == nullptr ) continue ; 
-            if(spec_ff == nullptr) spec_ff = new NPFold ; 
-            spec_ff->add_subfold(k, sub );  
+            sub = substamp(v, "substamp") ; 
         }
+        else if(strcmp(method, "subprofile")==0)
+        {
+            sub = subprofile(v, "subprofile") ; 
+        } 
+
+        if(sub == nullptr ) continue ; 
+        if(spec_ff == nullptr) spec_ff = new NPFold ; 
+        spec_ff->add_subfold(k, sub );  
     }   
+    hh << ")" ;  
+
+    if(spec_ff) spec_ff->headline = hh.str(); 
     return spec_ff ;  
 }
 

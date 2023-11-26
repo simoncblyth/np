@@ -77,8 +77,48 @@ void test_FirstToLastDigit()
           <<  std::endl 
           ;
     } 
-
 }
+
+
+const char* LABELS = R"LITERAL(
+t_BeginOfEvent
+t_setGenstep_0
+t_setGenstep_1
+t_setGenstep_2
+t_setGenstep_3
+t_setGenstep_4
+t_setGenstep_5
+t_setGenstep_6
+t_setGenstep_7
+t_setGenstep_8
+t_PreLaunch
+t_PostLaunch
+t_EndOfEvent
+)LITERAL" ; 
+
+void test_Summarize()
+{
+    std::stringstream fss(LABELS) ;
+    std::string line ; 
+    while(std::getline(fss, line)) 
+    {        
+        const char* smry = U::Summarize(line.c_str(), 7) ; 
+        std::cout 
+           << std::setw(60) << line 
+           << " : " 
+           << smry 
+           << std::endl 
+           ; 
+    }
+}
+
+void test_LineVector()
+{
+    std::vector<std::string> lines ; 
+    U::LineVector(lines, LABELS); 
+    for(int i=0 ; i < int(lines.size()) ; i++) std::cout << lines[i] << std::endl ; 
+}
+
 
 
 int main(int argc, char** argv)
@@ -87,11 +127,14 @@ int main(int argc, char** argv)
     test_FormSiblingPath(); 
     test_FormExecutableSiblingPath(argv); 
     test_SetEnvDefaultExecutableSiblingPath(argv); 
-    */
 
     test_LastDigit(); 
     test_FirstDigit(); 
     test_FirstToLastDigit(); 
+    test_Summarize(); 
+    */
+
+    test_LineVector(); 
 
     return 0 ; 
 }

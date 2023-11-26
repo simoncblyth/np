@@ -191,7 +191,7 @@ class NPMeta(object):
         """
         smry = "" 
         p = None
-        for i,c in enumerate(label):
+        for c in label:
             if p is None:                      # always take first char 
                 smry += c 
             elif c.isalnum() and p == "_":     # first alnum char after _
