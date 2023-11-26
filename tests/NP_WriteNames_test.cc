@@ -2,7 +2,7 @@
 
 #include "NP.hh"
 
-int main(int argc, char** argv)
+void test_WriteNames()
 {
     std::vector<std::string> rgb = {"red", "green", "blue" } ; 
     std::vector<std::string> cmy = {"cyan", "magenta", "yellow" } ; 
@@ -34,6 +34,24 @@ int main(int argc, char** argv)
 
        assert( strcmp( all0[i].c_str(), all[i].c_str() ) == 0 ); 
     }
+}
+
+void test_WriteNames_Simple()
+{
+    const char* fold = "/tmp/NP_WriteNames_test" ; 
+    const char* name = "simple.txt" ; 
+    std::vector<std::string> names = {"red", "green", "blue" } ; 
+
+    NP::WriteNames_Simple( fold, name, names  ); 
+}
+
+int main(int argc, char** argv)
+{
+    /*
+    test_WriteNames();     
+    */
+    test_WriteNames_Simple();     
+
     return 0 ; 
 }
 
