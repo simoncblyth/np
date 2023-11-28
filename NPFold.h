@@ -2154,7 +2154,7 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         out->add(keyname, t );
         out->add(U::FormName("delta_",keyname,nullptr), dt );
         out->add("labels", l );  
-        out->add("count", count ); 
+        out->add("subcount", count ); 
 
     }
     std::cout 

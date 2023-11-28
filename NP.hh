@@ -1748,7 +1748,14 @@ inline std::string NP::descTable_(int wid,
     const std::vector<std::string>* row_labels
   ) const 
 {
-    assert( shape.size() == 2 ); 
+    int ndim = shape.size() ; 
+    if(ndim != 2) std::cerr 
+        << " NP::descTable_"
+        << " ndim " << ndim 
+        << std::endl 
+        ;
+
+    assert( ndim == 2 ); 
     int ni = shape[0] ; 
     int nj = shape[1] ; 
     std::stringstream ss ; 
