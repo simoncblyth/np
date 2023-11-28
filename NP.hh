@@ -378,7 +378,7 @@ struct NP
     
     std::string descMeta() const ; 
 
-    static int         GetFirstStampIndex(const std::vector<int64_t>& stamps, int64_t discount=200000 );  // 200k us, ie 0.2 s 
+    static int         GetFirstStampIndex_OLD(const std::vector<int64_t>& stamps, int64_t discount=200000 );  // 200k us, ie 0.2 s 
     static std::string DescMetaKVS(const std::string& meta); 
     std::string descMetaKVS() const ; 
 
@@ -4405,8 +4405,11 @@ inline void NP::GetMetaKVS_(
             const char* v = _v.c_str(); 
             bool disqualify_key = strlen(k) > 0 && k[0] == '_' ; 
             bool looks_like_stamp = U::LooksLikeStampInt(v); 
-            int64_t t = looks_like_stamp ? U::To<int64_t>( v ) : 0  ;  
-            bool select = only_with_stamp ? ( looks_like_stamp && !disqualify_key )  : true ; 
+            bool looks_like_prof  = U::LooksLikeProfileTriplet(v); 
+            int64_t t = 0 ; 
+            if(looks_like_stamp) t = U::To<int64_t>(v) ;
+            if(looks_like_prof)  t = strtoll(v, nullptr, 10);
+            bool select = only_with_stamp ? ( t > 0 && !disqualify_key )  : true ; 
             if(!select) continue ; 
 
             if(keys) keys->push_back(k); 
@@ -4599,8 +4602,8 @@ inline std::string NP::descMeta() const
 
 
 /**
-NP::GetFirstStampIndex
------------------------
+NP::GetFirstStampIndex_OLD
+---------------------------
 
 Return index of the first stamp that has difference to 
 the next stamp of less than the discount. This is 
@@ -4608,9 +4611,11 @@ to avoid uninteresting large time ranges in the deltas.
 
 HMM: this assumes the stamps are ascending 
 
+HMM: simpler to just disqualify stamps during initialization 
+
 **/
 
-inline int NP::GetFirstStampIndex(const std::vector<int64_t>& stamps, int64_t discount ) // static
+inline int NP::GetFirstStampIndex_OLD(const std::vector<int64_t>& stamps, int64_t discount ) // static
 {
     int first = -1 ; 
     int i_prev = -1 ; 
@@ -4630,41 +4635,53 @@ inline int NP::GetFirstStampIndex(const std::vector<int64_t>& stamps, int64_t di
     return first ;     
 }
 
+
 inline std::string NP::DescMetaKVS(const std::string& meta)  // static
 {
     std::vector<std::string> keys ;  
     std::vector<std::string> vals ;  
-    std::vector<int64_t> stamps ;  
+    std::vector<int64_t> tt ;  
     bool only_with_stamp = false ; 
-    GetMetaKVS(meta, &keys, &vals, &stamps, only_with_stamp ); 
+    GetMetaKVS(meta, &keys, &vals, &tt, only_with_stamp ); 
     assert( keys.size() == vals.size() ); 
-    assert( keys.size() == stamps.size() ); 
-    assert( stamps.size() == keys.size() ); 
+    assert( keys.size() == tt.size() ); 
+    assert( tt.size() == keys.size() ); 
 
-    int idx0 = GetFirstStampIndex(stamps ); 
-    int64_t t_first = idx0 > -1 ? stamps[idx0] : -1 ; 
+    int num_keys = keys.size() ;
+    std::vector<int> ii(num_keys); 
+    std::iota(ii.begin(), ii.end(), 0); 
+    auto order = [&tt](const size_t& a, const size_t &b) { return tt[a] < tt[b];}  ; 
+    std::sort(ii.begin(), ii.end(), order );  
+
+    /*
+    int idx0 = GetFirstStampIndex(tt ); 
+    int64_t t_first = idx0 > -1 ? tt[idx0] : -1 ; 
     int64_t t_prev = -1 ; 
+    */
+
+    int64_t t_first = 0 ; 
+    int64_t t_prev  = 0 ; 
 
     std::stringstream ss ; 
-    //ss << " t_first " << t_first << " idx0 " << idx0 << std::endl ; 
-
-    for(int i=0 ; i < int(keys.size()) ; i++)
+    for(int j=0 ; j < num_keys ; j++)
     {
+        int i = ii[j] ; 
         const char* k = keys[i].c_str(); 
         const char* v = vals[i].c_str(); 
-        int64_t t = stamps[i] ; 
+        int64_t     t = tt[i] ; 
+        if(t_first == 0 && t > 0 ) t_first = t  ; 
 
-        int64_t dt0 = t > 0 && t_first > -1 ? t - t_first : -1 ; // microseconds since first stamp
-        int64_t dt  = t > 0 && t_prev  > -1 ? t - t_prev  : -1 ; // microseconds since previous stamp 
+        int64_t dt0 = t > 0 && t_first > 0 ? t - t_first : -1 ; // microseconds since first stamp
+        int64_t dt  = t > 0 && t_prev  > 0 ? t - t_prev  : -1 ; // microseconds since previous stamp 
         if(t > 0) t_prev = t ; 
  
         ss << std::setw(30) << k 
            << " : "
-           << v
+           << std::setw(35) << v
            << "   "
-           << ( t > 0 ? U::Format(t) : "" )
-           << " " << U::FormatInt(dt0, 10) 
-           << " " << U::FormatInt(dt, 10 )  
+           << std::setw(27) << (  t > 0 ? U::Format(t) : "" )
+           << " " << std::setw(11) << U::FormatInt(dt0, 11) 
+           << " " << std::setw(11) << U::FormatInt(dt , 11 )  
            << std::endl 
            ;
     }
@@ -4703,7 +4720,6 @@ inline std::string NP::DescMetaKV(const std::string& meta)  // static
 
     for(int i=0 ; i < num_keys ; i++)
     {
-        const char* k = keys[i].c_str(); 
         const char* v = vals[i].c_str(); 
         bool looks_like_stamp = U::LooksLikeStampInt(v); 
         bool looks_like_prof  = U::LooksLikeProfileTriplet(v); 
@@ -4715,8 +4731,8 @@ inline std::string NP::DescMetaKV(const std::string& meta)  // static
         if(t > 0 && t < t0) t0 = t ; 
     } 
 
-    auto fn = [&tt](const size_t& a, const size_t &b) { return tt[a] < tt[b];}  ; 
-    std::sort( ii.begin(), ii.end(), fn ); 
+    auto order = [&tt](const size_t& a, const size_t &b) { return tt[a] < tt[b];}  ; 
+    std::sort( ii.begin(), ii.end(), order ); 
 
     std::stringstream ss ; 
     ss.imbue(std::locale("")) ;  // commas for thousands
