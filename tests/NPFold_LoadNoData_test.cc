@@ -1,4 +1,4 @@
-// name=NPFold_LoadNoData_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name
+// ~/np/tests/NPFold_LoadNoData_test.sh
 
 #include "NPFold.h"
 
@@ -11,6 +11,19 @@ int main(int argc, char** argv)
  
     NPFold* f = NPFold::LoadNoData(dirp); 
 
+    const NP* run = f->get("run"); 
+    std::cout 
+        << " run " << ( run ? run->sstr() : "-" ) 
+        << std::endl 
+        << ( run ? run->meta : "-" ) 
+        << std::endl 
+        << ( run ? run->descMetaKV() : "-" ) 
+        << std::endl 
+        << ( run ? run->descMetaKVS() : "-" ) 
+        << std::endl 
+        ; 
+
+
     std::cout 
         << argv[0]
         << std::endl
@@ -18,7 +31,7 @@ int main(int argc, char** argv)
         << std::endl
         ;   
 
-    if(VERBOSE || true) std::cout 
+    if(VERBOSE) std::cout 
         << "[" << argv[0] << ".VERBOSE "
         << std::endl
         << ( f ? f->desc() : "-" )
@@ -29,3 +42,6 @@ int main(int argc, char** argv)
 
     return 0 ; 
 }
+
+// ~/np/tests/NPFold_LoadNoData_test.sh
+

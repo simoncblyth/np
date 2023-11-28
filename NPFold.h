@@ -1848,7 +1848,7 @@ inline void NPFold::setMetaKV(const std::vector<std::string>& keys, const std::v
 inline std::string NPFold::desc(int depth) const  
 {
     std::stringstream ss ; 
-    ss << "NPFold::desc depth " << depth << std::endl ; 
+    ss << "NPFold::desc( " << depth << ")" << std::endl ; 
     ss << brief() << std::endl ; 
     ss << descMetaKVS() << std::endl ; 
     for(unsigned i=0 ; i < kk.size() ; i++) 

@@ -35,6 +35,7 @@ but the headers are also copied into opticks/sysrap.
 #include <random>
 #include <map>
 #include <functional>
+#include <locale>
 
 #include "NPU.hh"
 
@@ -4694,19 +4695,45 @@ inline std::string NP::DescMetaKV(const std::string& meta)  // static
     bool only_with_profile = false ; 
     GetMetaKV(meta, &keys, &vals, only_with_profile ); 
     assert( keys.size() == vals.size() ); 
+    int num_keys = keys.size(); 
 
-    std::stringstream ss ; 
-    for(int i=0 ; i < int(keys.size()) ; i++)
+    int64_t t0 = std::numeric_limits<int64_t>::max() ; 
+    std::vector<int64_t> tt ;  
+    std::vector<int> ii ; 
+
+    for(int i=0 ; i < num_keys ; i++)
     {
         const char* k = keys[i].c_str(); 
         const char* v = vals[i].c_str(); 
         bool looks_like_stamp = U::LooksLikeStampInt(v); 
         bool looks_like_prof  = U::LooksLikeProfileTriplet(v); 
+        int64_t t = 0 ; 
+        if(looks_like_stamp) t = U::To<int64_t>(v) ;
+        if(looks_like_prof)  t = strtoll(v, nullptr, 10);
+        tt.push_back(t); 
+        ii.push_back(i); 
+        if(t > 0 && t < t0) t0 = t ; 
+    } 
+
+    auto fn = [&tt](const size_t& a, const size_t &b) { return tt[a] < tt[b];}  ; 
+    std::sort( ii.begin(), ii.end(), fn ); 
+
+    std::stringstream ss ; 
+    ss.imbue(std::locale("")) ;  // commas for thousands
+    for(int j=0 ; j < num_keys ; j++)
+    {
+        int i = ii[j] ; 
+        const char* k = keys[i].c_str(); 
+        const char* v = vals[i].c_str(); 
+        int64_t t = tt[i] ;  
+
         ss << std::setw(30) << k 
            << " : "
            << std::setw(60) << v
            << " : "
-           << ( looks_like_stamp ? "STAMP" :  ( looks_like_prof ? "PROF "  : "     " ))
+           << std::setw(12) << ( t > 0 ? t - t0 : -1 )
+           << " : "
+           << ( t > 0 ? U::Format(t) : "" )
            << std::endl 
            ;
     }
