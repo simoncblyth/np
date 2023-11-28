@@ -1,35 +1,21 @@
 #!/bin/bash -l 
 usage(){ cat << EOU
-NPFold_stamps_test.sh
+NPFold_subcount_test.sh
 =======================
 
 ::
 
-   ~/np/tests/NPFold_stamps_test.sh
-
-   PICK=AB ~/np/tests/NPFold_stamps_test.sh ana
-   PICK=A TLIM=-5,500  ~/np/tests/NPFold_stamps_test.sh ana
-
-
-For SEvt "run" folder containing p001 n001 etc.., eg::
-
-   /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/ALL/
-
-The default output FOLD when no envvar is "../$ExecutableName" eg:: 
-
-   /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/NPFold_stamps_test/
+   ~/np/tests/NPFold_subcount_test.sh
 
 EOU
 }
 
-name=NPFold_stamps_test
-export FOLD=${TMP:-/tmp/$USER/opticks}/$name  ## run + ana
-export MODE=${MODE:-2}                        ## ana
-
-bin=$FOLD/$name
-mkdir -p $FOLD
-
+name=NPFold_subcount_test
+BDIR=${TMP:-/tmp/$USER/opticks}/$name  ## run + ana
+bin=$BDIR/$name
+mkdir -p $BDIR
 SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
+script=$SDIR/$name.py 
 
 ##L
 #cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p001
@@ -43,8 +29,10 @@ cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
 [ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
 
 
-defarg="build_run_info_ana"
-#defarg="run_info"
+export FOLD=$PWD/../$name   # C++ default => python 
+
+
+defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
 vars="0 BASH_SOURCE SDIR FOLD PWD bin"
@@ -54,8 +42,6 @@ if [ "${arg/info}" != "$arg" ]; then
 fi 
 
 if [ "${arg/build}" != "$arg" ]; then
-   #opt=-DWITH_VERBOSE
-   opt=
    gcc $SDIR/$name.cc -I$SDIR/.. -g -std=c++11 -lstdc++ $opt -o $bin
    [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1 
 fi
@@ -75,7 +61,7 @@ if [ "${arg/runo}" != "$arg" ]; then
 fi
 
 if [ "${arg/ana}" != "$arg" ]; then 
-    ${IPYTHON:-ipython} --pdb -i $SDIR/$name.py 
+    ${IPYTHON:-ipython} --pdb -i $script
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
 fi
 

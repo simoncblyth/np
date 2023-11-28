@@ -19,7 +19,7 @@ int main(int argc, char** argv)
         << std::endl
         << "NPFold::LoadNoData(\"" << dirp << "\")" 
         << std::endl
-        << f->desc() 
+        //<< f->desc() 
         << std::endl 
         ; 
 

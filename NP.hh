@@ -201,7 +201,10 @@ struct NP
     std::string descValues() const ; 
 
     template<typename T>
-    std::string descTable(
+    std::string descTable(int wid=7) const ; 
+
+    template<typename T>
+    std::string descTable_(
        int wid=7, 
        const std::vector<std::string>* column_labels=nullptr, 
        const std::vector<std::string>* row_labels=nullptr
@@ -412,14 +415,16 @@ struct NP
     int load(const char* path);   
 
     int load_string_(  const char* path, const char* ext, std::string& str ); 
-    int load_strings_( const char* path, const char* ext, std::vector<std::string>& vstr ); 
+    int load_strings_( const char* path, const char* ext, std::vector<std::string>* vstr ); 
     int load_meta(  const char* path ); 
     int load_names( const char* path ); 
+    int load_labels( const char* path ); 
 
     void save_string_( const char* path, const char* ext, const std::string& str ) const ; 
     void save_strings_(const char* path, const char* ext, const std::vector<std::string>& vstr ) const ; 
     void save_meta( const char* path) const ;  
     void save_names(const char* path) const ;  
+    void save_labels(const char* path) const ;  
 
     void save_header(const char* path);   
     void old_save(const char* path) ;  // formerly the *save* methods could not be const because of update_headers
@@ -515,7 +520,8 @@ struct NP
     std::vector<char> data = {} ; 
     std::vector<int>  shape ; 
     std::string       meta ; 
-    std::vector<std::string>  names ;  // CHANGED to vector of string for convenience of reference passing, eg for CSGName
+    std::vector<std::string>  names ;  
+    std::vector<std::string>* labels ; 
 
     // non-persisted transients, set on loading 
     std::string lpath ; 
@@ -1119,6 +1125,7 @@ inline unsigned NP::prefix_size(unsigned index) const { return net_hdr::unpack(_
 inline NP::NP(const char* dtype_, const std::vector<int>& shape_ )
     :
     shape(shape_),
+    labels(nullptr),
     dtype(strdup(dtype_)),
     uifc(NPU::_dtype_uifc(dtype)),
     ebyte(NPU::_dtype_ebyte(dtype)),
@@ -1131,6 +1138,7 @@ inline NP::NP(const char* dtype_, const std::vector<int>& shape_ )
 // DEFAULT CTOR
 inline NP::NP(const char* dtype_, int ni, int nj, int nk, int nl, int nm, int no )
     :
+    labels(nullptr),
     dtype(strdup(dtype_)),
     uifc(NPU::_dtype_uifc(dtype)),
     ebyte(NPU::_dtype_ebyte(dtype)),
@@ -1729,7 +1737,13 @@ NP::descTable
 **/
 
 template<typename T>
-inline std::string NP::descTable(int wid, 
+inline std::string NP::descTable(int wid) const 
+{
+    return descTable_<T>(wid, labels, &names ); 
+}
+
+template<typename T>
+inline std::string NP::descTable_(int wid, 
     const std::vector<std::string>* column_labels, 
     const std::vector<std::string>* row_labels
   ) const 
@@ -1738,7 +1752,7 @@ inline std::string NP::descTable(int wid,
     int ni = shape[0] ; 
     int nj = shape[1] ; 
     std::stringstream ss ; 
-    ss << "NP::descTable " << sstr() << std::endl ; 
+    ss << "NP::descTable_ " << sstr() << std::endl ; 
     const T* vv = cvalues<T>() ; 
 
 
@@ -1746,11 +1760,11 @@ inline std::string NP::descTable(int wid,
     int rwid = 2*wid ; 
     
     std::vector<std::string> column_smry ; 
-    U::Summarize( column_smry, column_labels, cwid ); 
+    if(column_labels) U::Summarize( column_smry, column_labels, cwid ); 
     bool with_column_labels = int(column_smry.size()) == nj ;
 
     std::vector<std::string> row_smry ; 
-    U::Summarize( row_smry, row_labels, rwid ); 
+    if(row_labels) U::Summarize( row_smry, row_labels, rwid ); 
     bool with_row_labels = int(row_smry.size()) == ni ;
 
 
@@ -1774,26 +1788,29 @@ inline std::string NP::descTable(int wid,
         }
     }
 
-    if(with_column_labels) for(int j=0 ; j < nj ; j++) ss 
-        << ( j == 0 ? "\n" : "" ) 
-        << std::setw(cwid) 
-        << column_smry[j] 
-        << " : " 
-        << (*column_labels)[j] 
-        << std::endl 
-        ;  
+    if(with_column_labels) for(int j=0 ; j < nj ; j++) 
+    {
+        if( strcmp(column_smry[j].c_str(), (*column_labels)[j].c_str()) != 0) ss 
+            << ( j == 0 ? "\n" : "" ) 
+            << std::setw(cwid) 
+            << column_smry[j] 
+            << " : " 
+            << (*column_labels)[j] 
+            << std::endl 
+            ;  
+        }
 
-    if(with_row_labels) for(int i=0 ; i < ni ; i++) ss 
-        << ( i == 0 ? "\n" : "" ) 
-        << std::setw(rwid) 
-        << row_smry[i] 
-        << " : " 
-        << (*row_labels)[i] 
-        << std::endl 
-        ;  
-
-
-
+    if(with_row_labels) for(int i=0 ; i < ni ; i++) 
+    {
+        if( strcmp(row_smry[i].c_str(), (*row_labels)[i].c_str()) != 0) ss 
+            << ( i == 0 ? "\n" : "" ) 
+            << std::setw(rwid) 
+            << row_smry[i] 
+            << " : " 
+            << (*row_labels)[i] 
+            << std::endl 
+            ;  
+    }
 
     std::string str = ss.str(); 
     return str ; 
@@ -5163,6 +5180,7 @@ inline int NP::load(const char* _path)
 
     load_meta( path ); 
     load_names( path ); 
+    load_labels( path ); 
 
     if(VERBOSE) std::cerr << "] NP::load " << path << std::endl ; 
     return 0 ; 
@@ -5185,20 +5203,22 @@ inline int NP::load_string_( const char* path, const char* ext, std::string& str
     return 0 ; 
 }
 
-inline int NP::load_strings_( const char* path, const char* ext, std::vector<std::string>& vstr )
+inline int NP::load_strings_( const char* path, const char* ext, std::vector<std::string>* vstr )
 {
     std::string vstr_path = U::ChangeExt(path, ".npy", ext ); 
     std::ifstream fp(vstr_path.c_str(), std::ios::in);
     if(fp.fail()) return 1 ; 
 
+    if(vstr == nullptr) vstr = new std::vector<std::string> ; 
     std::string line ; 
-    while (std::getline(fp, line)) vstr.push_back(line);  // getline swallows new lines  
+    while (std::getline(fp, line)) vstr->push_back(line);  // getline swallows new lines  
     return 0 ; 
 }
 
 
 inline int NP::load_meta(  const char* path ){  return load_string_( path, "_meta.txt",  meta  ) ; }
-inline int NP::load_names( const char* path ){  return load_strings_( path, "_names.txt", names ) ; }
+inline int NP::load_names( const char* path ){  return load_strings_( path, "_names.txt", &names ) ; }
+inline int NP::load_labels( const char* path ){  return load_strings_( path, "_labels.txt", labels ) ; }
 
 
 inline void NP::save_string_(const char* path, const char* ext, const std::string& str ) const 
@@ -5226,8 +5246,9 @@ inline void NP::save_strings_(const char* path, const char* ext, const std::vect
 }
 
 
-inline void NP::save_meta( const char* path) const { save_string_(path, "_meta.txt",  meta  );  }
-inline void NP::save_names(const char* path) const { save_strings_(path, "_names.txt", names );  }
+inline void NP::save_meta(  const char* path) const { save_string_(path, "_meta.txt",  meta  );  }
+inline void NP::save_names( const char* path) const { save_strings_(path, "_names.txt", names );  }
+inline void NP::save_labels(const char* path) const { if(labels) save_strings_(path, "_labels.txt", *labels );  }
 
 
 inline void NP::save_header(const char* path)
@@ -5263,6 +5284,7 @@ inline void NP::save(const char* path_) const
 
     save_meta( path); 
     save_names(path); 
+    save_labels(path); 
 }
 
 inline void NP::save(const char* dir, const char* reldir, const char* name) const 
