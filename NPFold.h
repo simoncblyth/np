@@ -2037,7 +2037,8 @@ inline NP* NPFold::subcount( const char* prefix ) const
         a->labels->push_back(_uk); 
     } 
 
-    bool dump = false ; 
+    bool dump = getenv("NPFold__subcount_DUMP") != nullptr  ; 
+    if(dump) std::cout << "[NPFold.hh:subcount" << std::endl ; 
     if(dump) std::cout <<  " num_ukey " << num_ukey << std::endl ;
     if(dump) for(int i=0 ; i < num_ukey ; i++ ) std::cout << a->names[i] << std::endl ; 
 
@@ -2064,6 +2065,7 @@ inline NP* NPFold::subcount( const char* prefix ) const
                 ; 
         }
     }
+    if(dump) std::cout << "]NPFold.hh:subcount" << std::endl ; 
     return a ; 
 }
 
@@ -2091,7 +2093,9 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
     int num_stamp0 = num_sub > 0 ? subs[0]->getMetaNumStamp() : 0 ;  
     bool skip = num_sub == 0 || num_stamp0 == 0 ; 
 
-    std::cout 
+    bool dump = getenv("NPFold__substamp_DUMP") != nullptr ; 
+
+    if(dump) std::cout 
         << "[NPFold::substamp" 
         << " find_subfold_with_prefix " << prefix
         << " num_sub " << num_sub
@@ -2112,7 +2116,6 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         t->set_meta<std::string>("base", loaddir ? loaddir : "-" ); 
         t->set_meta<std::string>("prefix", prefix ? prefix : "-" ); 
         t->set_meta<std::string>("keyname", keyname ? keyname : "-" ); 
-       
 
         // collect metadata (k,v) pairs that are the same for all the subs
         std::vector<std::string> ckey ;  
@@ -2121,8 +2124,8 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         assert( ckey.size() == cval.size() ); 
         t->setMetaKV_(ckey, cval); 
 
-        std::vector<std::string> comkeys ; 
 
+        std::vector<std::string> comkeys ; 
         for(int i=0 ; i < ni ; i++) 
         {
             const NPFold* sub = subs[i] ; 
@@ -2135,35 +2138,43 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
 
             if(i == 0) comkeys = keys ; 
             bool same_keys = i == 0 ? true : keys == comkeys ; 
-            std::cout << sub->loaddir << " stamps.size " << stamps.size() << " " << ( same_keys ? "Y" : "N" ) << std::endl; 
+            if(dump) std::cout << sub->loaddir << " stamps.size " << stamps.size() << " " << ( same_keys ? "Y" : "N" ) << std::endl; 
             assert(same_keys); 
 
             for(int j=0 ; j < nj ; j++) tt[i*nj+j] = stamps[j] ; 
             t->names.push_back(subpath); 
 
         }
+        t->labels = new std::vector<std::string>(comkeys.begin(), comkeys.end())  ; 
 
-
-        NP* l = NPX::MakeCharArray(comkeys); 
-        l->names = comkeys ; 
+        //NP* l = NPX::MakeCharArray(comkeys); 
+        //l->names = comkeys ; 
 
         NP* dt = NP::DeltaColumn<int64_t>(t); 
+        dt->names = t->names ; 
+        dt->labels = new std::vector<std::string>(comkeys.begin(), comkeys.end())  ; 
+
         NP* count = subcount(prefix); 
 
         out = new NPFold ; 
         out->add(keyname, t );
         out->add(U::FormName("delta_",keyname,nullptr), dt );
-        out->add("labels", l );  
+        //out->add("labels", l );  
         out->add("subcount", count ); 
 
     }
-    std::cout 
+    if(dump) std::cout 
         << "]NPFold::substamp" 
         << std::endl
         ;
     return out ; 
-
 }
+
+
+
+
+
+
 
 
 

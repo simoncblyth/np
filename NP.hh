@@ -1748,75 +1748,85 @@ inline std::string NP::descTable_(int wid,
     const std::vector<std::string>* row_labels
   ) const 
 {
-    int ndim = shape.size() ; 
-    if(ndim != 2) std::cerr 
-        << " NP::descTable_"
-        << " ndim " << ndim 
-        << std::endl 
-        ;
-
-    assert( ndim == 2 ); 
-    int ni = shape[0] ; 
-    int nj = shape[1] ; 
     std::stringstream ss ; 
     ss << "NP::descTable_ " << sstr() << std::endl ; 
-    const T* vv = cvalues<T>() ; 
-
-
-    int cwid = wid ; 
-    int rwid = 2*wid ; 
-    
-    std::vector<std::string> column_smry ; 
-    if(column_labels) U::Summarize( column_smry, column_labels, cwid ); 
-    bool with_column_labels = int(column_smry.size()) == nj ;
-
-    std::vector<std::string> row_smry ; 
-    if(row_labels) U::Summarize( row_smry, row_labels, rwid ); 
-    bool with_row_labels = int(row_smry.size()) == ni ;
-
-
-    if(with_column_labels) for(int j=0 ; j < nj ; j++) ss 
-        << U::Space( with_row_labels && j == 0  ? rwid+1 : 0 ) 
-        << std::setw(cwid) 
-        << column_smry[j] 
-        << ( j < nj -1 ? " " : "\n" ) 
-        ;  
-
-    for(int i=0 ; i < ni ; i++) 
+    int ndim = shape.size() ; 
+    bool skip = ndim != 2 ; 
+    if(skip) 
     {
-        if(with_row_labels) ss << std::setw(rwid) << row_smry[i] << " " ; 
-        for(int j=0 ; j < nj ; j++) 
-        {
-            ss
-                << std::setw(cwid) 
-                << vv[i*nj+j] 
-                << ( j < nj -1 ? " " : "\n" ) 
-                ; 
-        }
+        ss << " ERROR : UNEXPECTED SHAPE ndim " << ndim << std::endl ;
+        ss << " column_labels " << std::endl ; 
+        if(column_labels) for(int i=0 ; i < int(column_labels->size()) ; i++) ss << (*column_labels)[i] << std::endl ; 
+        ss << " row_labels " << std::endl ; 
+        if(row_labels) for(int i=0 ; i < int(row_labels->size()) ; i++) ss << (*row_labels)[i] << std::endl ; 
     }
 
-    if(with_column_labels) for(int j=0 ; j < nj ; j++) 
+    if(!skip)
     {
-        if( strcmp(column_smry[j].c_str(), (*column_labels)[j].c_str()) != 0) ss 
-            << ( j == 0 ? "\n" : "" ) 
+        int ni = shape[0] ; 
+        int nj = shape[1] ; 
+        const T* vv = cvalues<T>() ; 
+        int cwid = wid ; 
+        int rwid = 2*wid ; 
+        
+        std::vector<std::string> column_smry ; 
+        if(column_labels) U::Summarize( column_smry, column_labels, cwid ); 
+        bool with_column_labels = int(column_smry.size()) == nj ;
+
+        std::vector<std::string> row_smry ; 
+        if(row_labels) U::Summarize( row_smry, row_labels, rwid ); 
+        bool with_row_labels = int(row_smry.size()) == ni ;
+
+
+        if(with_column_labels) for(int j=0 ; j < nj ; j++) ss 
+            << U::Space( with_row_labels && j == 0  ? rwid+1 : 0 ) 
             << std::setw(cwid) 
             << column_smry[j] 
-            << " : " 
-            << (*column_labels)[j] 
-            << std::endl 
+            << ( j < nj -1 ? " " : "\n" ) 
             ;  
+
+        for(int i=0 ; i < ni ; i++) 
+        {
+            if(with_row_labels) ss << std::setw(rwid) << row_smry[i] << " " ; 
+            for(int j=0 ; j < nj ; j++) 
+            {
+                ss
+                    << std::setw(cwid) 
+                    << vv[i*nj+j] 
+                    << ( j < nj -1 ? " " : "\n" ) 
+                    ; 
+            }
         }
 
-    if(with_row_labels) for(int i=0 ; i < ni ; i++) 
-    {
-        if( strcmp(row_smry[i].c_str(), (*row_labels)[i].c_str()) != 0) ss 
-            << ( i == 0 ? "\n" : "" ) 
-            << std::setw(rwid) 
-            << row_smry[i] 
-            << " : " 
-            << (*row_labels)[i] 
-            << std::endl 
-            ;  
+        if(with_column_labels) 
+        {
+            for(int j=0 ; j < nj ; j++) 
+            {
+                if( strcmp(column_smry[j].c_str(), (*column_labels)[j].c_str()) != 0) ss 
+                    << ( j == 0 ? "\n" : "" ) 
+                    << std::setw(cwid) 
+                    << column_smry[j] 
+                    << " : " 
+                    << (*column_labels)[j] 
+                    << std::endl 
+                    ;
+            }  
+        }
+
+        if(with_row_labels) 
+        {
+            for(int i=0 ; i < ni ; i++) 
+            {
+                if( strcmp(row_smry[i].c_str(), (*row_labels)[i].c_str()) != 0) ss 
+                    << ( i == 0 ? "\n" : "" ) 
+                    << std::setw(rwid) 
+                    << row_smry[i] 
+                    << " : " 
+                    << (*row_labels)[i] 
+                    << std::endl 
+                    ;  
+            }
+        }
     }
 
     std::string str = ss.str(); 
@@ -4677,13 +4687,8 @@ inline std::string NP::DescMetaKVS(const std::string& meta)  // static
     auto order = [&tt](const size_t& a, const size_t &b) { return tt[a] < tt[b];}  ; 
     std::sort(ii.begin(), ii.end(), order );  
 
-    /*
-    int idx0 = GetFirstStampIndex(tt ); 
-    int64_t t_first = idx0 > -1 ? tt[idx0] : -1 ; 
-    int64_t t_prev = -1 ; 
-    */
-
     int64_t t_first = 0 ; 
+    int64_t t_second = 0 ; 
     int64_t t_prev  = 0 ; 
 
     std::stringstream ss ; 
@@ -4693,10 +4698,13 @@ inline std::string NP::DescMetaKVS(const std::string& meta)  // static
         const char* k = keys[i].c_str(); 
         const char* v = vals[i].c_str(); 
         int64_t     t = tt[i] ; 
+
+        if(t_first > 0 && t_second == 0 && t > 0 ) t_second = t  ; 
         if(t_first == 0 && t > 0 ) t_first = t  ; 
 
-        int64_t dt0 = t > 0 && t_first > 0 ? t - t_first : -1 ; // microseconds since first stamp
-        int64_t dt  = t > 0 && t_prev  > 0 ? t - t_prev  : -1 ; // microseconds since previous stamp 
+        int64_t dt0 = t > 0 && t_first  > 0 ? t - t_first  : -1 ; // microseconds since first 
+        int64_t dt1 = t > 0 && t_second > 0 ? t - t_second : -1 ; // microseconds since second
+        int64_t dt  = t > 0 && t_prev   > 0 ? t - t_prev   : -1 ; // microseconds since previous stamp 
         if(t > 0) t_prev = t ; 
  
         ss << std::setw(30) << k 
@@ -4705,6 +4713,7 @@ inline std::string NP::DescMetaKVS(const std::string& meta)  // static
            << "   "
            << std::setw(27) << (  t > 0 ? U::Format(t) : "" )
            << " " << std::setw(11) << U::FormatInt(dt0, 11) 
+           << " " << std::setw(11) << U::FormatInt(dt1, 11) 
            << " " << std::setw(11) << U::FormatInt(dt , 11 )  
            << std::endl 
            ;
@@ -4769,7 +4778,7 @@ inline std::string NP::DescMetaKV(const std::string& meta)  // static
 
         ss << std::setw(30) << k 
            << " : "
-           << std::setw(60) << v
+           << std::setw(35) << v
            << " : "
            << std::setw(12) << ( t > 0 ? t - t0 : -1 )
            << " : "
