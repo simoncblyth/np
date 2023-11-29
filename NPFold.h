@@ -242,6 +242,9 @@ public:
 
 
     const NP* get(const char* k) const ; 
+    NP*       get_(const char* k); 
+
+
     const NP* get_optional(const char* k) const ; 
     int   get_num(const char* k) const ;   // number of items in array 
     void  get_counts( std::vector<std::string>* keys, std::vector<int>* counts ) const ; 
@@ -316,6 +319,12 @@ public:
 
     template<typename ... Args>
     NPFold* subfold_summary(const char* method, Args ... args_  ) const  ; 
+
+    template<typename F, typename T>
+    NP* compare_subarrays(const char* key, const char* asym="a", const char* bsym="b", std::ostream* out=nullptr  ); 
+
+    template<typename F, typename T>
+    std::string compare_subarrays_report(const char* key, const char* asym="a", const char* bsym="b" ); 
  
 
     static void Subkey(std::vector<std::string>& ukey, const std::vector<const NPFold*>& subs ); 
@@ -1329,6 +1338,13 @@ inline const NP* NPFold::get(const char* k) const
     return idx == UNDEF ? nullptr : aa[idx] ; 
 }
 
+inline NP* NPFold::get_(const char* k)
+{
+    const NP* a = get(k) ; 
+    return const_cast<NP*>(a) ; 
+}
+
+
 /**
 NPFold::get_optional
 ---------------------
@@ -2159,7 +2175,6 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         out = new NPFold ; 
         out->add(keyname, t );
         out->add(U::FormName("delta_",keyname,nullptr), dt );
-        //out->add("labels", l );  
         out->add("subcount", count ); 
 
     }
@@ -2169,12 +2184,6 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         ;
     return out ; 
 }
-
-
-
-
-
-
 
 
 
@@ -2326,7 +2335,6 @@ inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) con
 
     NPFold* spec_ff = nullptr ; 
 
-
     for(int i=0 ; i < num_uargs ; i++)
     {
         const std::string& arg = uargs[i] ; 
@@ -2372,6 +2380,77 @@ inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) con
 template NPFold* NPFold::subfold_summary( const char*, const char* ) const ;
 template NPFold* NPFold::subfold_summary( const char*, const char*, const char* ) const ;
 template NPFold* NPFold::subfold_summary( const char*, const char*, const char*, const char* ) const ;
+
+
+/**
+NPFold::compare_subarrays
+----------------------------
+
+**/
+
+template<typename F, typename T>
+NP* NPFold::compare_subarrays(const char* key, const char* asym, const char* bsym,  std::ostream* out  )
+{
+    NPFold* af = find_subfold_(asym) ; 
+    NPFold* bf = find_subfold_(bsym) ; 
+    NP* a = af ? af->get_(key) : nullptr ; 
+    NP* b = bf ? bf->get_(key) : nullptr ; 
+
+    const NP* a_subcount = af ? af->get("subcount") : nullptr ; 
+    const NP* b_subcount = bf ? bf->get("subcount") : nullptr ; 
+ 
+    int a_column = -1 ; 
+    int b_column = -1 ; 
+
+    NP* boa = NPX::BOA<F,T>( a, b, a_column, a_column, out ); 
+
+    if(out) *out 
+       << "[NPFold::compare_subarray"
+       << " key " << key 
+       << " asym " << asym 
+       << " bsym " << bsym 
+       << " af " << ( af ? "YES" : "NO " )
+       << " bf " << ( bf ? "YES" : "NO " )
+       << " a " << ( a ? "YES" : "NO " )
+       << " b " << ( b ? "YES" : "NO " )
+       << " a_subcount " << ( a_subcount ? "YES" : "NO " )
+       << " b_subcount " << ( b_subcount ? "YES" : "NO " )
+       << " boa " << ( boa ? "YES" : "NO " )
+       << std::endl 
+       << "-NPFold::compare_subarray.a_subcount" 
+       << std::endl 
+       << ( a_subcount ? a_subcount->descTable<int>(8) : "-" )
+       << std::endl 
+       << "-NPFold::compare_subarray.b_subcount" 
+       << std::endl 
+       << ( b_subcount ? b_subcount->descTable<int>(8) : "-" )
+       << std::endl 
+       << "-NPFold::compare_subarray." << asym 
+       << std::endl
+       << ( a ? a->descTable<T>(8) : "-" )
+       << std::endl
+       << "-NPFold::compare_subarray." << bsym 
+       << std::endl
+       << ( b ? b->descTable<T>(8) : "-" )
+       << std::endl
+       << "-NPFold::compare_subarray.boa "
+       << std::endl 
+       << ( boa ? boa->descTable<F>(12) : "-" ) 
+       << std::endl
+       << "]NPFold::compare_subarray"
+       << std::endl
+       ;
+    return boa ; 
+}  
+
+template<typename F, typename T>
+std::string NPFold::compare_subarrays_report(const char* key, const char* asym, const char* bsym )
+{
+    std::stringstream ss ; 
+    compare_subarrays<F, T>(key, asym, bsym, &ss );
+    std::string str = ss.str(); 
+    return str ; 
+}
 
 
 
