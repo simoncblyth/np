@@ -1086,7 +1086,7 @@ inline void NPFold::clear_(const std::vector<std::string>* keep)
     }
 
     subfold.clear();
-    ff.clear(); 
+    ff.clear();       // folder keys 
 }
 
 /**
@@ -2158,7 +2158,20 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
             std::vector<int64_t>   stamps ; 
             bool only_with_stamps = true ; 
             sub->getMetaKVS(&keys, nullptr, &stamps, only_with_stamps ); 
-            assert( int(stamps.size()) == nj ) ; 
+
+            int num_stamp = stamps.size() ;
+            bool consistent_num_stamp = num_stamp == nj ;  
+        
+            if(!consistent_num_stamp) std::cerr 
+                << "NPFold::substamp"
+                << " i " << i 
+                << " subpath " << ( subpath ? subpath : "-" )
+                << " consistent_num_stamp " << ( consistent_num_stamp ? "YES" : "NO " )
+                << " num_stamp " << num_stamp
+                << " nj " << nj 
+                << std::endl 
+                ;
+            assert(consistent_num_stamp) ; 
 
             if(i == 0) comkeys = keys ; 
             bool same_keys = i == 0 ? true : keys == comkeys ; 
@@ -2171,8 +2184,6 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         }
         t->labels = new std::vector<std::string>(comkeys.begin(), comkeys.end())  ; 
 
-        //NP* l = NPX::MakeCharArray(comkeys); 
-        //l->names = comkeys ; 
 
         NP* dt = NP::DeltaColumn<int64_t>(t); 
         dt->names = t->names ; 
@@ -2184,7 +2195,6 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         out->add(keyname, t );
         out->add(U::FormName("delta_",keyname,nullptr), dt );
         out->add("subcount", count ); 
-
     }
     if(dump) std::cout 
         << "]NPFold::substamp" 
@@ -2216,12 +2226,11 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
     std::vector<std::string> subpaths ; 
     find_subfold_with_prefix(subs, &subpaths,  prefix );  
     assert( subs.size() == subpaths.size() ); 
-
     int num_sub = int(subs.size()) ; 
     int num_prof0 = num_sub > 0 ? subs[0]->getMetaNumProfile() : 0 ;  
     bool skip = num_sub == 0 || num_prof0 == 0 ; 
 
-    bool dump = false ; 
+    bool dump = getenv("NPFold__subprofile_DUMP") != nullptr ; 
 
     if(dump) std::cout 
         << "[NPFold::subprofile"
@@ -2293,13 +2302,10 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
             }
             t->names.push_back(subpath); 
         }
-
-        NP* l = NPX::MakeCharArray(comkeys); 
-        l->names = comkeys ; 
+        t->labels = new std::vector<std::string>(comkeys.begin(), comkeys.end())  ; 
 
         out = new NPFold ; 
         out->add(keyname, t );
-        out->add("labels", l ) ; 
     }
     std::cout 
         << "]NPFold::subprofile" 
@@ -2313,6 +2319,10 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
 /**
 NPFold::subfold_summary
 -----------------------
+
+Applies the substamp or subprofile methods to each subfold
+found within this NPFold creating summary sub for 
+each group of subfold specified by the argument paths. 
 
 ::
 
