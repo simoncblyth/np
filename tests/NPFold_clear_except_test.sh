@@ -1,7 +1,18 @@
 #!/bin/bash -l 
+usage(){ cat << EOU
+NPFold_clear_except_test.sh
+=============================
+
+~/np/tests/NPFold_clear_except_test.sh
+
+
+EOU
+}
 
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
+
+cd $(dirname $BASH_SOURCE)
 
 name=NPFold_clear_except_test 
 export FOLD=/tmp/$name
@@ -19,7 +30,7 @@ if [ "${arg/clean}" != "$arg" ]; then
 fi 
 
 if [ "${arg/build}" != "$arg" ]; then 
-   gcc $name.cc -std=c++11 -lstdc++ -I.. -o $bin
+   gcc $name.cc -g -std=c++11 -lstdc++ -I.. -o $bin
    [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1
 fi 
 
@@ -29,10 +40,7 @@ if [ "${arg/run}" != "$arg" ]; then
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-   case $(uname) in 
-      Darwin) lldb__ $bin  ;;
-      Linux)  gdb__ $bin  ;;
-   esac
+   dbg__ $bin 
    [ $? -ne 0 ] && echo $BASH_SOURCE : dbg error && exit 3
 fi 
 
