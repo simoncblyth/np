@@ -81,9 +81,9 @@ void test_FirstToLastDigit()
 
 
 const char* LABELS = R"LITERAL(
-t_BeginOfEvent
-t_setGenstep_0
-t_setGenstep_1
+   t_BeginOfEvent
+   t_setGenstep_0
+   t_setGenstep_1
 t_setGenstep_2
 t_setGenstep_3
 t_setGenstep_4
@@ -112,12 +112,65 @@ void test_Summarize()
     }
 }
 
+
 void test_LineVector()
 {
+    std::cout << __FUNCTION__  << std::endl ; 
     std::vector<std::string> lines ; 
     U::LineVector(lines, LABELS); 
-    for(int i=0 ; i < int(lines.size()) ; i++) std::cout << lines[i] << std::endl ; 
+    for(int i=0 ; i < int(lines.size()) ; i++) std::cout << "[" << lines[i] << "]" << std::endl ; 
 }
+
+
+const char* RANGES_0 = R"(
+        CSGFoundry__Load_HEAD:CSGFoundry__Load_TAIL
+        CSGOptiX__Create_HEAD:CSGOptiX__Create_TAIL
+        QSim__simulate_PREL:QSim__simulate_POST
+       )" ; 
+
+
+void test_Literal()
+{
+    std::cout << __FUNCTION__  << std::endl ; 
+    std::vector<std::string> lines ; 
+
+    U::Literal(lines, RANGES_0 );
+    int num_lines = lines.size() ; 
+
+    for(int i=0 ; i < num_lines ; i++) std::cout 
+        << "[" << lines[i] << "]" 
+        << std::endl
+        ; 
+}
+
+const char* RANGES_1 = R"(
+        SEvt__Init_RUN_META:CSGFoundry__Load_HEAD       
+        CSGFoundry__Load_HEAD:CSGFoundry__Load_TAIL     ## load geom 
+        CSGOptiX__Create_HEAD:CSGOptiX__Create_TAIL     ## upload geom
+        QSim__simulate_HEAD:QSim__simulate_PREL         ## upload genstep
+        QSim__simulate_PREL:QSim__simulate_POST         ## simulate kernel
+        QSim__simulate_POST:QSim__simulate_TAIL         ## download 
+        QSim__simulate_TAIL:CSGOptiX__SimulateMain_TAIL
+       )" ; 
+
+void test_LiteralAnno()
+{
+    std::cout << __FUNCTION__  << std::endl ; 
+    std::vector<std::string> field ; 
+    std::vector<std::string> anno ; 
+
+    U::LiteralAnno(field, anno, RANGES_1, "#" );
+    assert( field.size() == anno.size() ) ; 
+ 
+    int num_field = field.size() ; 
+
+    for(int i=0 ; i < num_field ; i++) std::cout 
+        << "[" << field[i] << "]" 
+        << "[" << anno[i] << "]" 
+        << std::endl
+        ; 
+}
+
 
 
 
@@ -133,8 +186,10 @@ int main(int argc, char** argv)
     test_FirstToLastDigit(); 
     test_Summarize(); 
     */
-
     test_LineVector(); 
+    test_Literal(); 
+    test_LiteralAnno(); 
+
 
     return 0 ; 
 }
