@@ -1,4 +1,4 @@
-// name=NP_makeMetaKVProfileArray_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name
+// ~/np/tests/NP_makeMetaKVProfileArray_test.sh 
 
 #include "NP.hh"
 
