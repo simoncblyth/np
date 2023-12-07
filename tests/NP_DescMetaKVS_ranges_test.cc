@@ -1,4 +1,4 @@
-// name=NP_DescMetaKVS_ranges_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name
+// ~/np/tests/NP_DescMetaKVS_ranges_test.sh
 
 #include "NP.hh"
 
@@ -47,7 +47,6 @@ int main()
      };
 
     assert( keys.size() == tt.size() ) ; 
-    int64_t t0 = 1 ; 
 
     static constexpr const char* RANGES = R"( 
         SEvt__Init_RUN_META:CSGFoundry__Load_HEAD       
@@ -60,6 +59,19 @@ int main()
        )" ; 
 
 
-    std::cout << NP::DescMetaKVS_ranges(keys, tt, t0, RANGES ) << std::endl ;
+
+
+    std::cout << NP::DescMetaKVS_ranges(keys, tt, RANGES ) << std::endl ;
+
+
+    NP* rr = NP::MakeMetaKVS_ranges(keys, tt, RANGES ) ; 
+
+    std::cout << rr->descTable<int64_t>(20) ; 
+
+
     return 0 ; 
 }
+
+// ~/np/tests/NP_DescMetaKVS_ranges_test.sh
+
+

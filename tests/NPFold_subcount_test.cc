@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     NPFold* f = NPFold::LoadNoData(dirp); 
 
     std::cout << "[NPFold_subcount_test.subcount" << std::endl ; 
-    NP* count = f->subcount("//p") ; 
+    NP* count = f->subcount("//A") ; 
     std::cout << "]NPFold_subcount_test.subcount" << std::endl ; 
 
     std::cout 

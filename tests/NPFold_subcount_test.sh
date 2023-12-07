@@ -17,16 +17,27 @@ mkdir -p $BDIR
 SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 script=$SDIR/$name.py 
 
-##L
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p001
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/n010
-##N
-cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
-#cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
 
-#cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/ALL
-[ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
+source $HOME/.opticks/GEOM/GEOM.sh 
+
+
+job=N7
+JOB=${JOB:-$job}
+
+DIR=unknown 
+case $JOB in  
+  L1) DIR=/hpcfs/juno/junogpu/$USER/tmp/GEOM/$GEOM/jok-tds/ALL0 ;;
+  N1) DIR=/data/$USER/opticks/GEOM/$GEOM/jok-tds/ALL0 ;;
+  N2) DIR=/data/$USER/opticks/GEOM/$GEOM/G4CXTest/ALL0 ;;
+  N3) DIR=/data/$USER/opticks/GEOM/$GEOM/CSGOptiXSMTest/ALL2 ;;
+  N4) DIR=/data/$USER/opticks/GEOM/$GEOM/G4CXTest/ALL2 ;;
+  N5) DIR=/data/$USER/opticks/GEOM/$GEOM/G4CXTest/ALL3 ;;
+  N6) DIR=/data/$USER/opticks/GEOM/$GEOM/CSGOptiXSMTest/ALL3 ;;
+  N7) DIR=/data/$USER/opticks/GEOM/$GEOM/CSGOptiXSMTest/ALL1 ;;
+esac
+
+cd $DIR
+[ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY $DIR JOB $JOB && exit 0 
 
 
 export FOLD=$PWD/../$name   # C++ default => python 
@@ -35,7 +46,7 @@ export FOLD=$PWD/../$name   # C++ default => python
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
-vars="0 BASH_SOURCE SDIR FOLD PWD bin"
+vars="0 BASH_SOURCE SDIR FOLD PWD bin GEOM JOB DIR"
 
 if [ "${arg/info}" != "$arg" ]; then
     for var in $vars ; do printf "%25s : %s \n" "$var" "${!var}" ; done 

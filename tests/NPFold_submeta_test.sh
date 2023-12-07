@@ -19,17 +19,28 @@ export MODE=2
 bin=$FOLD/$name
 mkdir -p $FOLD
 
-SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
+SDIR=$(dirname $(realpath $BASH_SOURCE))
 
+source $HOME/.opticks/GEOM/GEOM.sh 
 
-##L
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p001
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
-#cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/n010
-##N
-cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
-#cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
-[ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
+job=N7
+JOB=${JOB:-$job}
+
+DIR=unknown 
+case $JOB in  
+  L1) DIR=/hpcfs/juno/junogpu/$USER/tmp/GEOM/$GEOM/jok-tds/ALL0 ;;
+  N1) DIR=/data/$USER/opticks/GEOM/$GEOM/jok-tds/ALL0 ;;
+  N2) DIR=/data/$USER/opticks/GEOM/$GEOM/G4CXTest/ALL0 ;;
+  N3) DIR=/data/$USER/opticks/GEOM/$GEOM/CSGOptiXSMTest/ALL2 ;;
+  N4) DIR=/data/$USER/opticks/GEOM/$GEOM/G4CXTest/ALL2 ;;
+  N5) DIR=/data/$USER/opticks/GEOM/$GEOM/G4CXTest/ALL3 ;;
+  N6) DIR=/data/$USER/opticks/GEOM/$GEOM/CSGOptiXSMTest/ALL3 ;;
+  N7) DIR=/data/$USER/opticks/GEOM/$GEOM/CSGOptiXSMTest/ALL1 ;;
+esac
+
+cd $DIR
+[ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY $DIR JOB $JOB && exit 0 
+
 
 
 #opt=-DWITH_VERBOSE
@@ -50,14 +61,19 @@ if [ "${arg/build}" != "$arg" ]; then
 fi
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-    dbg__ $bin @$PWD
+    dbg__ $bin $PWD
     [ $? -ne 0 ] && echo $BASH_SOURCE : dbg1 error && exit 3
 fi
 
 if [ "${arg/run}" != "$arg" ]; then 
-    $bin @$PWD
+    $bin $PWD
     [ $? -ne 0 ] && echo $BASH_SOURCE : run1 error && exit 3
 fi
+
+if [ "${arg/noana}" != "$arg" ]; then 
+    exit 0 
+fi 
+
 
 if [ "${arg/ana}" != "$arg" ]; then 
     ${IPYTHON:-ipython} --pdb -i $SDIR/$name.py 
