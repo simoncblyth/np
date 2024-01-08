@@ -1,10 +1,8 @@
-// name=NPFold_basic_test ; export FOLD=/tmp/$name ; mkdir -p $FOLD ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o $FOLD/$name && $FOLD/$name
+// ~/np/tests/NPFold_basic_test.sh
 
 #include "NPFold.h"
 
-const char* FOLD = getenv("FOLD"); 
-
-int main(int argc, char** argv)
+void test_save_load()
 {
     NPFold* f0 = new NPFold ; 
 
@@ -17,18 +15,35 @@ int main(int argc, char** argv)
     f0->add("a", a ); 
     f0->add("b", b ); 
 
-    f0->save(FOLD); 
+    f0->save("$FOLD"); 
 
 
-    NPFold* f1 = NPFold::Load(FOLD); 
+    NPFold* f1 = NPFold::Load("$FOLD"); 
 
     const NP* a1 = f1->get("a"); 
     const NP* b1 = f1->get("b"); 
 
     std::cout << " a1 " << a1->repr<int>() << std::endl ; 
     std::cout << " b1 " << b1->repr<double>() << std::endl ; 
+}
+
+void test_save_load_empty()
+{
+    NPFold* f0 = new NPFold ; 
+    f0->save("$FOLD/empty"); 
+
+    NPFold* f1 = NPFold::Load("$FOLD/empty"); 
+
+}
 
 
+
+int main(int argc, char** argv)
+{
+    /*
+    test_save_load(); 
+    */
+    test_save_load_empty(); 
 
     return 0 ; 
 }
