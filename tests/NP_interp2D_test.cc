@@ -27,11 +27,15 @@ int NP_interp2D_test<T>::flat()
 
     T dmax = T(0.) ; 
 
-    for(int i=0 ; i < ni*fac ; i++)
-    for(int j=0 ; j < nj*fac ; j++) 
+    // NB: the i_dim = 10, so the i range need to be [0, 90] when the frac = 10.
+    // thus the  i should range from 0 to (ni-1)*frac
+    //
+    // And we need to convert i to x : [0, (ni-1)*frac] --> [ 0.5,  (i_dim-1)+0.5 ]
+    for(int i=0 ; i < (ni-1)*fac ; i++)
+    for(int j=0 ; j < (nj-1)*fac ; j++) 
     {
-        T x = T(i)/T(fac) ; 
-        T y = T(j)/T(fac) ; 
+        T x = T(i)/T(fac)+T(0.5) ; 
+        T y = T(j)/T(fac)+T(0.5) ; 
         T v = a->interp2D( x, y ) ; 
         T d = std::abs( v - flat ) ; 
 
