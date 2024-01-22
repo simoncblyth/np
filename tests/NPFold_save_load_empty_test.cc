@@ -19,6 +19,8 @@ int main(int argc, char** argv)
     fold->add_subfold( "a", a  ); 
     fold->add_subfold( "b", b  ); 
     fold->add_subfold( "c", c  ); 
+    fold->set_allowempty_r(); 
+
     fold->save("$FOLD"); 
 
     NPFold* fold1 = NPFold::Load("$FOLD") ; 
