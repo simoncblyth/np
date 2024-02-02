@@ -2,6 +2,8 @@
 
 name=NPX_ArrayFromDiscoMapUnordered_test
 
+cd $(dirname $(realpath $BASH_SOURCE)) 
+
 export FOLD=/tmp/$name
 mkdir -p $FOLD
 

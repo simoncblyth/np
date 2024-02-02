@@ -3,7 +3,7 @@
 #include "NPX.h"
 
 
-int main(int argc, char** argv)
+int test_roundtrip_0()
 {
     std::unordered_map<int, int> m0 ; 
     m0[0] = 0 ; 
@@ -19,11 +19,8 @@ int main(int argc, char** argv)
 
     std::cout << "m0" << std::endl << NPX::DescDiscoMapUnordered(m0) ; 
 
-
     NP* a = NPX::ArrayFromDiscoMapUnordered<int>( m0 ); 
-
-    if(a == nullptr) std::cerr << argv[0] << " " << " FATAL a null " << std::endl ; 
-    assert(a); 
+    if(a == nullptr) return 1 ; 
 
     std::unordered_map<int, int> m1 ; 
     NPX::DiscoMapUnorderedFromArray<int>( m1, a ); 
@@ -32,6 +29,15 @@ int main(int argc, char** argv)
 
     a->save("$FOLD/a.npy" ); 
 
+    return 0 ; 
+}
+
+
+
+int main(int argc, char** argv)
+{
+    int rc = test_roundtrip_0();
+    if(rc != 0) std::cerr << argv[0] << " " << " FATAL " << std::endl ; 
 
     return 0 ; 
 }
