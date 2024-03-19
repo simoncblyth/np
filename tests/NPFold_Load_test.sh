@@ -1,7 +1,19 @@
 #!/bin/bash -l 
+usage(){ cat << EOU
+
+~/np/tests/NPFold_Load_test.sh
+
+EOU
+}
+
+cd $(dirname $(realpath $BASH_SOURCE))
 
 name=NPFold_Load_test 
 bin=/tmp/$name 
+
+#export NPFold__load_DUMP=1
+export NPFold__load_index_DUMP=1
+export NPFold__load_dir_DUMP=1
 
 source $HOME/.opticks/GEOM/GEOM.sh 
 

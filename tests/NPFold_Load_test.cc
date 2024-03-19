@@ -1,8 +1,15 @@
-// ./NPFold_Load_test.sh
+// ~/np/tests/NPFold_Load_test.sh
 
 #include "NPFold.h"
 
 const char* BASE = "$HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim" ;    
+
+void test_Load_material()
+{
+    NPFold* m = NPFold::Load(BASE,"stree/material") ;   
+    std::cout << m->desc() ; 
+}
+
 
 void test_Load()
 {
@@ -46,8 +53,9 @@ int main()
 {
     /*
     test_find_subfold(); 
-    */
     test_find_array(); 
-
+    test_Load(); 
+    */
+    test_Load_material(); 
     return 0 ; 
 }
