@@ -1,6 +1,6 @@
 #!/bin/bash -l 
 
-sysrap_names="NP.hh NPU.hh NPFold.h NPX.h"
+sysrap_names="np.h NP.hh NPU.hh NPFold.h NPX.h"
 
 
 for name in $sysrap_names ; do 

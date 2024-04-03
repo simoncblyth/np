@@ -3,7 +3,9 @@
 np.h
 =====
 
-Extract from NP.hh NPU.hh the minimal way to write NumPy file
+https://github.com/simoncblyth/np/
+
+Extract from NP.hh NPU.hh minimal-ish code to write a NumPy file
 
 **/
 #include <cassert>
@@ -79,7 +81,7 @@ inline std::string np::_little_endian_short_string( uint16_t dlen )
     len.u16 = dlen ; 
 
     unsigned one = 1u ; 
-    char e = *(char *)&one == 1u ? ENDIAN_LITTLE : ENDIAN_BIG ;   
+    char e = *(char *)&one == 1 ? ENDIAN_LITTLE : ENDIAN_BIG ;   
     std::string hlen(2, ' ') ;
     hlen[0] = e == ENDIAN_LITTLE ? len.c[0] : len.c[1] ;  
     hlen[1] = e == ENDIAN_LITTLE ? len.c[1] : len.c[0] ; 
