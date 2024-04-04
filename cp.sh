@@ -2,6 +2,8 @@
 
 sysrap_names="np.h NP.hh NPU.hh NPFold.h NPX.h"
 
+optical_names="np.h"
+
 
 for name in $sysrap_names ; do 
     cmd="diff $name ~/opticks/sysrap/$name"
@@ -18,6 +20,23 @@ for name in $sysrap_names ; do
        fi 
     fi 
 done 
+
+for name in $optical_names ; do 
+    cmd="diff $name ~/opticks/examples/Geant4/OpticalApp/$name"
+    echo $cmd
+    eval $cmd
+    rc=$?
+    echo rc $rc 
+
+    if [ $rc -ne 0 ]; then 
+       cpcmd="cp $name ~/opticks/examples/Geant4/OpticalApp/$name"
+       read -p "Enter YES to proceed with : $cpcmd : "  ans
+       if [ "$ans" == "YES" ]; then
+           eval $cpcmd
+       fi 
+    fi 
+done 
+
 
 
 ana_names="npmeta.py"
