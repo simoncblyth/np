@@ -14,8 +14,15 @@ From bash use "f"::
 
 """
 
-import os, sys, logging, numpy as np, datetime, builtins
-from .npmeta import NPMeta
+import os, sys, logging, numpy as np, datetime
+
+try:
+    import builtins
+except ImportError:
+    builtins = None
+pass
+
+from npmeta import NPMeta
 #from opticks.sysrap.sframe import sframe
 
 CMDLINE = " ".join(sys.argv)
@@ -44,12 +51,16 @@ class AttrBase(object):
         self.__dict__["_prefix"] = prefix
         self.__dict__["_publish"] = publish
 
-    def __setattr__(self, name:str, value):    
+    # name:str is only py3 ? 
+    def __setattr__(self, name, value):           
         self.__dict__[name] = value
         key = "%s%s" % (self._prefix, name)
         if self._publish and not name.startswith("_"):
             print("publish key:%s " % key) 
-            setattr(builtins, key, value)
+
+            if not builtins is None: 
+                setattr(builtins, key, value)
+            pass
         pass
     pass
  
@@ -470,13 +481,16 @@ class Fold(object):
         return "\n".join(l) 
   
 
-if __name__  == '__main__':
+if __name__  == 'old__main__':
     pass
     logging.basicConfig(level=logging.INFO)
     NEVT = int(os.environ.get("NEVT",3))
     fc = Fold.LoadConcat(NEVT=NEVT, symbol="fc")
     print(repr(fc))
 
+if __name__ == '__main__':
+    f = Fold(".", symbol="f")                                                                                                     
+    print(repr(f))
 
 
 

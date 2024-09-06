@@ -15,5 +15,6 @@ For easy access use bash function::
 EOU
 }
 DIR=$(cd $(dirname $BASH_SOURCE) && pwd)
-${IPYTHON:-ipython} --pdb -i $DIR/f.py 
+#${IPYTHON:-ipython} --pdb -i $DIR/f.py 
+${IPYTHON:-ipython} --pdb -i $DIR/fold.py 
 
