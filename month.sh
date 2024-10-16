@@ -1,5 +1,5 @@
 #!/bin/bash -l 
 
-~/opticks/month.sh $* 
+SDIR=$(dirname $(realpath $BASH_SOURCE)) ~/opticks/month.sh $* 
 
 
