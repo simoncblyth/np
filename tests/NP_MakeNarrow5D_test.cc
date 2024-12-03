@@ -71,7 +71,7 @@ NP_MakeNarrow5D_test<T>::NP_MakeNarrow5D_test(int ni, int nj, int nk )
 
     c = NP::Combine(vv) ; 
 
-    const std::vector<int>& shape = c->shape ; 
+    const std::vector<NP::INT>& shape = c->shape ; 
     assert( shape.size() == 3 );  
     int c_ni = c->num_items() ; 
     assert( c_ni == shape[0] ); 

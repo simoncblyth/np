@@ -49,7 +49,7 @@ NP_MakeNarrow_test<T>::NP_MakeNarrow_test()
     a(MakeSrc<T>(10,2 )),
     b(MakeSrc<T>( 2,2 )),
     c(MakeSrc<T>( 5,2 )),
-    abc(NP::Combine(a,b,c)),
+    abc(NP::Combine_(a,b,c)),
     fabc(NP::MakeWithType<float>(abc))
 {
     std::cout << " abc.sstr " << abc->sstr() << std::endl ;  

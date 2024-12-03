@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 NP_Concatenate_test.sh
 ========================
@@ -23,6 +23,8 @@ script=$name.py
 defarg=info_build_run_ana
 arg=${1:-$defarg}
 
+export PYTHONPATH=../..
+
 vars="BASH_SOURCE FOLD bin name" 
 
 if [ "${arg/info}" != "$arg" ]; then 
@@ -30,21 +32,25 @@ if [ "${arg/info}" != "$arg" ]; then
 fi
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -std=c++11 -lstdc++ -I.. -g -o $bin
+    gcc $name.cc -std=c++11 -Wall -lstdc++ -I.. -g -o $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1  
 fi
 
 if [ "${arg/run}" != "$arg" ]; then 
     $bin
-    [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1  
+    [ $? -ne 0 ] && echo $BASH_SOURCE : run error && exit 2  
+fi
+
+if [ "${arg/pdb}" != "$arg" ]; then 
+    ${IPYTHON:-ipython} -i --pdb $script
+    [ $? -ne 0 ] && echo $BASH_SOURCE : pdb error && exit 3 
 fi
 
 if [ "${arg/ana}" != "$arg" ]; then 
-    ${IPYTHON:-ipython} -i --pdb $script
-    [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1  
+    ${PYTHON:-python}  $script
+    [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 4  
 fi
 
-
-
+exit 0 
 
 

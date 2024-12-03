@@ -71,9 +71,14 @@ if [ "${arg/runo}" != "$arg" ]; then
     echo $BASH_SOURCE : runo exit && exit 3
 fi
 
-if [ "${arg/ana}" != "$arg" ]; then 
+if [ "${arg/pdb}" != "$arg" ]; then 
     ${IPYTHON:-ipython} --pdb -i $script
-    [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
+    [ $? -ne 0 ] && echo $BASH_SOURCE : pdb error && exit 4
+fi
+
+if [ "${arg/ana}" != "$arg" ]; then 
+    ${PYTHON:-python} $script
+    [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 5
 fi
 
 if [ "${arg/info}" != "$arg" ]; then

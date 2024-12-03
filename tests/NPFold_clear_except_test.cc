@@ -54,7 +54,7 @@ void test_clear_only(bool copy)
 {
     NPFold* f = make_fold(); 
     const NP* a = f->get("a"); 
-    const NP* b = f->get("b"); 
+    [[maybe_unused]] const NP* b = f->get("b"); 
     const NP* c = f->get("c"); 
 
     f->headline = "(before clear_only)" ; 

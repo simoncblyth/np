@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-import numpy as np
+import os, numpy as np
 
 if __name__ == '__main__':
-    a = np.load("/tmp/NP_Make_ellipsis_test/demo.npy")
+    p = os.path.expandvars("$FOLD/demo.npy")
+    a = np.load(p) if os.path.exists(p) else None
+    print("a:%r" % a )
 
 
 

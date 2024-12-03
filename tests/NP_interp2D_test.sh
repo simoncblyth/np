@@ -1,7 +1,10 @@
-#!/bin/bash -l
+#!/bin/bash
 usage(){ cat << EOU
 NP_interp2D_test.sh
 ====================
+
+~/np/tests/NP_interp2D_test.sh
+
 
 EOU
 }
@@ -14,6 +17,7 @@ script=$name.py
 
 mkdir -p $TMP
 cd $(dirname $(realpath $BASH_SOURCE))
+source dbg__.sh
 
 defarg=build_run_ana
 arg=${1:-$defarg}
@@ -30,14 +34,24 @@ if [ "${arg/run}" != "$arg" ]; then
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-    dbg__ $bin
+    gdb__ $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 3
 fi 
 
-if [ "${arg/ana}" != "$arg" ]; then 
-    ipython -i $script
-    [ $? -ne 0 ] && echo ana error && exit 4
-fi 
+if [ -f "$script" ]; then
+
+    if [ "${arg/pdb}" != "$arg" ]; then 
+        ${IPYTHON:-ipython} --pdb -i $script
+        [ $? -ne 0 ] && echo pdb error && exit 4
+    fi 
+
+    if [ "${arg/ana}" != "$arg" ]; then 
+        ${PYTHON:-python} $script
+        [ $? -ne 0 ] && echo ana error && exit 4
+    fi 
+
+fi
+
 
 exit 0 
 

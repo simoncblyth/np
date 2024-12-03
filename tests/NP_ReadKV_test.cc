@@ -179,17 +179,17 @@ void test_ConvertsTo()
     for(unsigned idx=0 ; idx < strs.size() ; idx++)
     {
         const char* str = strs[idx].c_str(); 
-        bool f = NP::ConvertsTo<float>(str); 
-        bool d = NP::ConvertsTo<double>(str); 
-        bool i = NP::ConvertsTo<int>(str); 
-        bool u = NP::ConvertsTo<unsigned>(str); 
-        bool s = NP::ConvertsTo<std::string>(str); 
+        bool f = U::ConvertsTo<float>(str); 
+        bool d = U::ConvertsTo<double>(str); 
+        bool i = U::ConvertsTo<int>(str); 
+        bool u = U::ConvertsTo<unsigned>(str); 
+        bool s = U::ConvertsTo<std::string>(str); 
 
-        float    fv = f ? NP::To<float>(str)  : 0.f ;  
-        double   dv = d ? NP::To<double>(str) : 0. ;  
-        int      iv = i ? NP::To<int>(str) : 0 ;  
-        unsigned uv = u ? NP::To<unsigned>(str) : 0u ;  
-        std::string sv = s ? NP::To<std::string>(str) : "-" ;  
+        float    fv = f ? U::To<float>(str)  : 0.f ;  
+        double   dv = d ? U::To<double>(str) : 0. ;  
+        int      iv = i ? U::To<int>(str) : 0 ;  
+        unsigned uv = u ? U::To<unsigned>(str) : 0u ;  
+        std::string sv = s ? U::To<std::string>(str) : "-" ;  
         
 
         std::cout 

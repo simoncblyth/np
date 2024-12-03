@@ -1,4 +1,4 @@
-// ./NPCombineTest.sh
+// ~/np/tests/NPCombineTest.sh
 
 #include <vector>
 #include <iostream>
@@ -7,7 +7,6 @@
 template <typename T>
 struct NPCombineTest
 {
-    static const char* FOLD ; 
     static NP* MakeSrc(unsigned ni, unsigned nj) ; 
 
 
@@ -29,8 +28,6 @@ struct NPCombineTest
 
 }; 
 
-template <typename T>
-const char* NPCombineTest<T>::FOLD = "/tmp/NPCombineTest" ; 
 
 
 template <typename T>
@@ -95,7 +92,7 @@ CAUTION : be explicit with the type, or risk scrambling the array content.
 template <typename T>
 void NPCombineTest<T>::scan() 
 {
-    for(unsigned i=0 ; i < na ; i++ )
+    for(NP::INT i=0 ; i < na ; i++ )
     {
         const NP* a = aa[i] ; 
         std::cout << "NPCombineTest::scan " << a->desc() << std::endl ; 
@@ -150,9 +147,9 @@ NP* NPCombineTest<T>::MakeSrc(unsigned ni, unsigned nj)   // static
 template <typename T>
 void NPCombineTest<T>::save() 
 {
-    dom->save(FOLD, "dom.npy"); 
-    c->save(FOLD, "com.npy"); 
-    r->save(FOLD, "scan.npy");
+    dom->save("$FOLD/dom.npy"); 
+    c->save("$FOLD/com.npy"); 
+    r->save("$FOLD/scan.npy");
 } 
 
 
@@ -186,20 +183,27 @@ void test_simple()
 
 void test_RINDEX(unsigned ndom, bool narrow)
 {
+    /*
     const char* keydir = getenv("OPTICKS_KEYDIR") ; 
     assert( keydir ); 
-
     NP* a = NP::Load(keydir, "GScintillatorLib/LS_ori/RINDEX.npy"); 
-    a->pscale<double>(1e6, 0u); 
-    a->pscale<double>(1.0, 1u); 
-
     NP* b = NP::Load(keydir, "GScintillatorLib/LS_ori/RINDEX.npy"); 
-    b->pscale<double>(1e6, 0u); 
-    b->pscale<double>(1.05, 1u); 
-
     NP* c = NP::Load(keydir, "GScintillatorLib/LS_ori/RINDEX.npy"); 
+    */
+
+    const char* matdir = "$HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim/stree/material" ; 
+    NP* a = NP::Load(matdir, "LS/RINDEX.npy") ;
+    NP* b = NP::Load(matdir, "LS/RINDEX.npy") ;
+    NP* c = NP::Load(matdir, "LS/RINDEX.npy") ;
+
+    a->pscale<double>(1e6, 0u); 
+    b->pscale<double>(1e6, 0u); 
     c->pscale<double>(1e6, 0u); 
+
+    a->pscale<double>(1.0,  1u); 
+    b->pscale<double>(1.05, 1u); 
     c->pscale<double>(0.95, 1u); 
+
 
     if( narrow == false )
     { 
@@ -220,8 +224,8 @@ void test_RINDEX(unsigned ndom, bool narrow)
 
 int main(int argc, char** argv)
 {
-    test_simple(); 
-    //test_RINDEX(1000, true); 
+    //test_simple(); 
+    test_RINDEX(1000, true); 
     return 0 ;
 }
 

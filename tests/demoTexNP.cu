@@ -147,7 +147,8 @@ cudaTextureObject_t uploadTexture( const NP* a )
     cudaArray* cuArray;
     cudaMallocArray(&cuArray, &channelDesc, width, height);
     cudaMemcpyToArray(cuArray, 0, 0, a->bytes(), a->arr_bytes(), cudaMemcpyHostToDevice);
-    
+    /// ^^^^^^^^^^^ DEPRECATED METHOD    
+ 
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
     resDesc.resType = cudaResourceTypeArray;

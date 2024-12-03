@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 NPFold_profile_test.sh 
 =======================
@@ -23,17 +23,19 @@ See also::
 EOU
 }
 
+cd $(dirname $(realpath $BASH_SOURCE))
+SDIR=$(pwd)
+source dbg__.sh 
 
 name=NPFold_profile_test
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name        ## run + ana
 export MODE=${MODE:-2}                              ## ana
 bin=${FOLD}.build/$name
+script=$SDIR/$name.py 
+
 mkdir -p ${FOLD}.build
 mkdir -p $FOLD 
-
-SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
-
 
 ##L
 #cd /hpcfs/juno/junogpu/blyth/tmp/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p001
@@ -78,8 +80,13 @@ if [ "${arg/grab}" != "$arg" ]; then
     [ $? -ne 0 ] && echo $BASH_SOURCE : grab error && exit 4
 fi
 
+if [ "${arg/pdb}" != "$arg" ]; then 
+    ${IPYTHON:-ipython} --pdb -i $script
+    [ $? -ne 0 ] && echo $BASH_SOURCE : pdb error && exit 3
+fi
+
 if [ "${arg/ana}" != "$arg" ]; then 
-    ${IPYTHON:-ipython} --pdb -i $SDIR/$name.py 
+    ${PYTHON:-python} $script
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
 fi
 

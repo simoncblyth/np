@@ -1,24 +1,42 @@
-#!/bin/bash -l 
+#!/bin/bash
+
+usage(){ cat << EOU
+
+~/np/tests/NP_ArrayFromVec_test.sh
+
+EOU
+}
+cd $(dirname $(realpath $BASH_SOURCE))
 
 name=NP_ArrayFromVec_test 
 export FOLD=/tmp/$name 
 mkdir -p $FOLD
+bin=$FOLD/$name
+script=$name.py
+
 
 defarg="build_run_ana"
 arg=${1:-$defarg}
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -std=c++11 -lstdc++ -I.. -o $FOLD/$name 
+    gcc $name.cc -std=c++11 -lstdc++ -I.. -o $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1 
 fi 
 
 if [ "${arg/run}" != "$arg" ]; then 
-    $FOLD/$name
+    $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 2 
 fi
 
-if [ "${arg/ana}" != "$arg" ]; then 
-    ${IPYTHON:-ipython} --pdb -i $name.py 
+if [ "${arg/pdb}" != "$arg" ]; then 
+    ${IPYTHON:-ipython} --pdb -i $script
     [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 3 
 fi 
+
+if [ "${arg/ana}" != "$arg" ]; then 
+    ${PYTHON:-python} $script
+    [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 4
+fi 
+
+exit 0 
 

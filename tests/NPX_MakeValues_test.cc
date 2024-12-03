@@ -1,8 +1,8 @@
-// ./NPX_MakeValues_test.sh
+// ~/np/tests/NPX_MakeValues_test.sh
 
 #include "NPX.h"
-const char* FOLD = getenv("FOLD"); 
-const char* NAME = "kv.npy" ; 
+
+static const char* PATH="$FOLD/kv.npy" ; 
 
 void test_int()
 {
@@ -13,10 +13,10 @@ void test_int()
     NP* a = kv.values(); 
     std::cout << " a "  << NPX::DescValues<int>(a) ; 
 
-    a->save(FOLD, NAME); 
+    a->save(PATH); 
 
-    NP* b = NP::Load(FOLD, NAME); 
-    std::cout << " b "  << NPX::DescValues<int>(a) ; 
+    NP* b = NP::Load(PATH); 
+    std::cout << " b "  << NPX::DescValues<int>(b) ; 
 }
 
 void test_double()
@@ -29,10 +29,10 @@ void test_double()
     NP* a = kv.values(); 
     std::cout << " a "  << NPX::DescValues<double>(a) ; 
 
-    a->save(FOLD, NAME); 
+    a->save(PATH); 
 
-    NP* b = NP::Load(FOLD, NAME); 
-    std::cout << " b "  << NPX::DescValues<double>(a) ; 
+    NP* b = NP::Load(PATH); 
+    std::cout << " b "  << NPX::DescValues<double>(b) ; 
 }
 
 

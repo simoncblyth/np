@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 
 ~/np/tests/NPFold_Load_test.sh
@@ -7,6 +7,7 @@ EOU
 }
 
 cd $(dirname $(realpath $BASH_SOURCE))
+source dbg__.sh 
 
 name=NPFold_Load_test 
 bin=/tmp/$name 
@@ -21,7 +22,7 @@ defarg="build_run"
 arg=${1:-$defarg}
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -g -I.. -std=c++11 -lstdc++ -o $bin 
+    gcc $name.cc -g -I.. -std=c++11 -Wall -lstdc++ -o $bin 
     [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1 
 fi 
 
@@ -31,10 +32,7 @@ if [ "${arg/run}" != "$arg" ]; then
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-    case $(uname) in 
-       Darwin) lldb__ $bin ;;
-       Linux)  gdb__ $bin ;;
-    esac
+    dbg__ $bin 
     [ $? -ne 0 ] && echo $BASH_SOURCE : dbg error && exit 3
 fi 
 

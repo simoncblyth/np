@@ -1,4 +1,4 @@
-// ./NP_LoadVec_Test.sh 
+// ~/np/tests/NP_LoadVec_Test.sh 
 
 #include <cstring>
 #include "NP.hh"
@@ -19,7 +19,7 @@ struct RootLoad
 
 inline RootLoad::RootLoad(const char* path)
     :
-    bytes_read(NP::LoadVec(vbuf, path)),
+    bytes_read(U::LoadVec(vbuf, path)),
     buffer(vbuf.data() + 4)
 {
     bool starts_with_root = strncmp(buffer - 4, "root", 4) == 0 ; 

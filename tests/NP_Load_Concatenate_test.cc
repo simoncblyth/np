@@ -1,4 +1,4 @@
-//  ./NP_Load_Concatenate_test.sh 
+//  ~/np/tests/NP_Load_Concatenate_test.sh 
 
 #include "NP.hh"
 
@@ -34,13 +34,12 @@ void test_Load_Concatenate(const char* path)
 {
     NP* a = NP::Load(path); 
     std::cout << " a.brief " << a->brief() << std::endl ; 
-    a->save(path, "concat/concat.npy"); 
+    a->save("$FOLD/concat/concat.npy"); 
 }
-
 
 int main(int argc, char** argv)
 {
-    const char* path = "/tmp/NP_Load_Concatenate_test" ; 
+    const char* path = "$FOLD" ; 
     test_Setup(path); 
     test_DirList(path); 
     test_Load_Concatenate(path); 

@@ -1,6 +1,7 @@
 // ~/np/tests/NP_minmax2D_reshaped_test.sh
 
 #include <array>
+#include "NPU.hh"
 #include "NP.hh"
 
 std::array<double, 20> src {{ 

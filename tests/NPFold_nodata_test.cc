@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     const char* prefix = "//p" ; 
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    f->find_subfold_with_prefix(subs, subpaths,  prefix );  
+    f->find_subfold_with_prefix(subs, &subpaths,  prefix );  
     assert( subs.size() == subpaths.size() ); 
 
     std::cout 

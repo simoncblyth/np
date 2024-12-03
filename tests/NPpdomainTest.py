@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 """
 
-ipython -i NPpdomainTest.py 
+~/np/tests/NPpdomainTest.sh
+~/np/tests/NPpdomainTest.sh pdb 
 
 """
 import os, numpy as np
-import matplotlib.pyplot as plt 
 
+try:
+    import matplotlib.pyplot as plt 
+except ImportError:
+    plt = None
+pass
 
 def test_2d():
-    FOLD = "/tmp/NPpdomainTest"
-    a = np.load(os.path.join(FOLD, "a.npy"))
-    b = np.load(os.path.join(FOLD, "b.npy"))
 
     fig, ax = plt.subplots()
 
@@ -26,26 +28,24 @@ def test_2d():
 
 
 
-
-
-
 if __name__ == '__main__':
 
-    FOLD = "/tmp/NPpdomainTest/3d"
-    a = np.load(os.path.join(FOLD, "a.npy"))
-    b = np.load(os.path.join(FOLD, "b.npy"))
+    a = np.load(os.path.expandvars("$FOLD/3d/a.npy"))
+    b = np.load(os.path.expandvars("$FOLD/3d/b.npy"))
     assert len(a) == len(b)
 
-    fig, ax = plt.subplots()
-    for item in range(len(a)):
+    if not plt is None:
+        fig, ax = plt.subplots()
+        for item in range(len(a)):
 
-        ax.plot( a[item, :,0], a[item, :,1]  )
-        ax.scatter( a[item, :,0], a[item, :,1], label="a%d" % item )
+            ax.plot( a[item, :,0], a[item, :,1]  )
+            ax.scatter( a[item, :,0], a[item, :,1], label="a%d" % item )
 
-        ax.plot( b[item, :,1], b[item, :,0]+10   )
-        ax.scatter( b[item, :,1], b[item, :,0]+10, label="b%d" % item  )
+            ax.plot( b[item, :,1], b[item, :,0]+10   )
+            ax.scatter( b[item, :,1], b[item, :,0]+10, label="b%d" % item  )
+        pass
+        ax.legend()
+        fig.show()
     pass
-    ax.legend()
-    fig.show()
 
 

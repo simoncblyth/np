@@ -1,17 +1,41 @@
-#!/bin/bash -l 
+#!/bin/bash
+usage(){ cat << EOU
+
+~/np/tests/NPMakeTest.sh
+
+EOU
+}
+cd $(dirname $(realpath $BASH_SOURCE))
 
 name=NPMakeTest 
-mkdir -p /tmp/$name 
+export FOLD=/tmp/$name
+mkdir -p $FOLD
+bin=$FOLD/$name
+script=$name.py
 
-gcc $name.cc -g -std=c++11 -lstdc++ -I.. -o /tmp/$name/$name 
-[ $? -ne 0 ] && echo $msg compile error && exit 1 
+defarg=build_run_ana
+arg=${1:-$defarg}
 
-if [ -n "$DEBUG" ]; then 
-    lldb__ /tmp/$name/$name
-else
-    /tmp/$name/$name
+if [ "${arg/build}" != "$arg" ]; then 
+   gcc $name.cc -g -std=c++17 -Wall -lstdc++ -I.. -o $bin
+   [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1 
 fi 
-[ $? -ne 0 ] && echo $msg run error && exit 2
+
+if [ "${arg/run}" != "$arg" ]; then 
+   $bin
+   [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 2
+fi
+
+if [ "${arg/pdb}" != "$arg" ]; then 
+   ${IPYTHON:-ipython} --pdb -i $script
+   [ $? -ne 0 ] && echo $BASH_SOURCE pdb error && exit 3
+fi
+
+if [ "${arg/ana}" != "$arg" ]; then 
+   ${PYTHON:-python} $script
+   [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 4
+fi
+
 
 exit 0 
 

@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 NPX_BOA_test.sh
 ==========================
@@ -11,13 +11,14 @@ NPX_BOA_test.sh
 EOU
 }
 
-SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
+cd $(dirname $(realpath $BASH_SOURCE))
+
 name=NPX_BOA_test 
 TMP=${TMP:-/tmp/$USER/opticks}
 bin=$TMP/$name
 
 
-gcc $SDIR/$name.cc -std=c++11 -lstdc++ -I$SDIR/.. -o $bin 
+gcc $name.cc -std=c++17 -Wall -lstdc++ -I.. -o $bin 
 [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1
 
 $bin

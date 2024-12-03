@@ -1,6 +1,6 @@
-// ./NP_set_meta_get_meta_test.sh
+// ~/np/tests/NP_set_meta_get_meta_test.sh
 
-const char* PATH = "/tmp/NP_set_meta_get_meta_test/a.npy" ; 
+const char* APATH = "$FOLD/a.npy" ; 
 
 #include "NP.hh"
 
@@ -14,8 +14,8 @@ void test_string()
 
     std::string a_msg = a->get_meta<std::string>("msg", "" ); 
 
-    a->save(PATH); 
-    NP* b = NP::Load(PATH);  
+    a->save(APATH); 
+    NP* b = NP::Load(APATH);  
 
     std::string b_msg = b->get_meta<std::string>("msg", "" ); 
    
@@ -35,8 +35,8 @@ void test_uint64()
     NP* a = NP::Make<float>(1,4,4); 
     uint64_t u0 = std::numeric_limits<uint64_t>::max() ; 
     a->set_meta<uint64_t>("u", u0 ); 
-    a->save(PATH);  
-    NP* b = NP::Load(PATH);  
+    a->save(APATH);  
+    NP* b = NP::Load(APATH);  
  
     uint64_t u1 = b->get_meta<uint64_t>("u", 0) ; 
 

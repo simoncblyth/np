@@ -1,7 +1,7 @@
-// ./NP_ArrayFromVec_test.sh
+// ~/np/tests/NP_ArrayFromVec_test.sh
 
 
-#include "NP.hh"
+#include "NPX.h"
 
 struct Demo
 {
@@ -90,39 +90,39 @@ void test_MapFromVec(const std::vector<Demo>& dd)
 {
     std::cout << "test_MapFromVec" << std::endl ; 
     std::map<int, Demo> mm ; 
-    NP::MapFromVec(mm, dd) ; 
+    NPX::MapFromVec(mm, dd) ; 
     std::cout << " mm " << mm ; 
 }
 void test_ArrayFromVec_VecFromArray(const std::vector<Demo>& dd)
 {
     std::cout << "test_ArrayFromVec_VecFromArray" << std::endl ; 
 
-    NP* a = NP::ArrayFromVec<double, Demo>( dd, 2, 2) ; 
+    NP* a = NPX::ArrayFromVec<double, Demo>( dd, 2, 2) ; 
     a->save(FOLD, "a.npy") ; 
 
-    NP* b = NP::ArrayFromVec<double, Demo>( dd ) ; 
+    NP* b = NPX::ArrayFromVec<double, Demo>( dd ) ; 
     b->save(FOLD, "b.npy") ; 
 
     std::vector<Demo> a_dd ; 
-    NP::VecFromArray( a_dd, a ); 
+    NPX::VecFromArray( a_dd, a ); 
     std::cout << " a_dd " << a_dd ; 
 
     std::vector<Demo> b_dd ; 
-    NP::VecFromArray( b_dd, b ); 
+    NPX::VecFromArray( b_dd, b ); 
     std::cout << " b_dd " << b_dd ; 
 }
 
 
 void test_ArrayFromMap_MapFromArray(const std::map<int, Demo>& mm)
 {
-    NP* a = NP::ArrayFromMap<double,Demo>(mm, true); 
+    NP* a = NPX::ArrayFromMap<double,Demo>(mm, true); 
 
     const char* name = "mfa.npy" ; 
     a->save(FOLD,name) ; 
     NP* b = NP::Load(FOLD,name);  
 
     std::map<int, Demo> nn ; 
-    NP::MapFromArray(nn, b ); 
+    NPX::MapFromArray(nn, b ); 
 
     std::cout << " test_ArrayFromMap_MapFromArray nn " << nn << std::endl ;
 }

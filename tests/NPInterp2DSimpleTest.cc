@@ -1,8 +1,9 @@
-// ./NPInterp2DSimpleTest.sh
-
-#include "NP.hh"
-
 /**
+NPInterp2DSimpleTest.cc
+=======================
+
+~/np/tests/NPInterp2DSimpleTest.sh
+
 
 The interpolation formulas used by CUDA textures are documented.
 
@@ -39,6 +40,9 @@ About the reduced precision
 
 
 **/
+
+
+#include "NP.hh"
 
 template <typename T>
 T interp2D( const NP* a , T x, T y, bool dump )
@@ -156,7 +160,6 @@ T interp2D( const NP* a , T x, T y, bool dump )
 
 struct NPInterp2DSimpleTest
 {
-    static const char* FOLD ; 
     static NP* Create(); 
     static NP* Interpolate(const NP* a, int scale); 
     static void test_0(); 
@@ -164,7 +167,6 @@ struct NPInterp2DSimpleTest
 };
 
 
-const char* NPInterp2DSimpleTest::FOLD = "/tmp/NPInterp2DSimpleTest" ; 
 
 NP* NPInterp2DSimpleTest::Create()
 {
@@ -202,8 +204,8 @@ NP* NPInterp2DSimpleTest::Interpolate( const NP* a, int scale )
         }
     }
 
-    a->save(FOLD, "a.npy"); 
-    b->save(FOLD, "b.npy"); 
+    a->save("$FOLD/a.npy"); 
+    b->save("$FOLD/b.npy"); 
 
     return b ; 
 }
@@ -214,6 +216,15 @@ void NPInterp2DSimpleTest::test_0()
     double x = 2.5 ; 
     double y = 0.5 ; 
     double z = interp2D<double>( a, x, y, true ); 
+
+    std::cout 
+        << "NPInterp2DSimpleTest::test_0"
+        << " x " << x
+        << " y " << y
+        << " z " << z
+        << "\n"
+        ;
+
 }
 
 void NPInterp2DSimpleTest::test_1()

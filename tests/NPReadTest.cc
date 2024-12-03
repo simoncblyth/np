@@ -1,6 +1,5 @@
-// ./NPReadTest.sh 
+// ~/np/tests/NPReadTest.sh 
 
-#include <vector>
 #include "NP.hh"
 
 int main(int argc, char** argv)
@@ -11,13 +10,12 @@ int main(int argc, char** argv)
     NP a("<f4", 4, 4 ); 
     a.read(af.data()); 
     a.dump();
-    a.save("/tmp/NPReadTest/a.npy");
+    a.save("$FOLD/a.npy");
 
     NP b("<f4", 4, 4 ); 
     b.read2(af.data()); 
     b.dump();
-    b.save("/tmp/NPReadTest/b.npy");
-
+    b.save("$FOLD/b.npy");
 
     return 0 ; 
 }

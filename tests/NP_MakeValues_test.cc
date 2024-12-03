@@ -1,9 +1,8 @@
-// ./NP_MakeValues_test.sh 
+// ~/np/tests/NP_MakeValues_test.sh 
 
 #include <cstdlib>
-#include "NP.hh"
+#include "NPX.h"
 
-const char* FOLD = getenv("FOLD") ; 
 
 int main(int argc, char** argv)
 {
@@ -17,11 +16,11 @@ int main(int argc, char** argv)
     values.push_back( {"blue", 3. } ); 
 
 
-    NP* vv0 = NP::MakeValues(values) ; 
-    vv0->save(FOLD, "values0.npy" );    
+    NP* vv0 = NPX::MakeValues(values) ; 
+    vv0->save("$FOLD/values0.npy" );    
 
-    NP* vv = NP::MakeValues(values, "pink") ; 
-    vv->save(FOLD, "values.npy" );    
+    NP* vv = NPX::MakeValues(values, "pink") ; 
+    vv->save("$FOLD/values.npy" );    
     vv->set_meta<std::string>("opt", "U0,U1,U2") ; 
 
     std::cout << "vv0" << std::endl << vv0->descValues() << std::endl; 

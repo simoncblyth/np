@@ -1,4 +1,4 @@
-// name=NPMakeTest ; mkdir -p /tmp/$name ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name/$name && /tmp/$name/$name
+// ~/np/tests/NPMakeTest.sh
 
 #include "NP.hh"
 
@@ -54,9 +54,8 @@ void test_Make6()
 {
     NP* a = NP::Make<float>(3, 2, 2, 10, 10, 4); 
     a->fillIndexFlat(); 
-    a->save("/tmp/NPMakeTest/test_Make6.npy"); 
+    a->save("$FOLD/a6.npy"); 
 }
-
 
 
 

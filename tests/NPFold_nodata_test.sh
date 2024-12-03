@@ -1,4 +1,11 @@
-#!/bin/bash -l 
+#!/bin/bash
+
+usage(){ cat << EOU
+
+~/np/tests/NPFold_nodata_test.sh
+
+EOU
+}
 
 name=NPFold_nodata_test
 
@@ -6,8 +13,9 @@ FOLD=${TMP:-/tmp/$USER/opticks}/$name
 bin=$FOLD/$name
 mkdir -p $FOLD
 
-cd $(dirname $BASH_SOURCE)
+cd $(dirname $(realpath $BASH_SOURCE))
 SDIR=$(pwd)
+source dbg__.sh 
 
 #opt=-DWITH_VERBOSE
 opt=

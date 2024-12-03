@@ -1,9 +1,8 @@
-// ./NPFold_meta_test.sh 
+// ~/np/tests/NPFold_meta_test.sh 
 #include "NPFold.h"
 
-const char* FOLD = getenv("FOLD"); 
 
-int main(int argc, char** argv)
+int main()
 {
     int i0         = -42 ; 
     unsigned u0    = 42 ; 
@@ -18,12 +17,10 @@ int main(int argc, char** argv)
     fold->set_meta<float>(       "float", f0 );
     fold->set_meta<double>(     "double", d0 );
     fold->set_meta<std::string>("string", s0 );
-
-    std::cout << " save to FOLD " << FOLD << std::endl ; 
  
-    fold->save(FOLD); 
+    fold->save("$FOLD"); 
 
-    NPFold* lfold = NPFold::Load(FOLD) ; 
+    NPFold* lfold = NPFold::Load("$FOLD") ; 
 
     int         i1 = lfold->get_meta<int>("int", 0) ; 
     unsigned    u1 = lfold->get_meta<unsigned>("unsigned", 0) ; 

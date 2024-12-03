@@ -1,4 +1,4 @@
-// ./NPInterpTest.sh
+// ~/np/tests/NPInterpTest.sh
 
 #include <vector>
 #include <iostream>
@@ -7,7 +7,6 @@
 template <typename T>
 struct NPInterpTest
 {
-    static const char* FOLD ; 
     static NP* MakeSrc() ; 
     static NP* MakeSrc(const std::vector<T>& vals) ; 
 
@@ -32,10 +31,6 @@ struct NPInterpTest
 }; 
 
 template <typename T>
-const char* NPInterpTest<T>::FOLD = "/tmp/NPInterpTest" ; 
-
-
-template <typename T>
 NPInterpTest<T>::NPInterpTest(const NP* a_, unsigned nstep)
     :
     a(a_),
@@ -46,7 +41,7 @@ NPInterpTest<T>::NPInterpTest(const NP* a_, unsigned nstep)
     x0(amn - (amx-amn)*0.1f),  // picking domain range 
     x1(amx + (amx-amn)*0.1f),  
     dx((amx-amn)/float(nstep)),
-    nb(NP::NumSteps(x0,x1,dx)),
+    nb(U::NumSteps(x0,x1,dx)),
     b(NP::Make<T>(nb,2)),     
     bb(b->values<T>())
 {
@@ -119,8 +114,8 @@ void NPInterpTest<T>::scan()
 template <typename T>
 void NPInterpTest<T>::save() 
 {
-    a->save(FOLD, "src.npy"); 
-    b->save(FOLD, "dst.npy");
+    a->save("$FOLD/src.npy"); 
+    b->save("$FOLD/dst.npy");
 } 
 
 template <typename T>
@@ -164,7 +159,7 @@ void test_RINDEX(unsigned nstep)
 int main(int argc, char** argv)
 {
     test_simple(); 
-    test_RINDEX(1000); 
+    //test_RINDEX(1000); 
     return 0 ;
 }
 

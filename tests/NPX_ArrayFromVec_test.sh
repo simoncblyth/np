@@ -1,15 +1,23 @@
-#!/bin/bash -l 
+#!/bin/bash
 
+usage(){ cat << EOU
 
-SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
+~/np/tests/NPX_ArrayFromVec_test.sh
+
+EOU
+}
+
+cd $(dirname $(realpath $BASH_SOURCE))
+export PYTHONPATH=../..
+source dbg__.sh 
+
 name=NPX_ArrayFromVec_test
-FOLD=/tmp/$name
+export FOLD=/tmp/$name
 mkdir -p $FOLD
 
-export FOLD
 
 bin=$FOLD/$name
-script=$SDIR/$name.py 
+script=$name.py 
 
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
@@ -21,7 +29,7 @@ if [ "${arg/info}" != "$arg" ]; then
 fi 
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $SDIR/$name.cc -std=c++11 -lstdc++ -I$SDIR/.. -o $bin 
+    gcc $name.cc -std=c++17 -Wall -lstdc++ -I.. -o $bin 
     [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1 
 fi 
 
@@ -31,16 +39,18 @@ if [ "${arg/run}" != "$arg" ]; then
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-    case $(uname) in
-    Darwin) lldb__ $bin ;;
-    Linux)  gdb__ $bin ;;
-    esac
+    dbg__ $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 3
 fi 
 
-if [ "${arg/ana}" != "$arg" ]; then 
+if [ "${arg/pdb}" != "$arg" ]; then 
     ${IPYTHON:-ipython} --pdb -i $script
-    [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 4
+    [ $? -ne 0 ] && echo $BASH_SOURCE pdb error && exit 4
+fi 
+
+if [ "${arg/ana}" != "$arg" ]; then 
+    ${PYTHON:-python}  $script
+    [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 5
 fi 
 
 exit 0 

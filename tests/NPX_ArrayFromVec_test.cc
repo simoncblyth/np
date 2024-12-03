@@ -77,6 +77,7 @@ int test_ArrayFromVec()
     NPFold* f = new NPFold ; 
     f->add("a_args", NPX::ArrayFromVec<int,T>(  v, 4, 4  )) ; 
     f->add("a_str",  NPX::ArrayFromVec_<int,T>( v, "4,4" )) ; 
+    f->add("a", a ); 
     f->save("$FOLD") ;
     return 0 ;  
 }

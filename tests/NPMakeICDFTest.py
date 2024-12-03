@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 """
 
-ipython -i NPMakeICDFTest.py 
+~/np/tests/NPMakeICDFTest.sh pdb 
 
 """
 import os
 import numpy as np
-import matplotlib.pyplot as plt 
+
+try:
+    import matplotlib.pyplot as plt 
+except ImportError:
+    plt = None
+pass
+
 
 # changes with python version
 try:
@@ -22,11 +28,11 @@ def cmd(line):
 
 
 class NPMakeICDFTest(object):
-    FOLD = "/tmp/NPMakeICDFTest"
     def __init__(self):
-        for name in filter(lambda n:n.endswith(".npy"),os.listdir(self.FOLD)):
+        FOLD = os.path.expandvars("$FOLD")
+        for name in filter(lambda n:n.endswith(".npy"),os.listdir(FOLD)):
             stem = name[:-4]
-            path = os.path.join(self.FOLD, name)
+            path = os.path.join(FOLD, name)
             a = np.load(path)
             ll = cmd("ls -l %s" % path)
             print(" %10s : %-20s : %s " % (stem, str(a.shape), ll )) 
@@ -61,35 +67,40 @@ if __name__ == '__main__':
         hmax = None
     pass 
 
-    title = ["np/tests/NPMakeICDFTest.sh",
-             "poor sampling veracity where CDF is flat, ICDF is steep" 
-            ]
+    print("h\n",h)
+   
 
-    fig, axs = plt.subplots(1, 2, figsize=[12.8, 7.2])
-    fig.suptitle("\n".join(title))
+    if not plt is None:
 
-    ax = axs[0]
-    ax.scatter( dist[:,0], dist[:,1],                 label="dist" )
-    ax.plot(    cdf[:,0],  cdf[:,1]*dist[:,1].max() , label="cdf*dist[:,1].max" )
+        title = ["np/tests/NPMakeICDFTest.sh",
+                 "poor sampling veracity where CDF is flat, ICDF is steep" 
+                ]
 
-    if not h is None:  
-        ax.plot(    h[1][:-1], h[0]*dmax/hmax,            label="h", drawstyle="steps-post" )
+        fig, axs = plt.subplots(1, 2, figsize=[12.8, 7.2])
+        fig.suptitle("\n".join(title))
+
+        ax = axs[0]
+        ax.scatter( dist[:,0], dist[:,1],                 label="dist" )
+        ax.plot(    cdf[:,0],  cdf[:,1]*dist[:,1].max() , label="cdf*dist[:,1].max" )
+
+        if not h is None:  
+            ax.plot(    h[1][:-1], h[0]*dmax/hmax,            label="h", drawstyle="steps-post" )
+        pass
+
+        #ax.scatter( xx,       uu*dmax ,                  label="xx uu*dmax" )  ## this follows the cdf line
+
+        ax.legend()
+        ax = axs[1]
+
+        for j in range(3):
+            ax.plot( icdf_prop[:,j,0], icdf_prop[:,j,1], label="icdf_prop %s" % ["all","lhs","rhs"][j]  )
+        pass
+
+        ax.legend()
+        
+
+        fig.show()
     pass
-
-    #ax.scatter( xx,       uu*dmax ,                  label="xx uu*dmax" )  ## this follows the cdf line
-
-    ax.legend()
-    ax = axs[1]
-
-    for j in range(3):
-        ax.plot( icdf_prop[:,j,0], icdf_prop[:,j,1], label="icdf_prop %s" % ["all","lhs","rhs"][j]  )
-    pass
-
-    ax.legend()
-    
-
-    fig.show()
-
 
      
 

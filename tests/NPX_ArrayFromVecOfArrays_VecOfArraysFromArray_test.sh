@@ -20,7 +20,7 @@ defarg="build_run_ana"
 arg=${1:-$defarg}
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -std=c++11 -lstdc++ -I.. -o $bin
+    gcc $name.cc -std=c++17 -Wall -lstdc++ -I.. -o $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1 
 fi 
 
@@ -29,8 +29,8 @@ if [ "${arg/run}" != "$arg" ]; then
     [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 2 
 fi
 
-if [ "${arg/ana}" != "$arg" ]; then 
-    ${IPYTHON:-ipython} --pdb -i $name.py 
+if [ -f "$script" -a "${arg/ana}" != "$arg" ]; then 
+    ${IPYTHON:-ipython} --pdb -i $script
     [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 3 
 fi 
 
