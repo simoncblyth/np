@@ -22,7 +22,7 @@ except ImportError:
     builtins = None
 pass
 
-from npmeta import NPMeta
+from np.npmeta import NPMeta
 #from opticks.sysrap.sframe import sframe
 
 CMDLINE = " ".join(sys.argv)
