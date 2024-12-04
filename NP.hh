@@ -3908,7 +3908,7 @@ template<typename T> inline T  NP::interp2D(T x, T y, INT item) const
        << "\n"
        ;
 
-    //assert( ij_inrange );
+    assert( ij_inrange );
 
 
 
