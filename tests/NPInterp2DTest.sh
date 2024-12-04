@@ -13,6 +13,7 @@ NPInterp2DTest: ../NP.hh:3880: T NP::interp2D(T, T, NP::INT) const [with T = dou
 EOU
 }
 cd $(dirname $(realpath $BASH_SOURCE))
+source dbg__.sh
 
 defarg=build_run_ana
 arg=${1:-$defarg}
@@ -26,13 +27,18 @@ script=$name.py
 
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -std=c++11  -I.. -lstdc++ -lm -o $bin
+    gcc $name.cc -std=c++11 -g -I.. -lstdc++ -lm -o $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1 
 fi 
 
 if [ "${arg/run}" != "$arg" ]; then 
     $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 2
+fi 
+
+if [ "${arg/dbg}" != "$arg" ]; then 
+    dbg__ $bin
+    [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 2
 fi 
 
 if [ "${arg/pdb}" != "$arg" ]; then 

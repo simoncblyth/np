@@ -41,11 +41,15 @@ def make_title(meta, method):
 class Stamps(object):
     def __init__(self, f, symbol="A"):
 
-        s = f.substamp
-        meta = f.substamp_meta
-        names = f.substamp_names
+        #s = f.substamp
+        #meta = f.substamp_meta
+        #names = f.substamp_names
 
+        s = f.stamps
+        meta = f.stamps_meta
+        names = f.stamps_names
 
+        assert not f.stamps is None, symbol
         assert len(s.shape) == 2 
 
         title = make_title(meta, method="Stamps")

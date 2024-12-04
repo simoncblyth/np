@@ -54,7 +54,7 @@ COLORS = {
    }
 
 if MODE != 0:
-    from opticks.ana.pvplt import * 
+    from opticks.ana.pvplt import mpplt_plotter
 pass
 
 
@@ -66,13 +66,27 @@ class ProfileWithinEvent(object):
     def __init__(self, f, symbol="A"):
 
         lab = f.labels_names   # of the timestamps
-        prof = f.subprofile
-        meta = f.subprofile_meta
+        #prof = f.subprofile
+        #meta = f.subprofile_meta
+        prof = f.profile
+        meta = f.profile_meta
 
         slab = list(map(NPMeta.Summarize, lab))
-        base = meta.base.replace("/data/blyth/opticks/GEOM/", "")
-        smry = meta.smry("GPUMeta,prefix,creator")
-        sfmt = meta.smry("stampFmt") 
+
+        if not meta is None:
+            if "/GEOM/" in meta.base:
+                base = meta.base.split("/GEOM/")[1]
+            else:
+                base = meta.base
+            pass
+            smry = meta.smry("GPUMeta,prefix,creator")
+            sfmt = meta.smry("stampFmt") 
+        else:
+            base = "base:missing meta" 
+            smry = "smry:missing meta" 
+            sfmt = "sfmt:missing meta" 
+        pass
+
         titl = "%s:ProfileWithinEvent %s " % (symbol, sfmt) 
         title = " ".join([titl,base,smry]) 
 

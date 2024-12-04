@@ -6,6 +6,7 @@ NPFold_profile_test.sh
 ::
 
    ~/np/tests/NPFold_profile_test.sh info
+   ~/np/tests/NPFold_profile_test.sh run
 
    PICK=CF TLIM=1290000,1350000 ~/np/tests/NPFold_profile_test.sh ana
 
@@ -44,7 +45,6 @@ mkdir -p $FOLD
 ##N
 cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
 #cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0/p010
-#
 #cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/CSGOptiXSMTest/ALL
 [ $? -ne 0 ] && echo $BASH_SOURCE : NO SUCH DIRECTORY && exit 0 
 
@@ -52,16 +52,17 @@ cd /data/blyth/opticks/GEOM/J23_1_0_rc3_ok0/jok-tds/ALL0
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
+#opt=-DWITH_VERBOSE
+opt=
 
 vars="0 BASH_SOURCE SDIR FOLD dir PWD bin defarg arg"
+
 if [ "${arg/info}" != "$arg" ]; then
     for var in $vars ; do printf "%25s : %s \n" "$var" "${!var}" ; done 
 fi 
 
 if [ "${arg/build}" != "$arg" ]; then
-    #opt=-DWITH_VERBOSE
-    opt=
-    gcc $SDIR/$name.cc -I$SDIR/.. -g -std=c++11 -lstdc++ $opt -o $bin
+    gcc $SDIR/$name.cc -I$SDIR/.. -g -std=c++11 -Wall -lstdc++ $opt -o $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1 
 fi
 
@@ -86,7 +87,7 @@ if [ "${arg/pdb}" != "$arg" ]; then
 fi
 
 if [ "${arg/ana}" != "$arg" ]; then 
-    ${PYTHON:-python} $script
+    MODE=0 ${PYTHON:-python} $script
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
 fi
 

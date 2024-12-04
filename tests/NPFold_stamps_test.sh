@@ -86,7 +86,7 @@ fi
 
 
 if [ "${arg/ana}" != "$arg" ]; then 
-    ${PYTHON:-python} $script
+    MODE=0 ${PYTHON:-python} $script
     [ $? -ne 0 ] && echo $BASH_SOURCE : ana error && exit 3
 fi
 

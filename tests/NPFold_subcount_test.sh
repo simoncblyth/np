@@ -11,12 +11,16 @@ EOU
 }
 
 name=NPFold_subcount_test
+cd $(dirname $(realpath $BASH_SOURCE))
+SDIR=$(pwd)
+export PYTHONPATH=$SDIR/../..
+
+source dbg__.sh 
+
 BDIR=${TMP:-/tmp/$USER/opticks}/$name  ## run + ana
 bin=$BDIR/$name
 mkdir -p $BDIR
-SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 script=$SDIR/$name.py 
-
 
 source $HOME/.opticks/GEOM/GEOM.sh 
 

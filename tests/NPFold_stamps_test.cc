@@ -14,37 +14,73 @@ int main(int argc, char** argv)
     U::SetEnvDefaultExecutableSiblingPath("FOLD", argv[0], dirp );
  
     NPFold* f = NPFold::LoadNoData(dirp); 
-    std::cout 
+
+    bool noload = f == nullptr ; 
+    if(noload) std::cerr
+       << argv[0]
+       << " : " 
         << "NPFold_stamps_test"
-        << std::endl
+        << "\n"
         << "NPFold::LoadNoData(\"" << dirp << "\")" 
-        << std::endl
-        //<< f->desc() 
-        << std::endl 
+        << " noload " << ( noload ? "YES" : "NO " )
+        << "\n"
+       ; 
+
+    if(noload) return 0 ; 
+
+    std::cout
+        << "f.desc\n" 
+        << ( f ? f->desc() : "-" ) 
+        << "\n"
         ; 
 
     const char* keyname = "substamp" ; 
     const char* delta_keyname = U::FormName("delta_", keyname, nullptr); 
-    NPFold* ab = f->subfold_summary(keyname, "a://p", "b://n"); 
-    const NP* adt = ab->find_array("a", delta_keyname) ; 
-    const NP* bdt = ab->find_array("b", delta_keyname) ; 
+
+    const char* akey = "a://A" ; 
+    const char* bkey = "b://B" ; 
+
+    NPFold* ab = f->subfold_summary(keyname, akey, bkey ); 
+
+    bool ab_null = ab == nullptr ; 
 
     std::cout 
-        << "NPFold* ab = NPFold::subfold_summary(\"" << keyname << "\", \"a://p\", \"b://n\") ; ab->desc() "
+        << "NPFold_stamps_test.main"
+        << " ab_null " << ( ab_null ? "YES" : "NO " )
+        << " akey " << ( akey ? akey : "-" )
+        << " bkey " << ( bkey ? bkey : "-" )
+        << " delta_keyname " << ( delta_keyname ? delta_keyname : "-" )
+        << " dirp " << ( dirp ? dirp : "-" ) 
+        << "\n"
+       ;
+    
+
+    const NP* adt = ab ? ab->find_array("a", delta_keyname) : nullptr  ; 
+    const NP* bdt = ab ? ab->find_array("b", delta_keyname) : nullptr ; 
+
+    std::cout 
+        << "NPFold* ab = NPFold::subfold_summary(\"" 
+        << keyname 
+        << "\", \"" 
+        << akey 
+        << "\", \"" 
+        << bkey 
+        << "\")"
+        << " ; ab->desc() "
         << std::endl 
-        << ab->desc()
+        << ( ab ? ab->desc() : "ab-is-nullptr" )
         << std::endl 
         << "adt"
         << std::endl 
-        << ( adt ? adt->descTable<int64_t>(8) : "-" )
+        << ( adt ? adt->descTable<int64_t>(8) : "adt-is-nullptr" )
         << std::endl 
         << "bdt"
         << std::endl 
-        << ( bdt ? bdt->descTable<int64_t>(8) : "-" )
+        << ( bdt ? bdt->descTable<int64_t>(8) : "bdt-is-nullptr" )
         << std::endl 
         ;
 
-    ab->save("$FOLD"); 
+    if(ab) ab->save("$FOLD"); 
     return 0 ; 
 } 
 
