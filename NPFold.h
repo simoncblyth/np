@@ -172,10 +172,13 @@ private:
 public:
 
     // [subfold handling 
-    void         add_subfold(int ikey     , NPFold* fo, char prefix ); // integer key formatted with prefix
+    NPFold*      add_subfold(char prefix=INTKEY_PREFIX); 
+    void         add_subfold(int ikey     , NPFold* fo, char prefix=INTKEY_PREFIX ); // integer key formatted with prefix
     void         add_subfold(const char* f, NPFold* fo ); 
     int          get_num_subfold() const ;
     NPFold*      get_subfold(unsigned idx) const ; 
+
+    const char*  get_last_subfold_key() const ; 
     const char*  get_subfold_key(unsigned idx) const ; 
     int          get_subfold_idx(const char* f) const ; 
     NPFold*      get_subfold(const char* f) const ; 
@@ -702,11 +705,20 @@ inline void NPFold::check_integrity() const
 
 
 // [ subfold handling 
-inline void NPFold::add_subfold(int ikey, NPFold* fo, char prefix )
+
+inline NPFold* NPFold::add_subfold(char prefix)
+{
+    int ikey = subfold.size(); 
+    NPFold* sub = new NPFold ; 
+    add_subfold(ikey, sub, prefix ); 
+    return sub ; 
+} 
+
+inline void NPFold::add_subfold(int ikey, NPFold* sub, char prefix )
 {
     int wid = 3 ;
     std::string skey = U::FormNameWithPrefix(prefix, ikey, wid); 
-    add_subfold(skey.c_str(), fo );  
+    add_subfold(skey.c_str(), sub );  
 }
 
 /**
@@ -752,6 +764,8 @@ inline void NPFold::add_subfold(const char* f, NPFold* fo )
     ff.push_back(f); // subfold keys 
     subfold.push_back(fo); 
 }
+
+
 inline int NPFold::get_num_subfold() const
 {
     assert( ff.size() == subfold.size() ); 
@@ -763,6 +777,11 @@ inline NPFold* NPFold::get_subfold(unsigned idx) const
 }
 
 
+
+inline const char* NPFold::get_last_subfold_key() const 
+{
+    return ff.size() > 0 ? ff[ff.size()-1].c_str() : nullptr ; 
+}
 
 inline const char* NPFold::get_subfold_key(unsigned idx) const 
 {
@@ -1473,7 +1492,7 @@ inline void NPFold::clear_subfold()
     check_integrity(); 
     int num_sub = subfold.size() ; 
     [[maybe_unused]] int num_ff = ff.size() ; 
-    assert( num_ff == num_sub ) 
+    assert( num_ff == num_sub ) ; 
 
     for(int i=0 ; i < num_sub ; i++)
     {
