@@ -22,7 +22,7 @@ defarg="build_run"
 arg=${1:-$defarg}
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -g -I.. -std=c++11 -Wall -lstdc++ -o $bin 
+    gcc $name.cc -g -I.. -std=c++11 -Wall -Werror -lstdc++ -o $bin 
     [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1 
 fi 
 

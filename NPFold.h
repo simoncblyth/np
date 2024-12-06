@@ -957,13 +957,13 @@ inline void NPFold::concat(std::ostream* out)
     if(!can) return ; 
 
     int num_sub = subfold.size();
-    const NPFold* sub0 = subfold[0] ; 
-    const std::vector<std::string>& kk0 = sub0->kk ; 
+    const NPFold* sub0 = num_sub > 0 ? subfold[0] : nullptr  ; 
+    const std::vector<std::string>* kk0 = sub0 ? &(sub0->kk) : nullptr ; 
 
-    int num_k = kk0.size(); 
+    int num_k = kk0 ? kk0->size() : 0 ; 
     for(int i=0 ; i < num_k ; i++) 
     {
-        const char* k = kk0[i].c_str(); 
+        const char* k = (*kk0)[i].c_str(); 
         NP* a = concat_(k, out ); 
         add(k, a); 
     }
@@ -1472,9 +1472,10 @@ inline void NPFold::clear_subfold()
 {
     check_integrity(); 
     int num_sub = subfold.size() ; 
-    int num_ff = ff.size() ; 
+    [[maybe_unused]] int num_ff = ff.size() ; 
+    assert( num_ff == num_sub ) 
 
-    for(int i=0 ; i < int(subfold.size()) ; i++)
+    for(int i=0 ; i < num_sub ; i++)
     {
         NPFold* sub = const_cast<NPFold*>(subfold[i]) ; 
         sub->clear();  
