@@ -1,4 +1,9 @@
-// ~/np/tests/NPFold_concat_test.sh
+/**
+
+~/np/tests/NPFold_concat_test.sh
+TEST=trivial ~/np/tests/NPFold_concat_test.sh
+
+**/
 
 #include "NPFold.h"
 
@@ -8,6 +13,8 @@ struct NPFold_concat_test
     static int maxdepth(); 
     static int can_concat(); 
     static int concat(); 
+    static int trivial(); 
+
     static int Main(); 
 };
 
@@ -109,11 +116,42 @@ int NPFold_concat_test::concat()
     std::cout << " a_concat " << ( a_concat ? a_concat->sstr() : "-" ) << "\n" ;  
 
     top->save("$FOLD/concat"); 
-
-
-
     return 0 ; 
 }
+
+
+int NPFold_concat_test::trivial()
+{
+    NPFold* top = new NPFold ; 
+    std::stringstream ss ; 
+    std::ostream* out = &ss ; 
+
+    NP* a = nullptr ; 
+
+    {
+        NPFold* f1a = new NPFold ; 
+        top->add_subfold(0, f1a, 'f') ; 
+
+        a = NP::Linspace<int>(0, 100, 101) ; 
+        std::cout << " a        " << ( a ? a->sstr() : "-" ) << "\n" ;  
+
+        f1a->add("a", a ); 
+
+        top->concat(out) ; 
+        top->clear_subfold();  
+    }
+
+    if(out) std::cout << ss.str() ; 
+
+    const NP* a_concat = top->get("a"); 
+    std::cout << " a_concat " << ( a_concat ? a_concat->sstr() : "-" ) << "\n" ;  
+    assert( a_concat == a );
+
+    top->save("$FOLD/trivial"); 
+    return 0 ; 
+}
+ 
+
  
 
 
@@ -125,6 +163,7 @@ int NPFold_concat_test::Main()
     if(ALL||strcmp(TEST,"maxdepth")==0)   rc += maxdepth(); 
     if(ALL||strcmp(TEST,"can_concat")==0) rc += can_concat(); 
     if(ALL||strcmp(TEST,"concat")==0)     rc += concat(); 
+    if(ALL||strcmp(TEST,"trivial")==0)    rc += trivial(); 
     return rc ; 
 }
 
