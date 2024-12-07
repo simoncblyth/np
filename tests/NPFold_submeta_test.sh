@@ -20,7 +20,7 @@ bin=$FOLD/$name
 mkdir -p $FOLD
 
 SDIR=$(dirname $(realpath $BASH_SOURCE))
-
+export PYTHONPATH=$SDIR/../..
 script=$SDIR/$name.py
 
 source $HOME/.opticks/GEOM/GEOM.sh 

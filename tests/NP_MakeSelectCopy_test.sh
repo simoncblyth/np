@@ -8,6 +8,7 @@ EOU
 }
 
 cd $(dirname $(realpath $BASH_SOURCE))
+export PYTHONPATH=../..
 source dbg__.sh 
 
 deftest=NP_MakeSelectCopy_test

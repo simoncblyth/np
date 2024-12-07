@@ -7,6 +7,7 @@ usage(){ cat << EOU
 EOU
 }
 cd $(dirname $(realpath $BASH_SOURCE))
+export PYTHONPATH=../..
 
 name=NP_ArrayFromVec_test 
 export FOLD=/tmp/$name 

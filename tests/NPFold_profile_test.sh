@@ -26,6 +26,7 @@ EOU
 
 cd $(dirname $(realpath $BASH_SOURCE))
 SDIR=$(pwd)
+export PYTHONPATH=$SDIR/../..
 source dbg__.sh 
 
 name=NPFold_profile_test

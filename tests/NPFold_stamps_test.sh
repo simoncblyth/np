@@ -25,6 +25,7 @@ EOU
 name=NPFold_stamps_test
 cd $(dirname $(realpath $BASH_SOURCE))
 SDIR=$(pwd)
+export PYTHONPATH=$SDIR/../..
 source dbg__.sh 
 
 export FOLD=${TMP:-/tmp/$USER/opticks}/$name  ## run + ana
