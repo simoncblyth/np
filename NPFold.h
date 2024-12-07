@@ -793,11 +793,24 @@ inline void NPFold::add_subfold(const char* f, NPFold* fo )
     ff.push_back(f); // subfold keys 
     subfold.push_back(fo);
 
-    assert( fo->parent == nullptr ); 
+    if(fo->parent != nullptr)
+    {
+        std::string fo_treepath = fo->get_treepath(); 
+        std::string fo_parent_treepath = fo->parent->get_treepath(); 
+        std::string this_treepath = get_treepath(); 
+
+        std::cerr 
+            << "NPFold::add_subfold " 
+            << " WARNING changing parent of added subfold fo \n"
+            << " fo.treepath [" << fo_treepath << "]\n"
+            << " fo.parent.treepath [" << fo_parent_treepath << "]\n"
+            << " this.treepath [" << this_treepath << "]\n" 
+            << "\n"
+            ;
+    } 
+    //assert( fo->parent == nullptr ); 
     fo->parent = this ; 
 }
-
-
 
 
 inline int NPFold::get_num_subfold() const
@@ -856,7 +869,7 @@ inline std::string NPFold::get_treepath(const char* k) const
     std::stringstream ss ; 
     int num_elem = elem.size(); 
     for(int i=0 ; i < num_elem ; i++ ) ss << elem[i] << ( i < num_elem - 1 ? "/" : "" ) ; 
-    if(k) ss << k ; 
+    if(k) ss << "/" << k ; 
     std::string str = ss.str() ; 
     return str ; 
 }
@@ -1407,7 +1420,7 @@ inline void NPFold::add_(const char* k, const NP* a)
     if(verbose_) 
     {
         std::string p = get_treepath(k); 
-        std::cerr << "NPFold::add_ [" << p << "]" << a << "\n" ;
+        std::cerr << "NPFold::add_ [" << p << "]" << a << " " << a->sstr() << "\n" ;
     }
 
     bool have_key_already = std::find( kk.begin(), kk.end(), k ) != kk.end() ; 
@@ -1556,7 +1569,7 @@ inline void NPFold::clear_arrays(const std::vector<std::string>* keep)
             if(verbose_) 
             {
                 std::string p = get_treepath(k.c_str()); 
-                std::cerr << "NPFold::clear_arrays.delete[" << p << "]" << a << "\n"; 
+                std::cerr << "NPFold::clear_arrays.delete[" << p << "]" << a << " " << a->sstr() << "\n"; 
             }
             delete a ; 
         }
