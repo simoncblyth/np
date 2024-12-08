@@ -1,76 +1,178 @@
-// ./NPFold_copy_test.sh
+/**
+NPFold_copy_test.cc
+====================
+
+~/np/tests/NPFold_copy_test.sh
+
+TEST=deepcopy ~/np/tests/NPFold_copy_test.sh
+
+**/
 
 #include "NPFold.h"
 
+struct NPFold_copy_test
+{
+    static const char* TEST ;
 
+    static NPFold* MakeFold(); 
 
-void test_copy()
+    static int shallowcopy();
+    static int deepcopy();
+    static int meta();
+ 
+    static int Main(); 
+};
+
+const char* NPFold_copy_test::TEST = U::GetEnv("TEST", "ALL") ; 
+
+ 
+
+NPFold* NPFold_copy_test::MakeFold()
 {
     const char* _a = "0 0\n1 1\n2 2\n3 3" ; 
     const char* _b = "0 0\n1 1\n2 2\n3 3\n4 4" ; 
     const char* _c = "0 0\n1 1\n2 2\n3 3\n4 4\n5 5" ; 
 
-    NP* a = NP::LoadFromString<int>(_a) ; 
-    NP* b = NP::LoadFromString<int>(_b) ; 
-    NP* c = NP::LoadFromString<int>(_c) ; 
+    NPFold* x = new NPFold ; 
+    x->add("a", NP::LoadFromString<int>(_a)); 
+    x->add("b", NP::LoadFromString<int>(_b)); 
+    x->add("c", NP::LoadFromString<int>(_c));
 
-    NPFold* f = new NPFold ; 
-    f->add("a",a); 
-    f->add("b",b); 
-    f->add("c",c);
+    NPFold* y = new NPFold ; 
+    y->add("a", NP::LoadFromString<int>(_a)); 
+    y->add("b", NP::LoadFromString<int>(_b)); 
+    y->add("c", NP::LoadFromString<int>(_c));
 
-    std::cout 
-        << "f.desc "
+    NPFold* z = new NPFold ; 
+    z->add("a", NP::LoadFromString<int>(_a)); 
+    z->add("b", NP::LoadFromString<int>(_b)); 
+    z->add("c", NP::LoadFromString<int>(_c));
+
+    NPFold* zx = new NPFold ; 
+    zx->add("a", NP::LoadFromString<int>(_a)); 
+    zx->add("b", NP::LoadFromString<int>(_b)); 
+    zx->add("c", NP::LoadFromString<int>(_c));
+
+    NPFold* zy = new NPFold ; 
+    zy->add("a", NP::LoadFromString<int>(_a)); 
+    zy->add("b", NP::LoadFromString<int>(_b)); 
+    zy->add("c", NP::LoadFromString<int>(_c));
+
+    NPFold* zz = new NPFold ; 
+    zz->add("a", NP::LoadFromString<int>(_a)); 
+    zz->add("b", NP::LoadFromString<int>(_b)); 
+    zz->add("c", NP::LoadFromString<int>(_c));
+
+    z->add_subfold("zx", zx ); 
+    z->add_subfold("zy", zy ); 
+    z->add_subfold("zz", zz ); 
+
+    NPFold* top = new NPFold ; 
+    top->add_subfold("x", x ); 
+    top->add_subfold("y", y ); 
+    top->add_subfold("z", z ); 
+
+
+    if(0) std::cout 
+        << "top.desc "
         << std::endl   
-        << f->desc() 
+        << top->desc() 
         << std::endl   
         ; 
 
-    bool shallow = true ; 
-    NPFold* fc = f->copy("a,b,c", shallow); 
-
-    std::cout 
-        << "fc.desc "
-        << std::endl   
-        << fc->desc() 
-        << std::endl   
-        ; 
-
-
-    const NP* b2 = fc->get("b"); 
-    std::cout << " b2 " << b2->desc() << std::endl ; 
-
-    if(shallow == true)
-    {
-        assert( b2 == b ); 
-    }
-    else
-    {
-        assert( b2 != b ); 
-    }
-
-    f->save("$FOLD");  
+    top->set_verbose_r(); 
+    return top ; 
 }
 
-void test_copy_all()
+
+int NPFold_copy_test::shallowcopy()
+{
+    NPFold* f = MakeFold(); 
+    NPFold* fc = f->shallowcopy("a,b,c"); 
+
+    std::cout 
+        << "[NPFold_copy_test::shallowcopy\n"
+        << " fc.desc\n"
+        << fc->desc() 
+        << "\n"
+        << "]NPFold_copy_test::shallowcopy\n"
+        ; 
+
+    const char* q_key = "b" ; 
+
+    std::vector<const NP*> f_aa ; 
+    std::vector<std::string> f_tt ; 
+    f->find_arrays_with_key_r(f_aa, f_tt, q_key); 
+
+    std::vector<const NP*> fc_aa ; 
+    std::vector<std::string> fc_tt ; 
+    fc->find_arrays_with_key_r(fc_aa, fc_tt, q_key); 
+
+    std::cout << "f\n"  << NPFold::DescArraysAndPaths( f_aa, f_tt )   << "\n" ; 
+    std::cout << "fc\n" << NPFold::DescArraysAndPaths( fc_aa, fc_tt ) << "\n" ; 
+
+    assert( f_aa.size() == fc_aa.size() ) ; 
+
+    fc->save("$FOLD/$TEST");  
+    return 0 ; 
+}
+
+int NPFold_copy_test::deepcopy()
+{
+    NPFold* f = MakeFold(); 
+    NPFold* fc = f->deepcopy("a,b,c"); 
+
+    std::cout 
+        << "[NPFold_copy_test::deepcopy\n"
+        << " fc.desc\n"
+        << fc->desc() 
+        << "\n"
+        << "]NPFold_copy_test::deepcopy\n"
+        ; 
+
+    const char* q_key = "b" ; 
+
+    std::vector<const NP*> f_aa ; 
+    std::vector<std::string> f_tt ; 
+    f->find_arrays_with_key_r(f_aa, f_tt, q_key); 
+
+    std::vector<const NP*> fc_aa ; 
+    std::vector<std::string> fc_tt ; 
+    fc->find_arrays_with_key_r(fc_aa, fc_tt, q_key); 
+
+    std::cout << "f\n"  << NPFold::DescArraysAndPaths( f_aa, f_tt )   << "\n" ; 
+    std::cout << "fc\n" << NPFold::DescArraysAndPaths( fc_aa, fc_tt ) << "\n" ; 
+
+    assert( f_aa.size() == fc_aa.size() ) ; 
+
+
+    fc->save("$FOLD/$TEST");  
+    return 0 ; 
+}
+
+int NPFold_copy_test::meta()
 { 
     NPFold* f = new NPFold ; 
     f->meta = "hello:world" ; 
 
-    bool shallow = true ; 
-    NPFold* c = f->copy_all(shallow) ; 
-
-    c->save("$FOLD"); 
+    NPFold* c = f->shallowcopy() ; 
+    c->save("$FOLD/$TEST"); 
     std::cout << c->descMetaKV() << std::endl ; 
-}
-
-
-int main()
-{
-    /*
-    test_copy(); 
-    */
-    test_copy_all(); 
 
     return 0 ; 
 }
+
+int NPFold_copy_test::Main()
+{
+    bool ALL = strcmp(TEST, "ALL") == 0 ; 
+    int rc = 0 ;
+
+    if(ALL||strcmp(TEST,"shallowcopy")==0)   rc+=shallowcopy();
+    if(ALL||strcmp(TEST,"deepcopy")==0)      rc+=deepcopy(); 
+    if(ALL||strcmp(TEST,"meta")==0)          rc+=meta(); 
+
+    return rc ; 
+}
+
+int main(){ return NPFold_copy_test::Main() ; }
+

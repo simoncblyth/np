@@ -5,23 +5,20 @@ usage(){ cat << EOU
 
    ~/np/tests/NPFold_copy_test.sh  
 
-
 EOU
 }
-
+cd $(dirname $(realpath $BASH_SOURCE))
+export PYTHONPATH=../..
+source dbg__.sh 
 
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
-
-cd $(dirname $(realpath $BASH_SOURCE))
 
 name=NPFold_copy_test 
 export FOLD=/tmp/$name
 mkdir -p $FOLD
 bin=$FOLD/$name
 script=$name.py 
-
-export PYTHONPATH=../..
 
 
 vars="BASH_SOURCE name defarg arg FOLD bin"
@@ -35,7 +32,7 @@ if [ "${arg/clean}" != "$arg" ]; then
 fi 
 
 if [ "${arg/build}" != "$arg" ]; then 
-   gcc $name.cc -std=c++11 -lstdc++ -Wall -I.. -o $bin
+   gcc $name.cc -std=c++11 -lstdc++ -g -Wall -I.. -o $bin
    [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1
 fi 
 
