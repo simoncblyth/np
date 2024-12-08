@@ -5,6 +5,7 @@ NPFold_copy_test.cc
 ~/np/tests/NPFold_copy_test.sh
 
 TEST=deepcopy ~/np/tests/NPFold_copy_test.sh
+TEST=subcopy ~/np/tests/NPFold_copy_test.sh
 
 **/
 
@@ -19,6 +20,7 @@ struct NPFold_copy_test
     static int shallowcopy();
     static int deepcopy();
     static int meta();
+    static int subcopy();
  
     static int Main(); 
 };
@@ -162,6 +164,31 @@ int NPFold_copy_test::meta()
     return 0 ; 
 }
 
+int NPFold_copy_test::subcopy()
+{ 
+    NPFold* f = MakeFold(); 
+    NPFold* zzz = f->find_subfold_("z/zz"); 
+    NPFold* zzz_c = zzz->deepcopy(); 
+
+    std::cout 
+        << "[NPFold_copy_test::subcopy\n"
+        << " NPFold::Treepath(zzz)   : " << NPFold::Treepath(zzz) << "\n" 
+        << " NPFold::Treepath(zzz_c) : " << NPFold::Treepath(zzz_c) << "\n" 
+        << "]NPFold_copy_test::subcopy\n"
+        ; 
+
+    NPFold* n = new NPFold ; 
+    // n->add_subfold("hmm", zzz);   // parent changing assert
+    n->add_subfold("hmm", zzz_c); 
+
+    n->save("$FOLD/$TEST"); 
+
+    return 0 ; 
+}
+
+
+
+
 int NPFold_copy_test::Main()
 {
     bool ALL = strcmp(TEST, "ALL") == 0 ; 
@@ -170,6 +197,7 @@ int NPFold_copy_test::Main()
     if(ALL||strcmp(TEST,"shallowcopy")==0)   rc+=shallowcopy();
     if(ALL||strcmp(TEST,"deepcopy")==0)      rc+=deepcopy(); 
     if(ALL||strcmp(TEST,"meta")==0)          rc+=meta(); 
+    if(ALL||strcmp(TEST,"subcopy")==0)       rc+=subcopy(); 
 
     return rc ; 
 }

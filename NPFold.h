@@ -111,15 +111,20 @@ struct NPFold
     // nodata:true used for lightweight access to metadata from many arrays
     bool                      nodata ; 
 
+    // [TRANSIENT FIELDS : NOT COPIED BY CopyMeta
     bool                      allowempty ; 
     bool                      skipdelete ;   // set to true on subfold during trivial concat
     bool                      verbose_ ; 
-
     NPFold*                   parent ;      // set by add_subfold
+    // ]TRANSIENT FIELDS
 
     static constexpr const char INTKEY_PREFIX = 'f' ; 
     static constexpr const int UNDEF = -1 ; 
     static constexpr const bool VERBOSE = false ; 
+    static constexpr const bool ALLOWEMPTY = false ; 
+    static constexpr const bool SKIPDELETE = false ; 
+    static constexpr NPFold*    PARENT = nullptr ; 
+
     static constexpr const char* DOT_NPY = ".npy" ;  // formerly EXT
     static constexpr const char* DOT_TXT = ".txt" ; 
     static constexpr const char* DOT_PNG = ".png" ; 
@@ -195,8 +200,10 @@ public:
     int          get_subfold_idx(const NPFold* fo) const ; 
 
     const char*  get_subfold_key_within_parent() const ; 
+
     void         get_treepath_(std::vector<std::string>& elem) const ; 
     std::string  get_treepath(const char* k=nullptr) const ; 
+    static std::string Treepath(const NPFold* f); 
 
     NPFold*      get_subfold(const char* f) const ; 
     bool         has_subfold(const char* f) const ; 
@@ -670,8 +677,6 @@ inline std::string NPFold::DescCompare(const NPFold* a, const NPFold* b )
 
 
 
-
-
 // CTOR
 
 inline NPFold::NPFold()
@@ -686,10 +691,10 @@ inline NPFold::NPFold()
     savedir(nullptr),
     loaddir(nullptr),
     nodata(false),
-    allowempty(false),
-    skipdelete(false),
+    allowempty(ALLOWEMPTY),
+    skipdelete(SKIPDELETE),
     verbose_(VERBOSE),
-    parent(nullptr)
+    parent(PARENT)
 {
     if(verbose_) std::cerr << "NPFold::NPFold" << std::endl ; 
 }
@@ -840,7 +845,7 @@ inline void NPFold::add_subfold(const char* f, NPFold* fo )
             << "\n"
             ;
     } 
-    //assert( fo->parent == nullptr ); 
+    assert( fo->parent == nullptr ); 
     fo->parent = this ; 
 }
 
@@ -902,6 +907,28 @@ inline std::string NPFold::get_treepath(const char* k) const
     int num_elem = elem.size(); 
     for(int i=0 ; i < num_elem ; i++ ) ss << elem[i] << ( i < num_elem - 1 ? "/" : "" ) ; 
     if(k) ss << "/" << k ; 
+    std::string str = ss.str() ; 
+    return str ; 
+}
+
+/**
+NPFold::Treepath
+-----------------
+
+Disconnected fold has empty string "" treepath, see::
+
+     TEST=subcopy ~/np/tests/NPFold_copy_test.sh
+
+     NPFold::Treepath(zzz)   : {/z/zz}
+     NPFold::Treepath(zzz_c) : {}
+
+ 
+**/
+
+inline std::string NPFold::Treepath(const NPFold* f)
+{
+    std::stringstream ss ; 
+    ss << "{" << ( f ? f->get_treepath() : "-" ) << "}" ; 
     std::string str = ss.str() ; 
     return str ; 
 }
@@ -1337,7 +1364,7 @@ inline int NPFold::Traverse_r(
     assert( nd->subfold.size() == nd->ff.size() ); 
     unsigned num_sub = nd->subfold.size(); 
 
-    if(mxd == 0 || d <= mxd )
+    if(mxd == MXD_NOLIMIT || d <= mxd )
     {
         folds.push_back(nd); 
         paths.push_back(path); 
@@ -1950,8 +1977,22 @@ inline NPFold* NPFold::Copy(const NPFold* src, bool shallow_array_copy, std::vec
     return dst ; 
 }
 
+/**
+NPFold::CopyMeta
+-----------------
+
+Some members are not copied, namely::
+
+    allowempty
+    skipdelete
+    verbose_
+    parent 
+
+**/
+
 inline void NPFold::CopyMeta( NPFold* dst , const NPFold* src ) // static
 {
+    dst->headline = src->headline ; 
     dst->meta = src->meta ; 
     dst->names = src->names ; 
     dst->savedir = src->savedir ? strdup(src->savedir) : nullptr ; 
