@@ -20,8 +20,11 @@ mkdir -p $FOLD
 bin=$FOLD/$name
 script=$name.py 
 
+test=.
+export TEST=${TEST:-$test}
 
-vars="BASH_SOURCE name defarg arg FOLD bin"
+
+vars="BASH_SOURCE name defarg arg FOLD bin TEST"
 
 if [ "${arg/info}" != "$arg" ]; then
    for var in $vars ; do printf "%20s : %s \n" "$var" "${!var}" ; done  

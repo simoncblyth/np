@@ -110,11 +110,11 @@ struct NPFold
 
     // nodata:true used for lightweight access to metadata from many arrays
     bool                      nodata ; 
+    bool                      verbose_ ; 
 
     // [TRANSIENT FIELDS : NOT COPIED BY CopyMeta
     bool                      allowempty ; 
     bool                      skipdelete ;   // set to true on subfold during trivial concat
-    bool                      verbose_ ; 
     NPFold*                   parent ;      // set by add_subfold
     // ]TRANSIENT FIELDS
 
@@ -691,9 +691,9 @@ inline NPFold::NPFold()
     savedir(nullptr),
     loaddir(nullptr),
     nodata(false),
+    verbose_(VERBOSE),
     allowempty(ALLOWEMPTY),
     skipdelete(SKIPDELETE),
-    verbose_(VERBOSE),
     parent(PARENT)
 {
     if(verbose_) std::cerr << "NPFold::NPFold" << std::endl ; 
@@ -1962,7 +1962,7 @@ inline NPFold* NPFold::copy(bool shallow_array_copy, const char* keylist, char d
         << std::endl 
         ; 
 
-    return NPFold::Copy(this, shallow_array_copy, &keys ); 
+    return NPFold::Copy(this, shallow_array_copy, keylist ? &keys : nullptr ); 
 }
 
 
@@ -1998,7 +1998,20 @@ inline void NPFold::CopyMeta( NPFold* dst , const NPFold* src ) // static
     dst->savedir = src->savedir ? strdup(src->savedir) : nullptr ; 
     dst->loaddir = src->loaddir ? strdup(src->loaddir) : nullptr ; 
     dst->nodata  = src->nodata ; 
+    dst->verbose_ = src->verbose_ ; 
 }
+
+/**
+NPFold::CopyArray
+------------------
+
+keys:nullptr
+   signals copy all arrays without selection
+
+keys:!nullptr
+   only arrays with listed keys are copied 
+
+**/
 
 inline void NPFold::CopyArray( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static
 {
@@ -2006,12 +2019,16 @@ inline void NPFold::CopyArray( NPFold* dst , const NPFold* src, bool shallow_arr
     {
         const NP* a = src->aa[i]; 
         const char* k = src->kk[i].c_str() ; 
-        bool listed = keys && std::find( keys->begin(), keys->end(), k ) != keys->end() ; 
-        if(keys == nullptr || listed)
-        { 
-            dst->add_( k, shallow_array_copy ? a : NP::MakeCopy(a) ); 
-        }
+        bool listed = keys != nullptr && std::find( keys->begin(), keys->end(), k ) != keys->end() ; 
+        bool docopy = keys == nullptr || listed ; 
+        const NP* dst_a = docopy ? ( shallow_array_copy ? a : NP::MakeCopy(a) ) : nullptr  ;  
+        if(dst_a) dst->add_( k, dst_a ); 
     } 
+
+    if( keys == nullptr ) 
+    {
+        assert( src->aa.size() == dst->aa.size() ) ;  
+    }
 }
 
 inline void NPFold::CopySubfold( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static

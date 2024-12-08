@@ -115,7 +115,7 @@ int NPFold_copy_test::shallowcopy()
 
     assert( f_aa.size() == fc_aa.size() ) ; 
 
-    fc->save("$FOLD/$TEST");  
+    fc->save("$FOLD/shallowcopy");  
     return 0 ; 
 }
 
@@ -148,7 +148,7 @@ int NPFold_copy_test::deepcopy()
     assert( f_aa.size() == fc_aa.size() ) ; 
 
 
-    fc->save("$FOLD/$TEST");  
+    fc->save("$FOLD/deepcopy");  
     return 0 ; 
 }
 
@@ -158,7 +158,7 @@ int NPFold_copy_test::meta()
     f->meta = "hello:world" ; 
 
     NPFold* c = f->shallowcopy() ; 
-    c->save("$FOLD/$TEST"); 
+    c->save("$FOLD/meta"); 
     std::cout << c->descMetaKV() << std::endl ; 
 
     return 0 ; 
@@ -181,7 +181,7 @@ int NPFold_copy_test::subcopy()
     // n->add_subfold("hmm", zzz);   // parent changing assert
     n->add_subfold("hmm", zzz_c); 
 
-    n->save("$FOLD/$TEST"); 
+    n->save("$FOLD/subcopy"); 
 
     return 0 ; 
 }
@@ -191,7 +191,7 @@ int NPFold_copy_test::subcopy()
 
 int NPFold_copy_test::Main()
 {
-    bool ALL = strcmp(TEST, "ALL") == 0 ; 
+    bool ALL = strcmp(TEST, "ALL") == 0 || strcmp(TEST, ".") == 0  ;  // use "." for python filing purpose
     int rc = 0 ;
 
     if(ALL||strcmp(TEST,"shallowcopy")==0)   rc+=shallowcopy();
