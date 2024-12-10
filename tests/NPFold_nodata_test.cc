@@ -8,12 +8,11 @@ int main(int argc, char** argv)
     NPFold* f = NPFold::Load(path); 
     //std::cout << " path " << path << std::endl << f->desc() << std::endl ; 
 
-
-    //const char* prefix = "//n" ; 
-    const char* prefix = "//p" ; 
+    const char* prefix = "//A" ; 
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    f->find_subfold_with_prefix(subs, &subpaths,  prefix );  
+    int maxdepth = 1 ; 
+    f->find_subfold_with_prefix(subs, &subpaths,  prefix, maxdepth );  
     assert( subs.size() == subpaths.size() ); 
 
     std::cout 
