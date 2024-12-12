@@ -822,10 +822,10 @@ inline void NPFold::add_subfold(const char* f, NPFold* fo )
        << "\n" 
        ;   
 
-    if( ALLOW_DUPLICATE_KEY == 0 )
+    if( !unique_f && ALLOW_DUPLICATE_KEY == 0 )
     {
         assert( unique_f ) ; 
-        std::raise(SIGINT);   // debug builds remove assert 
+        std::raise(SIGINT);   // release builds remove assert 
     }
 
     if(!unique_fo) std::cerr 
