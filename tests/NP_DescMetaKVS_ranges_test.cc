@@ -5,7 +5,12 @@
 struct NP_DescMetaKVS_ranges_test
 {
     static int ranges(); 
+
+    static void add_tuple( std::vector<std::tuple<std::string,int64_t>>& kt, const char* prefix, const char* tag, int64_t t ); 
+    static void add_tuple( std::vector<std::tuple<std::string,int64_t>>& kt, const char* prefix, int64_t t0, const std::vector<std::string>& tags ); 
+    static void add_QSim( std::vector<std::tuple<std::string,int64_t>>& kt, const char* prefix, int64_t t0  ); 
     static int ranges2(); 
+
     static int Main(); 
 }; 
 
@@ -61,6 +66,42 @@ int NP_DescMetaKVS_ranges_test::ranges()
 }
 
 
+void NP_DescMetaKVS_ranges_test::add_tuple( std::vector<std::tuple<std::string,int64_t>>& kt, const char* prefix, const char* tag, int64_t t )
+{
+    std::stringstream ss ; 
+    ss << prefix << tag ; 
+    kt.push_back( {ss.str(), t} ); 
+}
+
+void NP_DescMetaKVS_ranges_test::add_tuple( std::vector<std::tuple<std::string,int64_t>>& kt, const char* prefix, int64_t t0, const std::vector<std::string>& tags )
+{
+    int64_t t = t0 ; 
+    for(int i=0 ; i < int(tags.size()) ; i++)
+    {
+        add_tuple(kt, prefix, tags[i].c_str(), t ); 
+        t += 10 ; 
+    }
+}
+
+void NP_DescMetaKVS_ranges_test::add_QSim( std::vector<std::tuple<std::string,int64_t>>& kt, const char* prefix, int64_t t0  )
+{
+    add_tuple(kt, prefix, "HEAD", t0 ); 
+    add_tuple(kt, prefix, "LBEG", t0+10 ); 
+
+    std::vector<std::string> tags = {"PRUP", "PREL", "POST", "DOWN" } ; 
+    add_tuple(kt, prefix, t0+100, tags ); 
+    add_tuple(kt, prefix, t0+200, tags ); 
+    add_tuple(kt, prefix, t0+300, tags ); 
+    add_tuple(kt, prefix, t0+400, tags ); 
+
+    add_tuple(kt, prefix, "LEND", t0+500); 
+    add_tuple(kt, prefix, "PCAT", t0+600); 
+    add_tuple(kt, prefix, "BRES", t0+700); 
+    add_tuple(kt, prefix, "TAIL", t0+800); 
+}
+
+
+
 int NP_DescMetaKVS_ranges_test::ranges2()
 {
     std::cout << "[NP_DescMetaKVS_ranges_test::ranges2\n" ; 
@@ -70,23 +111,17 @@ int NP_DescMetaKVS_ranges_test::ranges2()
        {  "CSGFoundry__Load_HEAD", 20 },
        {  "CSGFoundry__Load_TAIL", 30 },
        {  "CSGOptiX__Create_HEAD", 40 },
-       {  "CSGOptiX__Create_TAIL", 50 }, 
-       {  "A000_QSim__simulate_HEAD", 1010 },
-       {  "A000_QSim__simulate_PREL", 1020 },
-       {  "A000_QSim__simulate_POST", 1030 },
-       {  "A000_QSim__simulate_PREL", 1031 },
-       {  "A000_QSim__simulate_POST", 1038 },
-       {  "A000_QSim__simulate_TAIL", 1040 },
-       {  "A001_QSim__simulate_HEAD", 2010 },
-       {  "A001_QSim__simulate_PREL", 2020 },
-       {  "A001_QSim__simulate_POST", 2030 },
-       {  "A001_QSim__simulate_TAIL", 2040 },  
-       {  "A002_QSim__simulate_HEAD", 3010 },
-       {  "A002_QSim__simulate_PREL", 3020 },
-       {  "A002_QSim__simulate_POST", 3030 },
-       {  "A002_QSim__simulate_TAIL", 3040 },
-       {  "CSGOptiX__SimulateMain_TAIL", 4000 }
-        } ; 
+       {  "CSGOptiX__Create_TAIL", 50 }
+      }; 
+
+    add_QSim( kt, "A000_QSim__simulate_",  1000 ); 
+    add_QSim( kt, "A001_QSim__simulate_",  2000 ); 
+    add_QSim( kt, "A002_QSim__simulate_",  3000 ); 
+    add_QSim( kt, "A003_QSim__simulate_",  4000 ); 
+
+    kt.push_back({"CSGOptiX__SimulateMain_TAIL", 5000 }); 
+
+
  
     std::vector<std::string> keys ; 
     std::vector<int64_t> tt ; 
@@ -94,13 +129,15 @@ int NP_DescMetaKVS_ranges_test::ranges2()
     assert( keys.size() == tt.size() ) ; 
 
     static constexpr const char* RANGES = R"( 
-        SEvt__Init_RUN_META:CSGFoundry__Load_HEAD       
-        CSGFoundry__Load_HEAD:CSGFoundry__Load_TAIL     ## load geom 
-        CSGOptiX__Create_HEAD:CSGOptiX__Create_TAIL     ## upload geom
-        A%0.3d_QSim__simulate_HEAD:A%0.3d_QSim__simulate_PREL         ## upload genstep
-        A%0.3d_QSim__simulate_PREL:A%0.3d_QSim__simulate_POST         ## simulate kernel
-        A%0.3d_QSim__simulate_POST:A%0.3d_QSim__simulate_TAIL         ## download 
-        A%0.3d_QSim__simulate_TAIL:CSGOptiX__SimulateMain_TAIL
+        SEvt__Init_RUN_META:CSGFoundry__Load_HEAD                     ## init
+        CSGFoundry__Load_HEAD:CSGFoundry__Load_TAIL                   ## load_geom
+        CSGOptiX__Create_HEAD:CSGOptiX__Create_TAIL                   ## upload_geom
+        A%0.3d_QSim__simulate_HEAD:A%0.3d_QSim__simulate_LBEG         ## slice_genstep
+        A%0.3d_QSim__simulate_PRUP:A%0.3d_QSim__simulate_PREL         ## upload genstep slice
+        A%0.3d_QSim__simulate_PREL:A%0.3d_QSim__simulate_POST         ## simulate slice
+        A%0.3d_QSim__simulate_POST:A%0.3d_QSim__simulate_DOWN         ## download slice
+        A%0.3d_QSim__simulate_LEND:A%0.3d_QSim__simulate_PCAT         ## concat slices
+        A%0.3d_QSim__simulate_BRES:A%0.3d_QSim__simulate_TAIL         ## save arrays 
        )" ; 
 
 

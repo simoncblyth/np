@@ -6,8 +6,6 @@ usage(){ cat << EOU
 EOU
 }
 
-
-
 cd $(dirname $(realpath $BASH_SOURCE))
 source dbg__.sh 
 
@@ -18,7 +16,7 @@ defarg="build_run"
 arg=${1:-$defarg}
 
 if [ "${arg/build}" != "$arg" ]; then
-   gcc $name.cc -g -Wall -std=c++11 -lstdc++ -I.. -o $bin  
+   gcc $name.cc -g -Wall -Werror -std=c++11 -lstdc++ -I.. -o $bin  
    [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1
 fi 
 
