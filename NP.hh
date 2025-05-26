@@ -3144,10 +3144,13 @@ inline NP* NP::LoadSlice( const char* _path, const char* _sel )
     const char* sel = nullptr ;
     if(_sel && strlen(_sel ) > 1)
     {
-        sel = _sel[0] == '$' ? U::GetEnv(_sel, nullptr) : _sel ;
-        std::cout << "NP::LoadSlice using "
-            << " _sel [" << ( _sel ? _sel : "-" )
-            << " sel ["  << ( sel ? sel : "-" )
+        bool starts_with_dollar = _sel[0] == '$' ;
+        sel = starts_with_dollar ? U::GetEnv(_sel+1, nullptr) : _sel ;
+        if(VERBOSE) std::cout
+            << "NP::LoadSlice"
+            << " starts_with_dollar " << ( starts_with_dollar ? "YES" : "NO " )
+            << " _sel [" << ( _sel ? _sel : "-" ) << "]"
+            << " sel ["  << ( sel ? sel : "-" ) << "]"
             << "\n"
             ;
     }

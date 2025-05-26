@@ -35,7 +35,7 @@ arg=${1:-$defarg}
 export TEST=LoadSlice
 
 
-vv="GEOM AFOLD BFOLD FOLD TEST"
+vv="GEOM AFOLD AFOLD_RECORD_SLICE BFOLD BFOLD_RECORD_SLICE FOLD TEST"
 
 if [ "${arg/info}" != "$arg" ]; then
     for v in $vv ; do printf "%20s : %s\n" "$v" "${!v}" ; done

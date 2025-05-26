@@ -90,10 +90,11 @@ int test_LoadSlice()
     std::vector<std::string> sels = {{
        "  [:,0,0,0] < 0  ",
        "  [:,0,0,0] > 0  ",
-       "  [:,0,0,0] < 0.5  ",
-       "  [:,0,0,0] > 0.5  ",
+       "  [:,0,0,0] < -1.0  ",
+       "  [:,0,0,0] > +1.0  ",
        "",
-       "NULL"
+       "NULL",
+       "$AFOLD_RECORD_SLICE"
     }} ;
     std::vector<std::string> labs = {{
        "a",
@@ -101,7 +102,8 @@ int test_LoadSlice()
        "c",
        "d",
        "e",
-       "f"
+       "f",
+       "g"
     }};
 
     NPFold* fold = new NPFold ;
