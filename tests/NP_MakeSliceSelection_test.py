@@ -5,7 +5,7 @@ from np.fold import Fold
 
 
 if __name__ == '__main__':
-    t = Fold.Load("$FOLD/MakeSliceSelection", symbol="t")
+    t = Fold.Load("$FOLD/$TEST", symbol="t")
     print(repr(t))
 
 

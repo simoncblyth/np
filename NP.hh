@@ -294,6 +294,9 @@ struct NP
     // load array asis
     static NP* LoadIfExists(const char* path);
     static NP* Load(const char* path);
+
+    template<typename T> static NP* LoadSlice( const char* path, const char* _sel );
+
     static bool ExistsArrayFolder(const char* path );
 
     static NP* Load_(const char* path);
@@ -3125,6 +3128,33 @@ inline NP* NP::Load(const char* path_)
     if(VERBOSE) std::cerr << "] NP::Load " << path << std::endl ;
     return a ;
 }
+
+
+template<typename T>
+inline NP* NP::LoadSlice( const char* _path, const char* _sel )
+{
+    const char* path = U::Resolve(_path);
+    if(!Exists(path)) return nullptr ;
+
+    NP* __a = NP::Load(path) ;
+    NP* _a = __a ? NP::MakeNarrowIfWide(__a) : nullptr  ;
+
+    const char* sel = nullptr ;
+    if(_sel && strlen(_sel ) > 1)
+    {
+        sel = _sel[0] == '$' ? U::GetEnv(_sel, nullptr) : _sel ;
+        std::cout << "NP::LoadSlice using "
+            << " _sel [" << ( _sel ? _sel : "-" )
+            << " sel ["  << ( sel ? sel : "-" )
+            << "\n"
+            ;
+    }
+    NP* a = sel ? NP::MakeSliceSelection<T>(_a, sel) : _a ;
+    return a ;
+}
+
+
+
 
 /**
 NP::ExistsArrayFolder

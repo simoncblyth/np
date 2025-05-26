@@ -32,7 +32,10 @@ opt=""
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
-vv="GEOM AFOLD BFOLD FOLD"
+export TEST=LoadSlice
+
+
+vv="GEOM AFOLD BFOLD FOLD TEST"
 
 if [ "${arg/info}" != "$arg" ]; then
     for v in $vv ; do printf "%20s : %s\n" "$v" "${!v}" ; done
