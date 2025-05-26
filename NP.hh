@@ -2478,6 +2478,8 @@ inline NP* NP::makeWhereSelection( const char* _sel ) const
 {
     std::vector<INT> idxx ;
     int rc = ParseSliceString(idxx, _sel);
+    if(rc !=0 ) std::cout << "NP::makeWhereSelection FAIL to parse [" << ( _sel ? _sel : "-" ) << "]\n" ;
+    if(rc !=0 ) return nullptr ;
 
     const char* gt = strstr(_sel, ">");
     const char* lt = strstr(_sel, "<");

@@ -91,13 +91,17 @@ int test_LoadSlice()
        "  [:,0,0,0] < 0  ",
        "  [:,0,0,0] > 0  ",
        "  [:,0,0,0] < 0.5  ",
-       "  [:,0,0,0] > 0.5  "
+       "  [:,0,0,0] > 0.5  ",
+       "",
+       "NULL"
     }} ;
     std::vector<std::string> labs = {{
        "a",
        "b",
        "c",
-       "d"
+       "d",
+       "e",
+       "f"
     }};
 
     NPFold* fold = new NPFold ;
@@ -107,10 +111,11 @@ int test_LoadSlice()
     {
         const char* _sel = sels[i].c_str();
         const char* _lab = labs[i].c_str();
+        if(strcmp(_sel, "NULL")==0) _sel = nullptr ;
         NP* dst = NP::LoadSlice<float>("$AFOLD/record.npy", _sel);
         std::cout
             << " _lab " << std::setw(20) << _lab
-            << " _sel " << std::setw(20) << _sel
+            << " _sel " << std::setw(20) << ( _sel ? _sel : "-" )
             << " dst " << std::setw(20) << ( dst ? dst->sstr() : "-" )
             << "\n"
             ;
