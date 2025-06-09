@@ -474,6 +474,7 @@ struct NP
 
     template<typename T> static INT DumpCompare( const NP* a, const NP* b, unsigned a_column, unsigned b_column, const T epsilon );
     static INT Memcmp( const NP* a, const NP* b );
+    static bool SameData( const NP* a, const NP* b );
 
     static NP* Concatenate(const char* dir, const std::vector<std::string>& names);
 
@@ -6368,9 +6369,14 @@ NP::Memcmp
 
 inline NP::INT NP::Memcmp(const NP* a, const NP* b ) // static
 {
-    unsigned a_bytes = a->arr_bytes() ;
-    unsigned b_bytes = b->arr_bytes() ;
-    return a_bytes == b_bytes ? memcmp(a->bytes(), b->bytes(), a_bytes) : -1 ;
+    unsigned a_bytes = a ? a->arr_bytes() : 0 ;
+    unsigned b_bytes = b ? b->arr_bytes() : 0 ;
+    return a_bytes == b_bytes && a_bytes > 0 ? memcmp(a->bytes(), b->bytes(), a_bytes) : -1 ;
+}
+
+inline bool NP::SameData( const NP* a, const NP* b )
+{
+    return 0 == Memcmp(a, b );
 }
 
 /**
