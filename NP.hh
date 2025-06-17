@@ -2799,7 +2799,9 @@ inline bool NP::LooksLikeWhereSelection(const char* _sel ) // static
     bool candidate = _sel && strlen(_sel ) > 1 ;
     if(!candidate) return false ;
     bool starts_with_dollar = _sel[0] == '$' ;
+
     const char* sel = starts_with_dollar ? U::GetEnv(_sel+1, nullptr) : _sel ;
+    if( sel == nullptr ) return false ;
 
     const char* gt = strstr(sel, ">");
     const char* lt = strstr(sel, "<");
@@ -6953,15 +6955,17 @@ newline from the stream without returning it.
 inline int NP::load(const char* _path, const char* _sli )
 {
     if(VERBOSE) std::cerr << "[ NP::load [" << ( _path ? _path : "-" ) << "]\n" ;
+
     std::ifstream* fp = load_header(_path, _sli);
-    const char* path = lpath.c_str();
     if( fp == nullptr )
     {
-        std::cerr << "NP::load Failed to load from path [" << ( path ? path : "-" ) << "]\n" ;
+        std::cerr << "NP::load Failed to load from path [" << ( _path ? _path : "-" ) << "]\n" ;
         std::raise(SIGINT);
     }
     load_data( fp, _sli );
+    delete fp ;
 
+    const char* path = lpath.c_str();
     load_meta( path );
     load_names( path );
     load_labels( path );
@@ -6983,6 +6987,7 @@ inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
     std::ifstream* fp = new std::ifstream(path, std::ios::in|std::ios::binary);
     if(fp->fail())
     {
+        std::cerr << "NP::load_header std::ifstream FAIL for path [" << ( path ? path : "-" ) << "]\n" ;
         delete fp ;
         return nullptr ;
     }
