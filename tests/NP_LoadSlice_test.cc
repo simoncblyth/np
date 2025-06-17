@@ -10,8 +10,7 @@ struct NP_LoadSlice_test
 int NP_LoadSlice_test::LoadSlice()
 {
     const char* path = "$AFOLD/record.npy" ;
-    const char* sli = "[::100]" ;
-    //const char* sli = "[:10]" ;
+    const char* sli = "$AFOLD_RECORD_SLICE" ;
 
     NP* a = NP::Load( path );
     NP* b = NP::LoadSlice( path, sli );
@@ -33,7 +32,7 @@ int NP_LoadSlice_test::LoadSlice()
 int NP_LoadSlice_test::LoadSliceLarge()
 {
     const char* path = "$AFOLD/record.npy" ;
-    const char* sli = "[::100]" ;
+    const char* sli = "$AFOLD_RECORD_SLICE" ;
     NP* b = NP::LoadSlice( path, sli );
     std::cout
         << "NP_LoadSlice_test::LoadSliceLarge\n"

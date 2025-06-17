@@ -32,8 +32,11 @@ test=LoadSliceLarge
 
 export TEST=${TEST:-$test}
 
+afold_record_slice=[::100]
+export AFOLD_RECORD_SLICE=${AFOLD_RECORD_SLICE:-$afold_record_slice}
 
-vv="BASH_SOURCE PWD name tmp TMP FOLD bin script defarg arg TEST"
+
+vv="BASH_SOURCE PWD name tmp TMP FOLD bin script defarg arg TEST AFOLD_RECORD_SLICE"
 
 if [ "${arg/info}" != "$arg" ]; then
    for v in $vv ; do printf "%20s : %s\n" "$v" "${!v}" ; done

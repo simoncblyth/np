@@ -306,6 +306,7 @@ struct NP
 
     template<typename T> static NP* MakeSliceSelection( const NP* src, const char* sel );
     template<typename T> NP* makeWhereSelection( const char* _sel ) const ;
+    static bool LooksLikeWhereSelection(const char* _sel );
 
 
     static NP* MakeItemCopy(  const NP* src, INT i,INT j=-1,INT k=-1,INT l=-1,INT m=-1, INT o=-1 );
@@ -2793,7 +2794,19 @@ inline NP* NP::makeWhereSelection( const char* _sel ) const
     return MakeFromValues<INT>(where.data(), where.size() ) ;
 }
 
+inline bool NP::LooksLikeWhereSelection(const char* _sel ) // static
+{
+    bool candidate = _sel && strlen(_sel ) > 1 ;
+    if(!candidate) return false ;
+    bool starts_with_dollar = _sel[0] == '$' ;
+    const char* sel = starts_with_dollar ? U::GetEnv(_sel+1, nullptr) : _sel ;
 
+    const char* gt = strstr(sel, ">");
+    const char* lt = strstr(sel, "<");
+    if( gt && lt ) return false ;
+    if( gt || lt ) return true ;
+    return false ;
+}
 
 
 
@@ -3422,6 +3435,13 @@ inline NP* NP::Load(const char* path_)
 NP::LoadSlice
 ---------------
 
+_path
+    can start with envvar token
+_sli
+    slice string as shown below OR
+    can envvar token that resolves to the slice string
+
+
 Reads from file into memory only the specified slices using
 NP::load_data_sliced which is based on std::ifstream::seekg
 
@@ -3442,7 +3462,19 @@ inline NP* NP::LoadSlice(const char* _path, const char* _sli)
     if(path == nullptr) return nullptr ; // eg when _path starts with unsetenvvar "$TOKEN"
     bool npy_ext = U::EndsWith(path, EXT) ;
     if(!npy_ext) return nullptr ;
-    NP* a  = NP::LoadSlice_(path, _sli);
+
+
+    NP* a = nullptr ;
+    if( _sli && strlen(_sli) > 1 )
+    {
+        bool starts_with_dollar = _sli[0] == '$' ;
+        const char* sli = starts_with_dollar ? U::GetEnv(_sli+1, nullptr) : _sli ;
+        a = NP::LoadSlice_(path, sli);
+    }
+    else
+    {
+        a = NP::Load_(path);
+    }
     return a ;
 }
 
