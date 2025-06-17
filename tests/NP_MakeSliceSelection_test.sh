@@ -32,7 +32,7 @@ opt=""
 defarg="info_build_run_ana"
 arg=${1:-$defarg}
 
-export TEST=LoadSlice
+export TEST=LoadThenSlice
 
 
 vv="GEOM AFOLD AFOLD_RECORD_SLICE BFOLD BFOLD_RECORD_SLICE FOLD TEST"

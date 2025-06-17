@@ -84,7 +84,7 @@ int test_MakeSliceSelection()
 }
 
 
-int test_LoadSlice()
+int test_LoadThenSlice()
 {
 
     std::vector<std::string> sels = {{
@@ -108,13 +108,13 @@ int test_LoadSlice()
 
     NPFold* fold = new NPFold ;
 
-    std::cout << "[test_LoadSlice\n" ;
+    std::cout << "[test_LoadThenSlice\n" ;
     for(int i=0 ; i < int(sels.size()) ; i++)
     {
         const char* _sel = sels[i].c_str();
         const char* _lab = labs[i].c_str();
         if(strcmp(_sel, "NULL")==0) _sel = nullptr ;
-        NP* dst = NP::LoadSlice<float>("$AFOLD/record.npy", _sel);
+        NP* dst = NP::LoadThenSlice<float>("$AFOLD/record.npy", _sel);
         std::cout
             << " _lab " << std::setw(20) << _lab
             << " _sel " << std::setw(20) << ( _sel ? _sel : "-" )
@@ -124,8 +124,8 @@ int test_LoadSlice()
        fold->add(_lab, dst);
 
     }
-    std::cout << "]test_LoadSlice\n" ;
-    fold->save("$FOLD/LoadSlice");
+    std::cout << "]test_LoadThenSlice\n" ;
+    fold->save("$FOLD/LoadThenSlice");
     return 0 ;
 }
 
@@ -138,14 +138,14 @@ int main(int argc, char** argv)
     //const char* DEFTEST = "ParseSliceString" ;
     //const char* DEFTEST = "makeWhereSelection" ;
     //const char* DEFTEST = "MakeSliceSelection" ;
-    const char* DEFTEST = "LoadSlice" ;
+    const char* DEFTEST = "LoadThenSlice" ;
     const char* TEST = U::GetEnv("TEST", DEFTEST) ;
     bool ALL = strcmp(TEST, "ALL") == 0 ;
     int rc = 0 ;
     if(ALL||0==strcmp(TEST,"ParseSliceString"))   rc += test_ParseSliceString();
     if(ALL||0==strcmp(TEST,"makeWhereSelection")) rc += test_makeWhereSelection();
     if(ALL||0==strcmp(TEST,"MakeSliceSelection")) rc += test_MakeSliceSelection();
-    if(ALL||0==strcmp(TEST,"LoadSlice"))          rc += test_LoadSlice();
+    if(ALL||0==strcmp(TEST,"LoadThenSlice"))      rc += test_LoadThenSlice();
 
 
     return rc ;
