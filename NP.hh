@@ -63,12 +63,12 @@ struct NP_slice
     std::string desc() const ;
 };
 
-bool NP_slice::is_match(const NP_slice& other) const
+inline bool NP_slice::is_match(const NP_slice& other) const
 {
     return start == other.start && stop == other.stop && step == other.step ;
 }
 
-std::string NP_slice::desc() const
+inline std::string NP_slice::desc() const
 {
     std::stringstream ss ;
     ss << "NP_slice(" <<  start << "," << stop << "," << step << ")" ;
