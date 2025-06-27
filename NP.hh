@@ -4172,6 +4172,15 @@ BUT only every fourth 4-plet is (position, time)
 So (item_stride, item_offset) needs to be (4,0) where the
 item is the 4-plet chosen with the N template parameter.
 
+Usage example::
+
+    int item_stride = 4 ;
+    int item_offset = 0 ;
+    record->minmax2D_reshaped<4,float>(&mn.x, &mx.x, item_stride, item_offset );
+    // actually better to use sphoton::MinMaxPost in this case to avoid unfilled zeros
+    // impacting the ranges
+
+
 **/
 template<int N, typename T> inline void NP::minmax2D_reshaped(T* mn, T* mx, INT item_stride, INT item_offset )
 {
@@ -5686,16 +5695,13 @@ inline void NP::setMetaKV_( const std::vector<std::string>& keys,  const std::ve
 
 
 
-
-
-
 inline std::string NP::descMeta() const
 {
     std::stringstream ss ;
-    ss << "NP::descMeta"
-       << std::endl
-       << meta
-       << std::endl
+    ss
+       << "[NP::descMeta\n"
+       << DescMetaKVS(meta, nullptr, nullptr)
+       << "]NP::descMeta\n"
        ;
     std::string str = ss.str();
     return str ;
