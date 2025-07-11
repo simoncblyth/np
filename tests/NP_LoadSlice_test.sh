@@ -28,7 +28,8 @@ arg=${1:-$defarg}
 export PYTHONPATH=$HOME
 
 #test=LoadSlice
-test=LoadSliceLarge
+#test=LoadSliceLarge
+test=LoadSliceWhere
 
 export TEST=${TEST:-$test}
 
@@ -43,7 +44,7 @@ if [ "${arg/info}" != "$arg" ]; then
 fi
 
 if [ "${arg/build}" != "$arg" ]; then
-   gcc $name.cc -I.. -std=c++17 -lstdc++ -o $bin
+   gcc $name.cc -I.. -std=c++17 -lstdc++ -DWITH_VERBOSE -o $bin
    [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1
 fi
 

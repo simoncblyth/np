@@ -311,6 +311,8 @@ struct NP
 
     static int ParseSliceString(std::vector<INT>& idxx, const char* _sli );
     static int ParseSliceIndexString(int& start, int& stop, int& step, const char* _sli );
+    static bool LooksLikeSliceIndexString(const char* _sli );
+
     void parse_slice( NP_slice& sli, const char* _sli) const ;
 
 
@@ -547,6 +549,7 @@ struct NP
     std::ifstream* load_header(const char* _path, const char* _sli);
     void load_data( std::ifstream* fp, const char* sli );
     void load_data_sliced( std::ifstream* fp, const char* sli );
+    void load_data_where(  std::ifstream* fp, const char* _sli );
 
 
     int load_string_(  const char* path, const char* ext, std::string& str );
@@ -1893,7 +1896,7 @@ template<typename T> inline std::string NP::DescSlice(const std::vector<T>& out,
 template<typename T> inline std::string NP::DescSliceBrief(const std::vector<T>& out )  // static
 {
     T mn = std::numeric_limits<T>::max();
-    T mx = std::numeric_limits<T>::min();
+    T mx = std::numeric_limits<T>::lowest();
 
     for(unsigned i=0 ; i < out.size() ; i++ )
     {
@@ -2771,6 +2774,17 @@ inline int NP::ParseSliceIndexString(int& start, int& stop, int& step, const cha
     return 0 ;
 }
 
+inline bool NP::LooksLikeSliceIndexString(const char* _sli ) //
+{
+    if(!_sli) return false ;
+    const char* o = strstr(_sli, "[");
+    const char* c = strstr(_sli, "]");
+    return o && c && ( c - o ) > 0 ;
+}
+
+
+
+
 
 inline void NP::parse_slice( NP_slice& sli, const char* _sli) const
 {
@@ -3508,9 +3522,9 @@ NP::LoadSlice
 _path
     can start with envvar token
 _sli
-    slice string as shown below OR
-    can envvar token that resolves to the slice string
-
+    slice string as shown below OR path to an integer "where" array
+    with indices to be loaded OR can be an envvar token that resolves
+    to the slice string or the path to the "where" array
 
 Reads from file into memory only the specified slices using
 NP::load_data_sliced which is based on std::ifstream::seekg
@@ -3607,6 +3621,17 @@ inline NP* NP::Load_(const char* path)
     INT rc = a->load(path, nullptr) ;
     return rc == 0 ? a  : nullptr ;
 }
+
+/**
+NP::LoadSlice_
+-----------------
+
+Invoked from NP::LoadSlice. Any envvar tokens
+in the initial arguments should have been
+resolved at this stage.
+
+**/
+
 
 inline NP* NP::LoadSlice_(const char* path, const char* sli)
 {
@@ -7021,11 +7046,12 @@ inline const char* NP::PathWithNoDataPrefix(const char* path) // static
 NP::load(const char*, const char*)
 -------------------------------------
 
-Formerly used this signature for dir/name loading but as that now done
-at static level are repurposing to do both ordinary and slice loading.
+Formerly used this signature for dir/name loading but as that
+is now done at static level are repurposing to do both ordinary
+and slice loading.
 
 Formerly read an arbitrary initial buffer size,
-now reading up to first newline, which marks the
+are now reading up to first newline, which marks the
 end of the header, then adding the newline to the
 header string for correctness as getline consumes the
 newline from the stream without returning it.
@@ -7092,7 +7118,14 @@ inline void NP::load_data( std::ifstream* fp, const char* _sli )
     }
     else
     {
-        load_data_sliced( fp, _sli );
+        if(LooksLikeSliceIndexString(_sli ))
+        {
+            load_data_sliced( fp, _sli );
+        }
+        else
+        {
+            load_data_where( fp, _sli );
+        }
     }
 }
 
@@ -7156,6 +7189,90 @@ inline void NP::load_data_sliced( std::ifstream* fp, const char* _sli )
         << "\n"
         ;
 }
+
+
+/**
+NP::load_data_where
+--------------------
+
+1. load the where array
+2. count *sliced_ni* indices from where array that are less than ni0
+3. change this array shape to fit *sliced_ni* items with data_resize:true
+4. seekg read the items selected by the where array
+
+**/
+
+
+inline void NP::load_data_where( std::ifstream* fp, const char* _sli )
+{
+    NP* w = Load(_sli);
+
+    assert( w->uifc == 'i' );
+    assert( w->ebyte == 4 || w->ebyte == 8 );
+    assert( w->shape.size() == 1 );
+
+    const int* ww4 = w->cvalues<int>();
+    const INT* ww8 = w->cvalues<INT>();
+
+    INT wni = w->num_items() ;
+    INT ni0 = shape[0] ;
+
+    // count valid indices
+    INT sliced_ni = 0 ;
+    for(INT i = 0 ; i < wni ; i++ )
+    {
+        INT idx = w->ebyte == 4 ? ww4[i] : ww8[i] ;
+        if( idx >= 0 && idx < ni0 ) sliced_ni += 1 ;
+    }
+
+
+    std::string sstr_0 = sstr();
+    bool data_resize = true ;
+    _change_shape_ni(sliced_ni, data_resize);
+    std::string sstr_1 = sstr();
+
+    // read only the slice specified items
+
+    INT hdrsize = hdr_bytes() ;  // NB not same as  strlen(_hdr.c_str())
+    INT itemsize = item_bytes();
+
+    if(VERBOSE)
+    std::cout
+        << "NP::load_data_where"
+        << " wni " << wni
+        << " ni0 " << ni0
+        << " hdrsize " << hdrsize
+        << " strlen(_hdr.c_str() " << strlen(_hdr.c_str())
+        << " itemsize " << itemsize
+        << "\n"
+        ;
+
+
+    INT count = 0 ;
+    for(INT i = 0 ; i < wni ; i++ )
+    {
+        INT idx = w->ebyte == 4 ? ww4[i] : ww8[i] ;
+        fp->seekg( hdrsize + idx*itemsize );  // move file pointer to *idx* item
+        fp->read( bytes() + count*itemsize, itemsize );
+        count += 1 ;
+    }
+    assert( count == sliced_ni );
+
+    if(VERBOSE)
+    std::cout
+        << "NP::load_data_where\n"
+        << " _sli " << _sli << "\n"
+        << " sstr_0 " << sstr_0 << "\n"
+        << " sstr_1 " << sstr_1 << "\n"
+        << " sliced_ni  " << sliced_ni << "\n"
+        << "\n"
+        ;
+
+}
+
+
+
+
 
 
 inline int NP::load_string_( const char* path, const char* ext, std::string& str )
