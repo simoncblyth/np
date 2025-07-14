@@ -312,6 +312,8 @@ struct NP
     static int ParseSliceString(std::vector<INT>& idxx, const char* _sli );
     static int ParseSliceIndexString(int& start, int& stop, int& step, const char* _sli );
     static bool LooksLikeSliceIndexString(const char* _sli );
+    static bool LooksLikeSliceIndexStringSuffix(const char* _sli, char** body, char** suffix );
+
 
     void parse_slice( NP_slice& sli, const char* _sli) const ;
 
@@ -2774,16 +2776,40 @@ inline int NP::ParseSliceIndexString(int& start, int& stop, int& step, const cha
     return 0 ;
 }
 
+
+/**
+NP::LooksLikeSliceIndexString
+------------------------------
+
+String starting with '[' and ending with ']'
+
+**/
+
 inline bool NP::LooksLikeSliceIndexString(const char* _sli ) //
 {
     if(!_sli) return false ;
-    const char* o = strstr(_sli, "[");
-    const char* c = strstr(_sli, "]");
-    return o && c && ( c - o ) > 0 ;
+    bool start_br = _sli[0] == '[' ;
+    bool end_br = _sli[strlen(_sli)-1] == ']' ;
+    return start_br && end_br ;
 }
 
+/**
+NP::LooksLikeSliceIndexStringSuffix
+-------------------------------------
 
+String containing '[' not are start and ending with ']'
+For example::
 
+    "/tmp/w54.npy[0:5]"
+
+**/
+
+inline bool NP::LooksLikeSliceIndexStringSuffix(const char* _sli, char** body, char** suffix ) //
+{
+    if(!_sli) return false ;
+    bool has_suffix = U::prefix_suffix( body, suffix, "[",  _sli );
+    return has_suffix ;
+}
 
 
 inline void NP::parse_slice( NP_slice& sli, const char* _sli) const
@@ -3524,7 +3550,13 @@ _path
 _sli
     slice string as shown below OR path to an integer "where" array
     with indices to be loaded OR can be an envvar token that resolves
-    to the slice string or the path to the "where" array
+    to the slice string or the path to the "where" array.
+
+    It is now also supported for the slice spec string to have both
+    the path to the "where" array with suffix that slices into that
+    where array, eg "/tmp/w54.npy[0:10]".  That will use the first 10
+    indices from the where array to specify which items from the
+    primary array to load.
 
 Reads from file into memory only the specified slices using
 NP::load_data_sliced which is based on std::ifstream::seekg
@@ -7107,6 +7139,15 @@ inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
     return fp ;
 }
 
+/**
+NP::load_data
+---------------
+
+Invoked by NP::load
+
+**/
+
+
 inline void NP::load_data( std::ifstream* fp, const char* _sli )
 {
     if(nodata && VERBOSE) std::cerr << "NP::load_data SKIP reading data as nodata:true : data.size() " << data.size() << "\n" ;
@@ -7118,11 +7159,11 @@ inline void NP::load_data( std::ifstream* fp, const char* _sli )
     }
     else
     {
-        if(LooksLikeSliceIndexString(_sli ))
+        if(LooksLikeSliceIndexString(_sli ))  // eg _sli "[0:10]"
         {
             load_data_sliced( fp, _sli );
         }
-        else
+        else                                  // eg _sli "/tmp/w54.npy[0:1]"
         {
             load_data_where( fp, _sli );
         }
@@ -7195,6 +7236,11 @@ inline void NP::load_data_sliced( std::ifstream* fp, const char* _sli )
 NP::load_data_where
 --------------------
 
+Example spec that would cause this to be called::
+
+    /tmp/w54.npy           ## first loads array of indices that controls which items to load
+    /tmp/w54.npy[0:1]      ## first loads slice of indices array that controls which items to load
+
 1. load the where array
 2. count *sliced_ni* indices from where array that are less than ni0
 3. change this array shape to fit *sliced_ni* items with data_resize:true
@@ -7203,10 +7249,26 @@ NP::load_data_where
 **/
 
 
-inline void NP::load_data_where( std::ifstream* fp, const char* _sli )
+inline void NP::load_data_where( std::ifstream* fp, const char* spec )
 {
-    NP* w = Load(_sli);
+    char* path = nullptr ;
+    char* sli = nullptr ;
+    bool with_suffix = LooksLikeSliceIndexStringSuffix(spec, &path, &sli );  // ends with eg "[0:5]"
 
+    NP* w = LoadSlice_(path, sli );
+
+    if(VERBOSE)
+    std::cout
+       << "NP::load_data_where\n"
+       << " spec {" << ( spec ? spec : "-" ) << "}\n"
+       << " with_suffix " << ( with_suffix ? "YES" : "NO " ) << "\n"
+       << " path {" << ( path ? path : "-" ) << "}\n"
+       << " sli {" << ( sli ? sli : "-" ) << "}\n"
+       << " w " << ( w ? w->sstr() : "-" ) << "\n"
+       ;
+
+
+    assert( w );
     assert( w->uifc == 'i' );
     assert( w->ebyte == 4 || w->ebyte == 8 );
     assert( w->shape.size() == 1 );
@@ -7222,7 +7284,8 @@ inline void NP::load_data_where( std::ifstream* fp, const char* _sli )
     for(INT i = 0 ; i < wni ; i++ )
     {
         INT idx = w->ebyte == 4 ? ww4[i] : ww8[i] ;
-        if( idx >= 0 && idx < ni0 ) sliced_ni += 1 ;
+        bool valid_idx =  idx >= 0 && idx < ni0 ;
+        if(valid_idx) sliced_ni += 1 ;
     }
 
 
@@ -7252,6 +7315,8 @@ inline void NP::load_data_where( std::ifstream* fp, const char* _sli )
     for(INT i = 0 ; i < wni ; i++ )
     {
         INT idx = w->ebyte == 4 ? ww4[i] : ww8[i] ;
+        bool valid_idx =  idx >= 0 && idx < ni0 ;
+        if(!valid_idx) continue ;
         fp->seekg( hdrsize + idx*itemsize );  // move file pointer to *idx* item
         fp->read( bytes() + count*itemsize, itemsize );
         count += 1 ;
@@ -7261,7 +7326,7 @@ inline void NP::load_data_where( std::ifstream* fp, const char* _sli )
     if(VERBOSE)
     std::cout
         << "NP::load_data_where\n"
-        << " _sli " << _sli << "\n"
+        << " spec " << spec << "\n"
         << " sstr_0 " << sstr_0 << "\n"
         << " sstr_1 " << sstr_1 << "\n"
         << " sliced_ni  " << sliced_ni << "\n"

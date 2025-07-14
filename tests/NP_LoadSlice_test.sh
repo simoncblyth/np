@@ -33,18 +33,26 @@ test=LoadSliceWhere
 
 export TEST=${TEST:-$test}
 
-afold_record_slice=[::100]
-export AFOLD_RECORD_SLICE=${AFOLD_RECORD_SLICE:-$afold_record_slice}
+opt=""
+[ "$VERBOSE" == "1" ] && opt=-DWITH_VERBOSE
 
+pp="BASH_SOURCE EVT EVT_CHECK AFOLD AFOLD_RECORD_SLICE VERBOSE opt"
+if [ "$TEST" == "LoadSliceWhere" ]; then
+    for p in $pp ; do printf "%20s : %s\n" "$p" "${!p}" ; done
 
-vv="BASH_SOURCE PWD name tmp TMP FOLD bin script defarg arg TEST AFOLD_RECORD_SLICE"
+else
+    afold_record_slice=[::100]
+    export AFOLD_RECORD_SLICE=${AFOLD_RECORD_SLICE:-$afold_record_slice}
+fi
+
+vv="BASH_SOURCE PWD name tmp TMP FOLD bin script defarg arg TEST AFOLD_RECORD_SLICE VERBOSE opt"
 
 if [ "${arg/info}" != "$arg" ]; then
    for v in $vv ; do printf "%20s : %s\n" "$v" "${!v}" ; done
 fi
 
 if [ "${arg/build}" != "$arg" ]; then
-   gcc $name.cc -I.. -std=c++17 -lstdc++ -DWITH_VERBOSE -o $bin
+   gcc $name.cc -I.. -std=c++17 -lstdc++ $opt -o $bin
    [ $? -ne 0 ] && echo $BASH_SOURCE build error && exit 1
 fi
 
