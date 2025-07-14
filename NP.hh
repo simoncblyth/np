@@ -2475,10 +2475,12 @@ inline NP* NP::ChangeShape3D(NP* a) // static
 
 inline NP* NP::MakeWideIfNarrow(const NP* a) // static
 {
+    if(a == nullptr) return nullptr ;
     return a->ebyte == 4 ? MakeWide(a) : MakeCopy(a) ;
 }
 inline NP* NP::MakeNarrowIfWide(const NP* a) // static
 {
+    if(a == nullptr) return nullptr ;
     return a->ebyte == 8 ? MakeNarrow(a) : MakeCopy(a) ;
 }
 
@@ -7099,6 +7101,7 @@ inline int NP::load(const char* _path, const char* _sli )
     {
         std::cerr << "NP::load Failed to load from path [" << ( _path ? _path : "-" ) << "]\n" ;
         std::raise(SIGINT);
+        return 1 ; // SIGINT might have a handler
     }
     load_data( fp, _sli );
     delete fp ;
