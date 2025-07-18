@@ -17,8 +17,8 @@ bin=$FOLD/$name
 script=$name.py
 mkdir -p $FOLD
 
-defarg="info_build_run_ana"
-#defarg="info_build_run_pdb"
+#defarg="info_build_run_ana"
+defarg="info_build_run_pdb"
 
 arg=${1:-$defarg}
 
