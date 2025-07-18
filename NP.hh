@@ -59,11 +59,23 @@ struct NP_slice
     T stop ;
     T step ;
 
+    bool is_arange() const ;
+    bool is_linspace() const ;
     bool is_match(const NP_slice<T>& other) const ;
     std::string desc() const ;
     int count() const ;
 };
 
+template<typename T>
+inline bool NP_slice<T>::is_arange() const
+{
+   return step > 0 ;
+}
+template<typename T>
+inline bool NP_slice<T>::is_linspace() const
+{
+   return step < 0 ;
+}
 template<typename T>
 inline bool NP_slice<T>::is_match(const NP_slice& other) const
 {
@@ -77,11 +89,20 @@ inline std::string NP_slice<T>::desc() const
     std::string str = ss.str();
     return str ;
 }
+
+
 template<typename T>
 inline int NP_slice<T>::count() const
 {
     int _count = 0 ;
-    for(T v=start ; v < stop ; v += step ) _count++ ;
+    if( step < 0 )
+    {
+        _count = int(-step) ;  // linspace
+    }
+    else
+    {
+        for(T v=start ; v < stop ; v += step ) _count++ ;
+    }
     return _count ;
 }
 
@@ -884,6 +905,17 @@ inline NP* NP::ARange_FromString( const char* spec ) // static
 }
 
 
+/**
+NP::ARange_
+--------------
+
+step>0
+   like np.arange with step increment
+
+step<0
+   like np.linspace with int(-step) values between start and stop inclusive
+
+**/
 
 template<typename T>
 inline NP* NP::ARange_(T start, T stop, T step) // static
@@ -894,14 +926,23 @@ inline NP* NP::ARange_(T start, T stop, T step) // static
     NP* a = NP::Make<T>(num);
     T* aa = a->values<T>();
 
-    INT count = 0 ;
-    for(T v=start ; v < stop ; v += step )
+    if( step > 0 )
     {
-        aa[count] = v ;
-        count += 1;
+        // arange
+        INT count = 0 ;
+        for(T v=start ; v < stop ; v += step )
+        {
+            aa[count] = v ;
+            count += 1;
+        }
+        assert( count == num );
     }
-    assert( count == num );
-
+    else
+    {
+        // linspace
+        INT ni = -step ;
+        for(INT i=0 ; i < ni ; i++) aa[i] = start + (stop-start)*T(i)/T(ni-1) ;
+    }
     return a ;
 }
 

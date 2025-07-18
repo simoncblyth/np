@@ -11,32 +11,41 @@ struct NP_ARangeFromString_test
 
 inline int NP_ARangeFromString_test::Integer()
 {
-    const char* spec0 = "[20000:45600]" ;
-    NP* a0 = NP::ARange_FromString<int>( spec0 );
-    assert( a0 && a0->num_items() == 25600 );
-    a0->set_meta<std::string>("spec", spec0);
+    static const int N = 3 ;
 
-    const char* spec1 = "[20000:45600:2]" ;
-    NP* a1 = NP::ARange_FromString<int>( spec1 );
-    assert( a1 && a1->num_items() == 25600/2 );
-    a1->set_meta<std::string>("spec", spec1);
+    std::array<NP*,N> a = {} ;
+    std::array<const char*,N> spec =
+     {{
+         "[20000:45600]",      // 0
+         "[20000:45600:2]",    // 1
+         "[20000:45600:-10]"   // 2  -ve step switches to linspace
+     }} ;
 
     NPFold* sub = new NPFold ;
-    sub->add("a0", a0);
-    sub->add("a1", a1);
+    for(int i=0 ; i < N ; i++)
+    {
+        a[i] = NP::ARange_FromString<int>( spec[i] );
+        assert( a[i] );
+        a[i]->set_meta<std::string>("spec", spec[i]);
+        sub->add( i, a[i], 'a' );
+    }
+
+    assert( a[0]->num_items() == 25600 );
+    assert( a[1]->num_items() == 25600/2 );
+    assert( a[2]->num_items() == 10 );
 
     NPFold* top = new NPFold ;
     top->add_subfold("Integer", sub );
     top->save("$FOLD");
-
 
     return 0;
 }
 
 inline int NP_ARangeFromString_test::Float()
 {
-    static const int N = 6 ;
+    static const int N = 7 ;
 
+    std::array<NP*,N> a = {} ;
     std::array<const char*,N> spec =
      {{
         "[0:101:10]",           // 0:
@@ -44,10 +53,10 @@ inline int NP_ARangeFromString_test::Float()
         "[0:1:0.1]",            // 2: ends at 0.9 not 1.0
         "[0:1.01:0.1]",         // 3: ends at 1.0
         "[100.]",               // 4:
-        "[100.:101.:1.]"        // 5: same as 4:
+        "[100.:101.:1.]",       // 5: same as 4:
+        "[0.1:88.8:-20]"        // 6: -ve step switches to linspace
      }} ;
 
-    std::array<NP*,N> a = {} ;
 
     NPFold* sub = new NPFold ;
     for(int i=0 ; i < N ; i++)
@@ -64,6 +73,7 @@ inline int NP_ARangeFromString_test::Float()
     assert( a[3]->num_items() == 11 );
     assert( a[4]->num_items() == 1 );
     assert( a[5]->num_items() == 1 );
+    assert( a[6]->num_items() == 20 );
 
     NPFold* top = new NPFold ;
     top->add_subfold("Float", sub );
@@ -81,7 +91,6 @@ inline int NP_ARangeFromString_test::Main()
     if(ALL||0==strcmp(TEST,"Float"))   rc += Float();
     return rc ;
 }
-
 
 int main()
 {
