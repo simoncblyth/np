@@ -321,7 +321,7 @@ inline NP* NP_CURL::collect_download()
     if(level > 0) std::cout << "-NP_CURL::collect_download      dtype[" << dtype << "]\n" ;
 
     NP* b = new NP( dtype.c_str(), dhdr.sh );
-    bool expect = b->arr_bytes() == download->size ;
+    bool expect = b->uarr_bytes() == download->size ;
 
     if( !expect ) std::cerr
         << "-NP_CURL::collect_download "

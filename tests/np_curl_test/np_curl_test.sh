@@ -43,6 +43,17 @@ if [ "${arg/info}" != "$arg" ]; then
    for v in $vv ; do printf "%30s : %s\n" "$v" "${!v}" ; done
 
    env | grep NP_CURL
+
+   which curl-config
+   curl-config --libs
+   curl-config --cflags
+   curl-config --vernum
+   curl-config --version
+
+   checkfor=8.12.1
+   curl-config --checkfor $checkfor
+   [ $? -ne 0 ] && echo $BASH_SOURCE - constrain libcurl checkfor $checkfor - activate conda env to use its libcurl && exit 1
+
 fi
 
 

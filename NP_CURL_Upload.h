@@ -57,7 +57,7 @@ inline std::string NP_CURL_Upload_1::desc() const
 
 inline size_t NP_CURL_Upload_1::read_callback(char* buffer, size_t size, size_t nitems, void* arg)
 {
-    size_t copy_sz = size*nitems ;
+    curl_off_t copy_sz = size*nitems ;
 
     struct NP_CURL_Upload_1* p = (struct NP_CURL_Upload_1 *)arg;
 
