@@ -209,6 +209,7 @@ struct NP
     void init();
     void set_shape( INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1);
     void set_shape( const std::vector<INT>& src_shape );
+    void get_shape( std::vector<size_t>& sh ) const ;
     // CAUTION: DO NOT USE *set_shape* TO CHANGE SHAPE (as it calls *init*) INSTEAD USE *change_shape*
     bool has_shape(INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1 ) const ;
     void change_shape(INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1 ) ;   // one dimension entry left at -1 can be auto-set
@@ -216,6 +217,7 @@ struct NP
 
     void change_shape_to_3D() ;
     void reshape( const std::vector<INT>& new_shape ); // product of shape before and after must be the same
+
 
     template<int P> void size_2D( INT& width, INT& height ) const ;
 
@@ -1554,6 +1556,11 @@ inline void NP::set_shape(const std::vector<INT>& src_shape)
 {
     size = NPS::copy_shape(shape, src_shape);
     init();
+}
+inline void NP::get_shape( std::vector<size_t>& sh ) const
+{
+    size_t sz = NPS::copy_shape(sh, shape);
+    assert( sz == size_t(size) );
 }
 
 inline bool NP::has_shape(INT ni, INT nj, INT nk, INT nl, INT nm, INT no) const
