@@ -1,0 +1,11 @@
+[project]
+name = "np-nanobind-test"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ipython>=9.5.0",
+    "nanobind>=2.9.2",
+    "numpy>=2.3.3",
+]
