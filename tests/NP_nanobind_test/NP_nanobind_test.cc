@@ -11,6 +11,20 @@ Experiement with C++ Python binding with nanobind
 
 #include "NP_nanobind.h"
 
+
+
+struct Dog
+{
+    std::string name;
+    std::string bark() const ;
+};
+inline std::string Dog::bark() const
+{
+    return name + ": woof!" ;
+}
+
+
+
 namespace nb = nanobind;
 using namespace nb::literals;
 
@@ -46,7 +60,6 @@ NB_MODULE(py_NP_nanobind_test, m)
     m.attr("the_answer") = 42;
     m.doc() = "A simple example python extension";
 
-    /*
     nb::class_<Dog>(m, "Dog")
         .def(nb::init<>())
         .def(nb::init<const std::string &>())
@@ -58,7 +71,6 @@ NB_MODULE(py_NP_nanobind_test, m)
                  return nb::cpp_function(callback);
          })
          ;
-    */
 
 
     m.def("inspect", [](const nb::ndarray<>& a) {
@@ -79,7 +91,7 @@ NB_MODULE(py_NP_nanobind_test, m)
         );
     });
 
-    m.def("process", [](RGBImage data) 
+    m.def("process", [](RGBImage data)
     {
         // Double brightness of the MxNx3 RGB image
         for (size_t y = 0; y < data.shape(0); ++y)

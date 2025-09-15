@@ -1,4 +1,6 @@
 
+
+import functools, operator, numpy as np
 import py_NP_nanobind_test as nbt
 
 def test_inspect():
@@ -19,8 +21,11 @@ def test_Dog():
     print(d)
     print("]test_Dog")
 
-def test_create():
-    #s = nbt.create_2d(4,4)
+def test_create_2d():
+    s = nbt.create_2d(4,4)
+    print("repr(s):\n%s\n" % repr(s))
+
+def test_create_3d():
     s = nbt.create_3d(4,4,4)
     print("repr(s):\n%s\n" % repr(s))
 
@@ -33,5 +38,9 @@ def test_example_numpy_array_view_of_NP():
 
 if __name__ == "__main__":
     print("nbt\n",nbt)
+    test_inspect()
+    test_Dog()
+    test_create_2d()
+    test_create_3d()
     test_example_numpy_array_view_of_NP()
 
