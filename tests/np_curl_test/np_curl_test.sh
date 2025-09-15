@@ -52,7 +52,7 @@ if [ "${arg/info}" != "$arg" ]; then
 
    checkfor=8.12.1
    curl-config --checkfor $checkfor
-   [ $? -ne 0 ] && echo $BASH_SOURCE - constrain libcurl checkfor $checkfor - activate conda env to use its libcurl && exit 1
+   [ $? -ne 0 ] && echo $BASH_SOURCE - constrain libcurl checkfor $checkfor - ACTIVATE CONDA ENV TO USE ITS LIBCURL && exit 1
 
 fi
 
