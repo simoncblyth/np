@@ -29,13 +29,19 @@ name=np_curl_test
 bin=/tmp/$USER/np/$name
 mkdir -p $(dirname $bin)
 
-level=0
+level=1
 export NP_CURL_API_LEVEL=${LEVEL:-$level}
+
+#endpoint=http://127.0.0.1:8000/array_transform
+endpoint=http://127.0.0.1:8000/simulate
+
+export NP_CURL_API_URL=$endpoint
+
 which curl-config
 
-opt=""
+opt="-DWITH_MULTIPART"
 OPT=$opt
-[ "$MULTIPART" == "1" ] && OPT=-DWITH_MULTIPART
+[ "$MULTIPART" == "0" ] && OPT=""
 
 
 if [ "${arg/info}" != "$arg" ]; then

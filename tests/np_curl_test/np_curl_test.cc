@@ -3,7 +3,7 @@ np_curl_test.cc
 =================
 
 ::
-  
+
     ~/np/tests/np_curl_test/np_curl_test.sh
 
 **/
@@ -18,13 +18,13 @@ np_curl_test.cc
 
 NP* arr_make()
 {
-    NP* a = NP::Make<float>( 10, 4, 4); 
+    NP* a = NP::Make<float>( 10, 4, 4);
     a->fillIndexFlat();
-    a->set_meta<float>( "red", 1.f );  
-    a->set_meta<float>( "green", 2.f );  
-    a->set_meta<float>( "blue", 3.f );  
-    a->set_meta<std::string>( "msg", "np_curl_test" );  
-    return a ; 
+    a->set_meta<float>( "red", 1.f );
+    a->set_meta<float>( "green", 2.f );
+    a->set_meta<float>( "blue", 3.f );
+    a->set_meta<std::string>( "msg", "np_curl_test" );
+    return a ;
 }
 
 
@@ -37,7 +37,7 @@ void arr_dump(const NP* x, char sym)
 }
 
 
-int main(void) 
+int main(void)
 {
     NP* a = arr_make()                 ; arr_dump<float>(a, 'a');
     NP* b = NP_CURL::TransformRemote(a); arr_dump<float>(b, 'b');
@@ -47,7 +47,7 @@ int main(void)
     NP* f = NP_CURL::TransformRemote(e); arr_dump<float>(f, 'f');
     NP* g = NP_CURL::TransformRemote(f); arr_dump<float>(g, 'g');
 
-    NP_CURL::Clear(); 
+    NP_CURL::Clear();
 
     return 0;
 }

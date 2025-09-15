@@ -10,6 +10,9 @@ Experiement with C++ Python binding with nanobind
 **/
 
 #include "NP_nanobind.h"
+namespace nb = nanobind;
+using namespace nb::literals;
+
 
 
 
@@ -23,10 +26,65 @@ inline std::string Dog::bark() const
     return name + ": woof!" ;
 }
 
+ //  https://nanobind.readthedocs.io/en/latest/api_core.html#parameterized-wrapper-classes
+
+struct Processor
+{
+    Processor();
+
+    nb::ndarray<nb::numpy> process(nb::ndarray<> in);
+    nb::ndarray<nb::numpy> process_via_NP(nb::ndarray<> in);
+};
+
+inline Processor::Processor()
+{
+}
+
+inline  nb::ndarray<nb::numpy> Processor::process(nb::ndarray<> in)
+{
+    std::cout << "[Processor::process\n";
+    nanobind::dlpack::dtype in_dtype = in.dtype();
+    if( in_dtype != nanobind::dtype<float>() ) return nb::ndarray<nb::numpy>(in);
+
+    size_t ndim = in.ndim();
+    std::vector<size_t> shape(ndim);
+    for(size_t d=0 ; d < ndim ; d++) shape[d] = in.shape(d);
+    size_t sz = in.size();
+
+    std::cout << "-Processor::process ndim " << ndim << " sz " << sz << "\n";
+
+    float* in_data = (float*)in.data();
+    float* out_data = new float[sz];
+    for(size_t i=0 ; i < sz ; i++) out_data[i] = 1000.f + 2.f*in_data[i] ;
+
+    int64_t *strides = nullptr ;
+    nb::capsule owner(out_data, [](void *p) noexcept { delete[] (float *)p ; });
+    nb::ndarray<nb::numpy> out = nb::ndarray<nb::numpy>( out_data, ndim, shape.data(), owner, strides, in_dtype );
+
+    std::cout << "]Processor::process\n";
+    return out ;
+}
+
+inline  nb::ndarray<nb::numpy> Processor::process_via_NP(nb::ndarray<> _in)
+{
+    std::cout << "[Processor::process_via_NP\n";
+
+    NP* in = NP_nanobind::NP_copy_of_numpy_array(_in);
+    NP* out = NP::MakeLike(in);
+
+    float* ii = in->values<float>();
+    float* oo = out->values<float>();
+    NP::INT nv = in->num_values();
+    for(NP::INT i=0 ; i < nv ; i++) oo[i] = 1000.f + 2.f*ii[i] ;
+
+    nb::ndarray<nb::numpy> _out = NP_nanobind::numpy_array_view_of_NP(out) ;
+
+    std::cout << "]Processor::process_via_NP\n";
+    return _out ;
+}
 
 
-namespace nb = nanobind;
-using namespace nb::literals;
+
 
 using RGBImage = nb::ndarray<uint8_t, nb::shape<-1, -1, 3>, nb::device::cpu>;
 
@@ -39,7 +97,7 @@ void process3(RGBImage data)
                 data(y, x, ch) = (uint8_t) std::min(255, data(y, x, ch) * 3);
 }
 
-nb::ndarray<nb::numpy, float> create_3d(size_t rows, size_t cols, size_t depth)
+nb::ndarray<float, nb::numpy> create_3d(size_t rows, size_t cols, size_t depth)
 {
     size_t sz = rows * cols * depth ;
     float* data = new float[sz];
@@ -50,7 +108,7 @@ nb::ndarray<nb::numpy, float> create_3d(size_t rows, size_t cols, size_t depth)
 
     std::initializer_list<size_t> shape = {rows, cols, depth };
 
-    return nb::ndarray<nb::numpy, float>( data, shape, owner );
+    return nb::ndarray<float, nb::numpy>( data, shape, owner );
 }
 
 
@@ -59,6 +117,12 @@ NB_MODULE(py_NP_nanobind_test, m)
 {
     m.attr("the_answer") = 42;
     m.doc() = "A simple example python extension";
+
+    nb::class_<Processor>(m, "Processor")
+        .def(nb::init<>())
+        .def("process", &Processor::process)
+        .def("process_via_NP", &Processor::process_via_NP)
+        ;
 
     nb::class_<Dog>(m, "Dog")
         .def(nb::init<>())
@@ -124,7 +188,7 @@ NB_MODULE(py_NP_nanobind_test, m)
                }
             );
 
-            return nb::ndarray<nb::numpy, float, nb::ndim<2>>(
+            return nb::ndarray<float, nb::numpy, nb::ndim<2>>(
                    data,
                    { rows, cols },
                    owner

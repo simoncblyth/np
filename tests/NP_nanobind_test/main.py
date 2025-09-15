@@ -22,25 +22,66 @@ def test_Dog():
     print("]test_Dog")
 
 def test_create_2d():
+    print("[test_create_2d")
     s = nbt.create_2d(4,4)
     print("repr(s):\n%s\n" % repr(s))
+    print("]test_create_2d")
 
 def test_create_3d():
+    print("[test_create_3d")
     s = nbt.create_3d(4,4,4)
     print("repr(s):\n%s\n" % repr(s))
+    print("]test_create_3d")
 
 def test_example_numpy_array_view_of_NP():
+    print("[test_example_numpy_array_view_of_NP\n")
     for i in range(6):
         s = nbt.example_numpy_array_view_of_NP(i)
         print("repr(s):\n%s\n" % repr(s))
     pass
+    print("]test_example_numpy_array_view_of_NP\n")
+
+def test_Processor_process():
+    print("[test_Processor_process\n")
+    shape = (10,6,4)
+    sz = functools.reduce(operator.mul,shape)
+    pr = nbt.Processor()
+    a = np.arange(sz, dtype=np.float32).reshape(*shape)
+    print("a\n",a)
+
+    b = pr.process(a)
+    print("b\n",b)
+    print("]test_Processor_process\n")
 
 
-if __name__ == "__main__":
+def test_Processor_process_via_NP():
+    print("[test_Processor_process_via_NP\n")
+    shape = (10,6,4)
+    sz = functools.reduce(operator.mul,shape)
+    pr = nbt.Processor()
+    a = np.arange(sz, dtype=np.float32).reshape(*shape)
+    print("a\n",a)
+
+    b = pr.process_via_NP(a)
+    print("b\n",b)
+
+    print("]test_Processor_process_via_NP\n")
+
+
+
+def main():
     print("nbt\n",nbt)
     test_inspect()
     test_Dog()
     test_create_2d()
     test_create_3d()
     test_example_numpy_array_view_of_NP()
+    test_Processor_process()
+    test_Processor_process_via_NP()
+
+
+if __name__ == "__main__":
+    main()
+
+
 
