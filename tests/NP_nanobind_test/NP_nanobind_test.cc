@@ -32,15 +32,15 @@ struct Processor
 {
     Processor();
 
-    nb::ndarray<nb::numpy> process(nb::ndarray<> in);
-    nb::ndarray<nb::numpy> process_via_NP(nb::ndarray<> in);
+    nb::ndarray<nb::numpy> process(nb::ndarray<nb::numpy> in);
+    nb::ndarray<nb::numpy> process_via_NP(nb::ndarray<nb::numpy> in);
 };
 
 inline Processor::Processor()
 {
 }
 
-inline  nb::ndarray<nb::numpy> Processor::process(nb::ndarray<> in)
+inline  nb::ndarray<nb::numpy> Processor::process(nb::ndarray<nb::numpy> in)
 {
     std::cout << "[Processor::process\n";
     nanobind::dlpack::dtype in_dtype = in.dtype();
@@ -65,7 +65,7 @@ inline  nb::ndarray<nb::numpy> Processor::process(nb::ndarray<> in)
     return out ;
 }
 
-inline  nb::ndarray<nb::numpy> Processor::process_via_NP(nb::ndarray<> _in)
+inline  nb::ndarray<nb::numpy> Processor::process_via_NP(nb::ndarray<nb::numpy> _in)
 {
     std::cout << "[Processor::process_via_NP\n";
 

@@ -7,7 +7,7 @@
 
 struct NP_nanobind
 {
-    static NP*  NP_copy_of_numpy_array(nanobind::ndarray<> a) ;
+    static NP*  NP_copy_of_numpy_array(nanobind::ndarray<nanobind::numpy> a) ;
 
     static nanobind::dlpack::dtype      dtype_for_NP(char uifc, size_t ebyte);
     static nanobind::capsule*           owner_for_NP(char uifc, size_t ebyte, void* data);
@@ -15,7 +15,8 @@ struct NP_nanobind
 
     static nanobind::ndarray<nanobind::numpy> numpy_array_view_of_NP(const NP* a);
     static nanobind::ndarray<nanobind::numpy> example_numpy_array_view_of_NP(int code);
-    static nanobind::ndarray<nanobind::numpy> roundtrip_numpy_array_via_NP(nanobind::ndarray<> src);
+
+    static nanobind::ndarray<nanobind::numpy> roundtrip_numpy_array_via_NP(nanobind::ndarray<nanobind::numpy> src);
 };
 
 
@@ -27,7 +28,7 @@ Currently just copying. Can that be avoided ?
 
 **/
 
-inline NP* NP_nanobind::NP_copy_of_numpy_array(nanobind::ndarray<> a) // static
+inline NP* NP_nanobind::NP_copy_of_numpy_array(nanobind::ndarray<nanobind::numpy> a) // static
 {
     void* data = a.data();
     size_t ndim = a.ndim();
@@ -119,7 +120,7 @@ inline nanobind::ndarray<nanobind::numpy> NP_nanobind::example_numpy_array_view_
 }
 
 
-inline nanobind::ndarray<nanobind::numpy> NP_nanobind::roundtrip_numpy_array_via_NP(nanobind::ndarray<> src) // static
+inline nanobind::ndarray<nanobind::numpy> NP_nanobind::roundtrip_numpy_array_via_NP(nanobind::ndarray<nanobind::numpy> src) // static
 {
     NP* a_src = NP_copy_of_numpy_array(src);
     nanobind::ndarray<nanobind::numpy> a_dst = numpy_array_view_of_NP(a_src) ;
