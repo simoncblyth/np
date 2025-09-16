@@ -18,7 +18,7 @@ np_curl_test.cc
 
 NP* arr_make()
 {
-    NP* a = NP::Make<float>( 10, 4, 4);
+    NP* a = NP::Make<float>( 3, 6, 4);
     a->fillIndexFlat();
     a->set_meta<float>( "red", 1.f );
     a->set_meta<float>( "green", 2.f );
