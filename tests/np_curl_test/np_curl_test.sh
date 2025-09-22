@@ -102,6 +102,39 @@ if [ "${arg/dbg}" != "$arg" ]; then
    [ $? -ne 0 ] && echo $BASH_SOURCE - dbg error && exit 3
 fi
 
+if [ "${arg/ls}" != "$arg" ]; then
+    ls -alst $FOLD
+fi
+
+if [ "${arg/cli}" != "$arg" ]; then
+
+   ${IPYTHON:-ipython} -c "import os, numpy as np ; fold = os.path.expandvars(\"$FOLD\") ; gs = np.load(os.path.join(fold,\"gs.npy\")) ; open(os.path.join(fold,\"gs\"),'wb').write(gs.tobytes())"
+   # TODO: FIND BETTER WAY : SUCH AS SKIPPING THE HEADER WHEN READING : SO DONT HAVE TO CHOP HEADER OFF
+
+    curl \
+    --disable \
+    -s \
+    -v \
+    --fail-with-body \
+    -H "Content-Type: multipart/form-data" \
+    -H "x-opticks-token: secret" \
+    -H "x-opticks-dtype: float32" \
+    -H "x-opticks-shape: (1,6,4)" \
+    -H "x-opticks-level: 1" \
+    -H "x-opticks-index: 0" \
+    -F "upload=@$FOLD/gs" \
+    --output $FOLD/ht \
+    "$NP_CURL_API_URL"
+
+    ## THE gs and ht FILES DO NOT HAVE .npy ENDING
+    ## AS THE HEADER IS NOT INCLUDED IN THE BODY : ITS IN THE HTTP HEADER
+    ## TODO: PROVIDE HEADER OPTION TO INCLUDE THE HEADER IN THE BODY
+
+    [ $? -ne 0 ] && echo $BASH_SOURCE - non zero rc from curl cli && exit 4
+fi
+
+
+
 exit 0
 
 
