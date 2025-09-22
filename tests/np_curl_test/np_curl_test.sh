@@ -8,11 +8,18 @@ Started from the  ~/env/tools/curl_check investigations.
 This test was used to develop the integration with NP.hh
 adding flexible array shape handling and making into a realistic API::
 
+
+Build and start the endpoint "server"::
+
+   ~/env/tools/fastapi_check/dev.sh
+   ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
+
+
 Usage::
 
    ~/np/tests/np_curl_test/np_curl_test.sh
    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh                ## more verbosity
-   MULTIPART=1 LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## test multipart upload
+   MULTIPART=0 LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## switch off multipart which is enabled by default
 
 
 EOU
@@ -20,7 +27,7 @@ EOU
 
 cd $(dirname $(realpath $BASH_SOURCE))
 
-defarg="info_build_run"
+defarg="info_build_check_run"
 arg=${1:-$defarg}
 
 name=np_curl_test
@@ -29,13 +36,15 @@ name=np_curl_test
 bin=/tmp/$USER/np/$name
 mkdir -p $(dirname $bin)
 
-level=1
+level=0
 export NP_CURL_API_LEVEL=${LEVEL:-$level}
 
-#endpoint=http://127.0.0.1:8000/array_transform
 endpoint=http://127.0.0.1:8000/simulate
 
 export NP_CURL_API_URL=$endpoint
+
+export FOLD=/data1/blyth/tmp/SEvt__createInputGenstep_configuredTest
+
 
 which curl-config
 
@@ -63,7 +72,6 @@ if [ "${arg/info}" != "$arg" ]; then
 fi
 
 
-
 if [ "${arg/build}" != "$arg" ]; then
     gcc $name.cc -o $bin \
     -Wall -std=c++17 -lstdc++ -g $OPT \
@@ -72,6 +80,13 @@ if [ "${arg/build}" != "$arg" ]; then
     $(curl-config --libs)
     [ $? -ne 0 ] && echo $BASH_SOURCE - build error && exit 1
 fi
+
+
+if [ "${arg/check}" != "$arg" ]; then
+   test -f $FOLD/gs.npy
+   [ $? -ne 0 ] && echo $BASH_SOURCE - check $FOLD/gs.npy FAILED - CREATE IT WITH THAT SYSRAP TEST - && exit 5
+fi
+
 
 if [ "${arg/run}" != "$arg" ]; then
    $bin

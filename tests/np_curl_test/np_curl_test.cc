@@ -29,8 +29,9 @@ NP* arr_make()
 
 
 template<typename T>
-void arr_dump(const NP* x, char sym)
+void arr_dump(const NP* x, const char* sym, int i)
 {
+    std::cout << " i " << i << "\n" ;
     std::cout << " " << sym << ".sstr " << ( x ? x->sstr() : "-" ) << "\n" ;
     std::cout << " " << sym << ".desc " << ( x ? x->desc() : "-" ) << "\n" ;
     std::cout << " " << sym << ".repr " << ( x ? x->repr<T>() : "-" ) << "\n" ;
@@ -39,13 +40,17 @@ void arr_dump(const NP* x, char sym)
 
 int main(void)
 {
-    NP* a = arr_make()                 ; arr_dump<float>(a, 'a');
-    NP* b = NP_CURL::TransformRemote(a); arr_dump<float>(b, 'b');
-    NP* c = NP_CURL::TransformRemote(b); arr_dump<float>(c, 'c');
-    NP* d = NP_CURL::TransformRemote(c); arr_dump<float>(d, 'd');
-    NP* e = NP_CURL::TransformRemote(d); arr_dump<float>(e, 'e');
-    NP* f = NP_CURL::TransformRemote(e); arr_dump<float>(f, 'f');
-    NP* g = NP_CURL::TransformRemote(f); arr_dump<float>(g, 'g');
+    NP* gs = NP::Load("$FOLD/gs.npy");
+    arr_dump<float>(gs, "gs", -1);
+
+    for(int i=0 ; i < 10 ; i++)
+    {
+       std::cout << "[-------------------- " << i << "\n" ;
+       NP* ht = NP_CURL::TransformRemote(gs,i);
+       arr_dump<float>(ht, "ht", i);
+       std::cout << "]-------------------- " << i << "\n" ;
+    }
+
 
     NP_CURL::Clear();
 
