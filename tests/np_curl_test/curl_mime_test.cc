@@ -90,10 +90,10 @@ int main(int argc, char** argv)
 
 
     struct curl_slist* headerlist = nullptr ;
-    headerlist = curl_slist_append(headerlist, "x-numpy-token:secret" );
-    headerlist = curl_slist_append(headerlist, "x-numpy-dtype:uint8" );
-    headerlist = curl_slist_append(headerlist, "x-numpy-shape:(512,512,3)" );
-    headerlist = curl_slist_append(headerlist, "x-numpy-level:1" );
+    headerlist = curl_slist_append(headerlist, "x-opticks-token:secret" );
+    headerlist = curl_slist_append(headerlist, "x-opticks-dtype:uint8" );
+    headerlist = curl_slist_append(headerlist, "x-opticks-shape:(512,512,3)" );
+    headerlist = curl_slist_append(headerlist, "x-opticks-level:1" );
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
 
 

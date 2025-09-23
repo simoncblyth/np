@@ -31,12 +31,14 @@ defarg="info_build_check_run"
 arg=${1:-$defarg}
 
 name=np_curl_test
+script=$name.py
+
 #name=curl_mime_test
 
 bin=/tmp/$USER/np/$name
 mkdir -p $(dirname $bin)
 
-level=0
+level=1
 export NP_CURL_API_LEVEL=${LEVEL:-$level}
 
 endpoint=http://127.0.0.1:8000/simulate
@@ -103,13 +105,16 @@ if [ "${arg/dbg}" != "$arg" ]; then
 fi
 
 if [ "${arg/ls}" != "$arg" ]; then
+    echo ls -alst $FOLD
     ls -alst $FOLD
 fi
 
 if [ "${arg/cli}" != "$arg" ]; then
 
-   ${IPYTHON:-ipython} -c "import os, numpy as np ; fold = os.path.expandvars(\"$FOLD\") ; gs = np.load(os.path.join(fold,\"gs.npy\")) ; open(os.path.join(fold,\"gs\"),'wb').write(gs.tobytes())"
-   # TODO: FIND BETTER WAY : SUCH AS SKIPPING THE HEADER WHEN READING : SO DONT HAVE TO CHOP HEADER OFF
+   # dtype and shape headers are needed when writing headless array data without the magic
+   #-H "x-opticks-dtype: float32" \
+   #-H "x-opticks-shape: (1,6,4)" \
+   # the api returns magic when given magic
 
     curl \
     --disable \
@@ -118,21 +123,18 @@ if [ "${arg/cli}" != "$arg" ]; then
     --fail-with-body \
     -H "Content-Type: multipart/form-data" \
     -H "x-opticks-token: secret" \
-    -H "x-opticks-dtype: float32" \
-    -H "x-opticks-shape: (1,6,4)" \
     -H "x-opticks-level: 1" \
     -H "x-opticks-index: 0" \
-    -F "upload=@$FOLD/gs" \
-    --output $FOLD/ht \
+    -F "upload=@$FOLD/gs.npy" \
+    --output $FOLD/ht.npy \
     "$NP_CURL_API_URL"
-
-    ## THE gs and ht FILES DO NOT HAVE .npy ENDING
-    ## AS THE HEADER IS NOT INCLUDED IN THE BODY : ITS IN THE HTTP HEADER
-    ## TODO: PROVIDE HEADER OPTION TO INCLUDE THE HEADER IN THE BODY
 
     [ $? -ne 0 ] && echo $BASH_SOURCE - non zero rc from curl cli && exit 4
 fi
 
+if [ "${arg/pdb}" != "$arg" ]; then
+   ${IPYTHON:-ipython} -i --pdb $script
+fi
 
 
 exit 0

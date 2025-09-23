@@ -16,18 +16,6 @@ np_curl_test.cc
 #include "NP_CURL.h"
 
 
-NP* arr_make()
-{
-    NP* a = NP::Make<float>( 3, 6, 4);
-    a->fillIndexFlat();
-    a->set_meta<float>( "red", 1.f );
-    a->set_meta<float>( "green", 2.f );
-    a->set_meta<float>( "blue", 3.f );
-    a->set_meta<std::string>( "msg", "np_curl_test" );
-    return a ;
-}
-
-
 template<typename T>
 void arr_dump(const NP* x, const char* sym, int i)
 {
@@ -50,7 +38,6 @@ int main(void)
        arr_dump<float>(ht, "ht", i);
        std::cout << "]-------------------- " << i << "\n" ;
     }
-
 
     NP_CURL::Clear();
 
