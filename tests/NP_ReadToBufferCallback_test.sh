@@ -11,7 +11,7 @@ cd $(dirname $(realpath $BASH_SOURCE))
 name=NP_ReadToBufferCallback_test
 script=$name.py
 
-defarg="info_build_run"
+defarg="info_build_run_ls_xxd_pdb"
 arg=${1:-$defarg}
 
 tmp=/tmp/$USER/np
@@ -45,10 +45,6 @@ if [ "${arg/dbg}" != "$arg" ]; then
    [ $? -ne 0 ] && echo $BASH_SOURCE - dbg error && exit 3
 fi
 
-if [ "${arg/pdb}" != "$arg" ]; then
-   ${IPYTHON:-ipython} -i --pdb  $script
-   [ $? -ne 0 ] && echo $BASH_SOURCE - pdb error && exit 4
-fi
 
 if [ "${arg/ls}" != "$arg" ]; then
    echo ls -alst $FOLD
@@ -56,16 +52,26 @@ if [ "${arg/ls}" != "$arg" ]; then
 fi
 
 if [ "${arg/xxd}" != "$arg" ]; then
-   aa="a0 a1 a2"
+   aa="a0 a1 a2 a3 a4"
    for a in $aa ; do
-       echo xxd -l 512 $FOLD/$a.npy
-       xxd -l 512 $FOLD/$a.npy
+       if [ -f "$FOLD/$a.npy" ]; then
+           echo xxd -l 512 $FOLD/$a.npy
+           xxd -l 512 $FOLD/$a.npy
+           echo diff -b $FOLD/a0.npy $FOLD/$a.npy
+           diff -b $FOLD/a0.npy $FOLD/$a.npy
 
-       echo diff -b $FOLD/a0.npy $FOLD/$a.npy
-       diff -b $FOLD/a0.npy $FOLD/$a.npy
+           xxd $FOLD/$a.npy > $FOLD/${a}_txt.txt
+           echo diff $FOLD/a0_txt.txt $FOLD/${a}_txt.txt
+           diff $FOLD/a0_txt.txt $FOLD/${a}_txt.txt
+
+       fi
    done
 fi
 
+if [ "${arg/pdb}" != "$arg" ]; then
+   ${IPYTHON:-ipython} -i --pdb  $script
+   [ $? -ne 0 ] && echo $BASH_SOURCE - pdb error && exit 4
+fi
 
 
 exit 0
