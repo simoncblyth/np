@@ -179,6 +179,7 @@ struct NP
     void serializeToBuffer( std::vector<char>& buf, size_t size=16, size_t nitems=1 ) ; // not const as need to change *position*
     static void SaveBufferToFile(const std::vector<char>& buf, const char* path_ );
 
+    void prepareForStreamIn();
     static NP* CreateFromBuffer( const std::vector<char>& buf, size_t size=16, size_t nitems=1 );
     static size_t WriteToArrayCallback(char* buffer, size_t size, size_t nitems, void* arg);
 
@@ -603,6 +604,8 @@ struct NP
 
     std::ifstream* load_header(const char* _path, const char* _sli);
     size_t         load_header_from_buffer(const char* buffer, size_t size);
+
+    static bool   HasChar( const char* buffer, size_t size, char q);
     static size_t FindChar(const char* buffer, size_t size, char q);
 
 
@@ -1433,7 +1436,9 @@ size_t NP::ReadToBufferCallback(char* buffer, size_t size, size_t nitems, void* 
     size_t data_size = arr->uarr_bytes();
     size_t total_copy = 0 ;
 
-    if(0) std::cout
+    bool dump = false ;
+
+    if(dump) std::cout
          << "[NP::ReadToBufferCallback"
          << " arr.sstr " << ( arr ? arr->sstr() : "-" )
          << " arr.position " << ( arr ? arr->position : -1 )
@@ -1466,7 +1471,7 @@ size_t NP::ReadToBufferCallback(char* buffer, size_t size, size_t nitems, void* 
         total_copy += data_copy ;
     }
 
-    if(0) std::cout
+    if(dump) std::cout
          << "]NP::ReadToBufferCallback"
          << " header_left " << header_left
          << " header_copy " << header_copy
@@ -1527,6 +1532,16 @@ void NP::SaveBufferToFile(const std::vector<char>& buf, const char* path_ ) // s
 }
 
 
+
+void NP::prepareForStreamIn()
+{
+    _hdr = "" ; // scrub the placeholder default header, as use completed hdr for stream state transition
+    position = 0 ;
+    nodata = false ;
+    lpath = "prepareForStream" ;
+    lfold = "" ;
+}
+
 /**
 NP::CreateFromBuffer
 ----------------------
@@ -1538,12 +1553,7 @@ The array created should be exactly the same for any non-zero values of size and
 NP* NP::CreateFromBuffer( const std::vector<char>& buf, size_t size, size_t nitems )
 {
     NP* arr = new NP ;
-
-    arr->_hdr = "" ; // scrub the placeholder default header, as use completed hdr for stream state transition
-    arr->position = 0 ;
-    arr->nodata = false ;
-    arr->lpath = "CreateFromBuffer" ;
-    arr->lfold = "" ;
+    arr->prepareForStreamIn();
 
     char* src = (char*)buf.data();
     size_t write = 0 ;
@@ -1603,8 +1613,10 @@ inline size_t NP::WriteToArrayCallback(char* src, size_t size, size_t nitems, vo
     std::string& _hdr = arr->_hdr ;
     bool hdr_complete = arr->hdr_complete();
 
+    bool dump = false ;
 
-    if(0) std::cout
+
+    if(dump) std::cout
         << "NP::WriteToArrayCallback"
         << " max_write " << max_write
         << " hdr_complete " << ( hdr_complete ? "YES" : "NO " )
@@ -1615,23 +1627,23 @@ inline size_t NP::WriteToArrayCallback(char* src, size_t size, size_t nitems, vo
     size_t hdr_bytes = 0 ;
     if(!hdr_complete)  // _hdr does not end with '\n' yet
     {
-        size_t newline = FindChar(src, max_write, '\n' );
-        // newline is offset from src to the '\n'
+        char q = '\n' ;
         size_t len0 = _hdr.length();
-        hdr_bytes = newline == -1 ? max_write : newline + 1 ; // +1 to include the '\n' into the hdr
+        bool has_newline = HasChar(src, max_write, q) ;
+        hdr_bytes = has_newline ? 1 + FindChar(src, max_write, q) : max_write ;  // 1 + includes '\n' into _hdr
         _hdr.resize(len0 + hdr_bytes );
         memcpy( _hdr.data() + len0,  src, hdr_bytes );
         arr->position += hdr_bytes ;
-        if(0) std::cout << "NP::WriteToArrayCallback.hdr arr.position " << arr->position << "\n" ;
+        if(dump) std::cout << "NP::WriteToArrayCallback.hdr arr.position " << arr->position << "\n" ;
 
-        if(newline == -1) return hdr_bytes ;  // can do nothing more until hdr has completely arrived
+        if(!has_newline) return hdr_bytes ;  // can do nothing more until hdr has completely arrived
 
         assert( arr->hdr_complete() );        // _hdr must now end with '\n'
         bool data_resize = true ;
         arr->decode_header( data_resize );
     }
 
-    if(0) std::cout << "NP::WriteToArrayCallback _hdr[\n" << HexDump(_hdr) << "]\n" ;
+    if(dump) std::cout << "NP::WriteToArrayCallback _hdr[\n" << HexDump(_hdr) << "]\n" ;
     assert( arr->hdr_complete() );
 
     // when header just completed there may be some data bytes left over
@@ -1640,12 +1652,14 @@ inline size_t NP::WriteToArrayCallback(char* src, size_t size, size_t nitems, vo
     // when data has been completed the *data_bytes* needs to be limited
     // by the data needed for the shape, ie do not want to trust max_write
     // to not add some stray bytes on the end
+    //
+    // TODO: collect any extra "meta_bytes" beyond the data into the meta string
 
     size_t data_offset = arr->position - arr->uhdr_bytes() ;
     size_t arr_bytes = arr->uarr_bytes();
     size_t data_remain  = arr_bytes - data_offset ;
 
-    size_t data_bytes_0  = max_write - hdr_bytes ;  // without accounting for bytes remaining in the array
+    size_t data_bytes_0  = max_write - hdr_bytes ;  // without accounting for bytes needed to complete array data
     size_t data_bytes = data_bytes_0 < data_remain ? data_bytes_0 : data_remain ;  // limit write by bytes needed
 
     size_t total_write = hdr_bytes ;
@@ -1663,7 +1677,8 @@ inline size_t NP::WriteToArrayCallback(char* src, size_t size, size_t nitems, vo
         }
     }
 
-    if(0) std::cout
+
+    if(dump) std::cout
         << "NP::WriteToArrayCallback"
         << " arr->position " << arr->position
         << " max_write " << max_write
@@ -7658,11 +7673,18 @@ inline size_t NP::load_header_from_buffer(const char* buffer, size_t size)
 
     return pos + 1 ;
 }
+
+bool NP::HasChar(const char* buffer, size_t size, char q)  // static
+{
+    const char* qptr = (const char*)memchr(buffer, q, size);
+    return qptr != nullptr ;
+}
 size_t NP::FindChar(const char* buffer, size_t size, char q)  // static
 {
     const char* qptr = (const char*)memchr(buffer, q, size);
     return qptr ? (size_t)(qptr - buffer) : -1;
 }
+
 
 
 

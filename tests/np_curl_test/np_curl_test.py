@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
+from np.fold import Fold
 import os, numpy as np
 np.set_printoptions(suppress=True)
 
 if __name__ == '__main__':
-    gs = np.load(os.path.expandvars("$FOLD/gs.npy"))
-    ht = np.load(os.path.expandvars("$FOLD/ht.npy"))
-    print("gs.shape\n", gs.shape)
-    print("gs\n", gs)
-    print("ht.shape\n", ht.shape)
-    print("ht\n", ht)
+    f = Fold.Load(symbol="f")
+    print(repr(f))
+
+    assert np.all( f.ht000 == f.ht )  # curl on cmdline should give save hits as libcurl from the test with same gensteps
+
+
 

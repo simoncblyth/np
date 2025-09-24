@@ -8,12 +8,10 @@ Started from the  ~/env/tools/curl_check investigations.
 This test was used to develop the integration with NP.hh
 adding flexible array shape handling and making into a realistic API::
 
-
 Build and start the endpoint "server"::
 
-   ~/env/tools/fastapi_check/dev.sh
+   ~/env/tools/fastapi_check/dev.sh  ## NOT THIS ONE
    ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
-
 
 Usage::
 
@@ -38,7 +36,8 @@ script=$name.py
 bin=/tmp/$USER/np/$name
 mkdir -p $(dirname $bin)
 
-level=1
+#level=1
+level=0
 export NP_CURL_API_LEVEL=${LEVEL:-$level}
 
 endpoint=http://127.0.0.1:8000/simulate
@@ -107,14 +106,14 @@ fi
 if [ "${arg/ls}" != "$arg" ]; then
     echo ls -alst $FOLD
     ls -alst $FOLD
+
+    md5sum $FOLD/*.npy
 fi
 
 if [ "${arg/cli}" != "$arg" ]; then
 
-   # dtype and shape headers are needed when writing headless array data without the magic
-   #-H "x-opticks-dtype: float32" \
-   #-H "x-opticks-shape: (1,6,4)" \
-   # the api returns magic when given magic
+    index=0
+    htname=$(printf  "ht%0.3d_cli.npy" $index)
 
     curl \
     --disable \
@@ -124,10 +123,13 @@ if [ "${arg/cli}" != "$arg" ]; then
     -H "Content-Type: multipart/form-data" \
     -H "x-opticks-token: secret" \
     -H "x-opticks-level: 1" \
-    -H "x-opticks-index: 0" \
+    -H "x-opticks-index: $index" \
     -F "upload=@$FOLD/gs.npy" \
-    --output $FOLD/ht.npy \
+    --output $FOLD/$htname \
     "$NP_CURL_API_URL"
+
+    echo ls -alst $FOLD/$htname
+    ls -alst $FOLD/$htname
 
     [ $? -ne 0 ] && echo $BASH_SOURCE - non zero rc from curl cli && exit 4
 fi
