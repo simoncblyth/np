@@ -10,14 +10,18 @@ adding flexible array shape handling and making into a realistic API::
 
 Build and start the endpoint "server"::
 
-   ~/env/tools/fastapi_check/dev.sh  ## NOT THIS ONE
    ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
+   ~/env/tools/fastapi_check/dev.sh  ## NOT THIS OLD ONE
 
 Usage::
 
    ~/np/tests/np_curl_test/np_curl_test.sh
    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh                ## more verbosity
    MULTIPART=0 LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## switch off multipart which is enabled by default
+
+
+   ~/np/tests/np_curl_test/np_curl_test.sh cli
+
 
 
 EOU
@@ -108,11 +112,18 @@ if [ "${arg/ls}" != "$arg" ]; then
     ls -alst $FOLD
 
     md5sum $FOLD/*.npy
+
+
 fi
+
+if [ "${arg/xxd}" != "$arg" ]; then
+    tail -c 300 $FOLD/ht000.npy | xxd
+fi
+
 
 if [ "${arg/cli}" != "$arg" ]; then
 
-    index=0
+    index=100
     htname=$(printf  "ht%0.3d_cli.npy" $index)
 
     curl \

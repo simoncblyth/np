@@ -35,6 +35,7 @@ int main(void)
     {
        std::cout << "[-------------------- " << i << "\n" ;
        NP* ht = NP_CURL::TransformRemote(gs,i);
+       std::cout << "ht.meta\n" << ht->meta << "]\n" ;
 
        const char* htname = U::Format("$FOLD/ht%0.3d.npy", i );
        ht->save(htname);
