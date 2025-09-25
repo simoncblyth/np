@@ -41,14 +41,18 @@ def test_example_numpy_array_view_of_NP():
     pass
     print("]test_example_numpy_array_view_of_NP\n")
 
+
+def make_array(shape=(2,6,4)):
+    sz = functools.reduce(operator.mul,shape)
+    a = np.arange(sz, dtype=np.float32).reshape(*shape)
+    return a
+
 def test_Processor_process():
     print("[test_Processor_process\n")
-    shape = (10,6,4)
-    sz = functools.reduce(operator.mul,shape)
-    pr = nbt.Processor()
-    a = np.arange(sz, dtype=np.float32).reshape(*shape)
+    a = make_array()
     print("a\n",a)
 
+    pr = nbt.Processor()
     b = pr.process(a)
     print("b\n",b)
     print("]test_Processor_process\n")
@@ -56,16 +60,23 @@ def test_Processor_process():
 
 def test_Processor_process_via_NP():
     print("[test_Processor_process_via_NP\n")
-    shape = (10,6,4)
-    sz = functools.reduce(operator.mul,shape)
-    pr = nbt.Processor()
-    a = np.arange(sz, dtype=np.float32).reshape(*shape)
+    a = make_array()
     print("a\n",a)
-
+    pr = nbt.Processor()
     b = pr.process_via_NP(a)
     print("b\n",b)
-
     print("]test_Processor_process_via_NP\n")
+
+
+def test_Processor_process_via_NP_with_meta():
+    print("[test_Processor_process_via_NP_with_meta\n")
+    a = make_array()
+    print("a\n",a)
+    pr = nbt.Processor()
+    b, b_meta = pr.process_via_NP_with_meta(a)
+    print("b\n",b)
+    print("b_meta\n",b_meta)
+    print("]test_Processor_process_via_NP_with_meta\n")
 
 
 
@@ -78,10 +89,12 @@ def main():
     test_example_numpy_array_view_of_NP()
     test_Processor_process()
     test_Processor_process_via_NP()
+    test_Processor_process_via_NP_with_meta()
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    test_Processor_process_via_NP_with_meta()
 
 
 

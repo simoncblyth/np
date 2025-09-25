@@ -31,7 +31,7 @@ defarg="venv_info_build_pdb"
 arg=${1:-$defarg}
 
 vv="BASH_SOURCE PWD"
-tt="cmake python python3 ipython"
+tt="uv cmake python python3 ipython"
 
 cd $(dirname $(realpath $BASH_SOURCE))
 
@@ -75,7 +75,7 @@ fi
 if [ "${arg/clean}" != "$arg" ]; then
    rm -rf build
    rm -rf .venv
-   rm uv.lock  #  tool long and unreadable to be comfortable adding to repo
+   rm uv.lock  #  too long and unreadable to be comfortable adding to repo
 fi
 
 exit 0

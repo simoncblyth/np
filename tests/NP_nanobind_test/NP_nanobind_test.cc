@@ -5,7 +5,7 @@ NP_nanobind_test.cc
 https://nanobind.readthedocs.io/en/latest/basics.html#basics
 https://nanobind.readthedocs.io/en/latest/ndarray.html
 
-Experiement with C++ Python binding with nanobind
+Experiment with C++ Python binding with nanobind
 
 **/
 
@@ -34,6 +34,7 @@ struct Processor
 
     nb::ndarray<nb::numpy> process(nb::ndarray<nb::numpy> in);
     nb::ndarray<nb::numpy> process_via_NP(nb::ndarray<nb::numpy> in);
+    nb::tuple              process_via_NP_with_meta(nb::ndarray<nb::numpy> _in);
 };
 
 inline Processor::Processor()
@@ -71,11 +72,15 @@ inline  nb::ndarray<nb::numpy> Processor::process_via_NP(nb::ndarray<nb::numpy> 
 
     NP* in = NP_nanobind::NP_copy_of_numpy_array(_in);
     NP* out = NP::MakeLike(in);
+    out->set_meta<int>("answer", 42 );  // HMM: how for this to survive ?
+    std::cout << "-Processor::process_via_NP set_meta called \n";
+
 
     float* ii = in->values<float>();
     float* oo = out->values<float>();
     NP::INT nv = in->num_values();
     for(NP::INT i=0 ; i < nv ; i++) oo[i] = 1000.f + 2.f*ii[i] ;
+
 
     nb::ndarray<nb::numpy> _out = NP_nanobind::numpy_array_view_of_NP(out) ;
 
@@ -83,6 +88,24 @@ inline  nb::ndarray<nb::numpy> Processor::process_via_NP(nb::ndarray<nb::numpy> 
     return _out ;
 }
 
+inline  nb::tuple Processor::process_via_NP_with_meta(nb::ndarray<nb::numpy> _in)
+{
+    std::cout << "[Processor::process_via_NP_with_meta\n";
+
+    NP* in = NP_nanobind::NP_copy_of_numpy_array(_in);
+    NP* out = NP::MakeLike(in);
+    out->set_meta<int>("answer", 42 );  // HMM: how for this to survive ?
+    std::cout << "-Processor::process_via_NP_with_meta set_meta called \n";
+
+    float* ii = in->values<float>();
+    float* oo = out->values<float>();
+    NP::INT nv = in->num_values();
+    for(NP::INT i=0 ; i < nv ; i++) oo[i] = 1000.f + 2.f*ii[i] ;
+
+    nb::tuple _out = NP_nanobind::numpy_array_view_of_NP_with_meta(out);
+    std::cout << "]Processor::process_via_NP_with_meta\n";
+    return _out ;
+}
 
 
 
@@ -122,6 +145,7 @@ NB_MODULE(py_NP_nanobind_test, m)
         .def(nb::init<>())
         .def("process", &Processor::process)
         .def("process_via_NP", &Processor::process_via_NP)
+        .def("process_via_NP_with_meta", &Processor::process_via_NP_with_meta)
         ;
 
     nb::class_<Dog>(m, "Dog")
