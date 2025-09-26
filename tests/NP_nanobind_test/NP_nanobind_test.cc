@@ -34,7 +34,7 @@ struct Processor
 
     nb::ndarray<nb::numpy> process(nb::ndarray<nb::numpy> in);
     nb::ndarray<nb::numpy> process_via_NP(nb::ndarray<nb::numpy> in);
-    nb::tuple              process_via_NP_with_meta(nb::ndarray<nb::numpy> _in);
+    nb::tuple              process_via_NP_with_meta(nb::ndarray<nb::numpy> _in, nb::str _meta);
 };
 
 inline Processor::Processor()
@@ -88,11 +88,13 @@ inline  nb::ndarray<nb::numpy> Processor::process_via_NP(nb::ndarray<nb::numpy> 
     return _out ;
 }
 
-inline  nb::tuple Processor::process_via_NP_with_meta(nb::ndarray<nb::numpy> _in)
+inline  nb::tuple Processor::process_via_NP_with_meta(nb::ndarray<nb::numpy> _in, nb::str _in_meta)
 {
     std::cout << "[Processor::process_via_NP_with_meta\n";
 
-    NP* in = NP_nanobind::NP_copy_of_numpy_array(_in);
+    NP* in = NP_nanobind::NP_copy_of_numpy_array_with_meta(_in, _in_meta);
+    std::cout << "-Processor::process_via_NP_with_meta in.meta[" << in->meta << "]\n" ;
+
     NP* out = NP::MakeLike(in);
     out->set_meta<int>("answer", 42 );  // HMM: how for this to survive ?
     std::cout << "-Processor::process_via_NP_with_meta set_meta called \n";

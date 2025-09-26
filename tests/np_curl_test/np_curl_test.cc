@@ -34,6 +34,8 @@ int main(void)
     for(int i=0 ; i < 10 ; i++)
     {
        std::cout << "[-------------------- " << i << "\n" ;
+       gs->set_meta<int>("metacheck", i*100) ;
+
        NP* ht = NP_CURL::TransformRemote(gs,i);
        std::cout << "ht.meta\n" << ht->meta << "]\n" ;
 

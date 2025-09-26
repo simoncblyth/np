@@ -10,11 +10,13 @@ adding flexible array shape handling and making into a realistic API::
 
 Build and start the endpoint "server"::
 
+   lo  ## env setup for opticks + miniconda-python?
    ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
    ~/env/tools/fastapi_check/dev.sh  ## NOT THIS OLD ONE
 
 Usage::
 
+   lo  ## need newer curl-config than default
    ~/np/tests/np_curl_test/np_curl_test.sh
    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh                ## more verbosity
    MULTIPART=0 LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## switch off multipart which is enabled by default

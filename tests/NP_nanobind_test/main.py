@@ -73,7 +73,9 @@ def test_Processor_process_via_NP_with_meta():
     a = make_array()
     print("a\n",a)
     pr = nbt.Processor()
-    b, b_meta = pr.process_via_NP_with_meta(a)
+
+    a_meta = "question:42\nhello:world\n"
+    b, b_meta = pr.process_via_NP_with_meta(a, a_meta)
     print("b\n",b)
     print("b_meta\n",b_meta)
     print("]test_Processor_process_via_NP_with_meta\n")
