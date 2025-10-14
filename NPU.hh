@@ -636,7 +636,7 @@ struct U
     static std::string Format(uint64_t t=0, const char* fmt="%FT%T.", int _wsubsec=3 );
 
     static constexpr const char* LOG_FMT = "%Y-%m-%d %H:%M:%S" ;
-    static std::string FormatLog();
+    static std::string FormatLog(const char* msg=nullptr);
 
     static std::string FormatInt(int64_t t, int wid );
 
@@ -1955,9 +1955,15 @@ inline bool U::LooksLikeProfileTriplet(const char* str) // static
 }
 
 
-inline std::string U::FormatLog() // static
+inline std::string U::FormatLog(const char* msg) // static
 {
-    return U::Format(0, LOG_FMT, 3);
+    std::string line = U::Format(0, LOG_FMT, 3);
+    if(msg)
+    {
+        line += " " ;
+        line += msg ;
+    }
+    return line ;
 }
 
 inline std::string U::Format(uint64_t t, const char* fmt, int _wsubsec) // static

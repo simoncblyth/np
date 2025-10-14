@@ -2,7 +2,14 @@
 
 #include "NPFold.h"
 
-void test_0()
+struct NP_Concatenate_test
+{
+    static int test_0();
+    static int test_1();
+};
+
+
+int NP_Concatenate_test::test_0()
 {
     NP* a = NP::Make<int>( 2, 3 ); 
     int* aa = a->values<int>(); 
@@ -49,12 +56,60 @@ void test_0()
     fold->add("icom", icom); 
 
     fold->save("$FOLD"); 
+
+    return 0 ;
 }
 
+int NP_Concatenate_test::test_1()
+{
+    //NP::UINT mx = 0xffff ; 
+    //NP::UINT mx = 100000000 ;    // 0.1 billion  (100M)  completes
+    //NP::UINT mx = 200000000 ;    // 0.2 billion  (200M)  completes
+    NP::UINT mx   = 400000000 ;    // 0.4 billion  (400M)  completes, combined array is 76G
 
+    //NP::UINT mx = 1000000000 ;    // 1 billion   KILLED during alloc of combined 3 billion array
+    //NP::UINT mx = 0x7fffffff ;  // 2.14 billion  KILLED
+    //NP::UINT mx = 0xffffffff ;  // 4.29 billion
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1 mx ") << mx << "\n" ; 
+ 
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.a.make\n") ;
+    NP* a = NP::Make<int>( mx, 4, 4 );  
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.a.fill\n") ;
+    a->fill<int>(1) ;
+
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.b.make\n") ;
+    NP* b = NP::Make<int>( mx, 4, 4 );  
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.b.fill\n") ;
+    b->fill<int>(2) ;
+
+    std::cout <<  U::FormatLog("NP_Concatenate_test::test_1.c.make\n") ;
+    NP* c = NP::Make<int>( mx, 4, 4 );  
+    std::cout <<  U::FormatLog("NP_Concatenate_test::test_1.c.fill\n") ;
+    c->fill<int>(3) ;
+
+    std::cout <<  U::FormatLog("NP_Concatenate_test::test_1.subs\n") ;
+    std::vector<NP*> subs ; 
+    subs.push_back(a);  
+    subs.push_back(b);  
+    subs.push_back(c);  
+
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.Concatenate[\n") ;
+    NP* com = NP::Concatenate( subs ); 
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.Concatenate]\n") ;
+
+    std::cout << U::FormatLog("NP_Concatenate_test::test_1.fold[\n") ;
+    NPFold* fold = new NPFold ; 
+    fold->add("a", a); 
+    fold->add("b", b); 
+    fold->add("c", c); 
+    fold->add("com", com); 
+    fold->save("$FOLD"); 
+    std::cout <<  U::FormatLog("NP_Concatenate_test::test_1.fold]\n") ;
+ 
+    return 0 ;
+}
 
 int main()
 {
-   test_0(); 
-   return 0 ; 
+   return NP_Concatenate_test::test_1();
 }

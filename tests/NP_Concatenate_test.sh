@@ -32,13 +32,19 @@ if [ "${arg/info}" != "$arg" ]; then
 fi
 
 if [ "${arg/build}" != "$arg" ]; then 
-    gcc $name.cc -std=c++11 -Wall -lstdc++ -I.. -g -o $bin
+    gcc $name.cc -std=c++17 -Wall -lstdc++ -I.. -DWITH_VERBOSE -g -o $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE : build error && exit 1  
 fi
 
 if [ "${arg/run}" != "$arg" ]; then 
     $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE : run error && exit 2  
+fi
+
+if [ "${arg/dbg}" != "$arg" ]; then 
+    source dbg__.sh
+    dbg__ $bin
+    [ $? -ne 0 ] && echo $BASH_SOURCE : dbg error && exit 4  
 fi
 
 if [ "${arg/pdb}" != "$arg" ]; then 

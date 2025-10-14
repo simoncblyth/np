@@ -7526,7 +7526,9 @@ inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static
     NPS::copy_shape( comb_shape, a0->shape );
     comb_shape[0] = ni_total ;
 
+    if(VERBOSE) std::cout << "NP::Concatenate c = new NP " << std::endl ;
     NP* c = new NP(a0->dtype);
+    if(VERBOSE) std::cout << "NP::Concatenate c.set_shape " << std::endl ;
     c->set_shape(comb_shape);
     if(VERBOSE) std::cout << "NP::Concatenate c " << c->desc() << std::endl ;
 
