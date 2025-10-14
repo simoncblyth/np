@@ -220,6 +220,7 @@ inline void net_hdr::unpack( char* data, unsigned num_bytes, std::vector<unsigne
 struct NPS
 {
     typedef std::int64_t INT ;
+    typedef std::uint64_t UINT ;
     static constexpr const INT ONE = 1 ;  // -std=c++11 SOMETIMES GIVES LINK ERRORS : but NOT -std=c++17
 
     NPS(std::vector<INT>& shape_ ) : shape(shape_) {}  ;
@@ -360,6 +361,16 @@ struct NPS
         for(INT i=0; i<ndim; ++i) sz *= shape[i] ;
         return ndim == 0 ? 0 : sz ;
     }
+
+    static NPS::UINT usize(const std::vector<INT>& shape)
+    {
+        INT ndim = INT(shape.size());
+        UINT sz = 1;
+        for(INT i=0; i<ndim; ++i) sz *= shape[i] ;
+        return ndim == 0 ? 0 : sz ;
+    }
+
+
 
     static size_t size(const std::vector<size_t>& shape)
     {
