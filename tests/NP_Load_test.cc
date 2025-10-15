@@ -1,21 +1,29 @@
-// name=NP_Load_test ; export FOLD=/tmp/$name ; mkdir -p $FOLD ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name/$name && /tmp/$name/$name
 
 #include "NP.hh"
-const char* FOLD = getenv("FOLD");
 
-int main(int argc, char** argv)
+struct NP_Load_test
+{
+    static int save_load();
+    static int load();
+    static int load_hit();
+};
+
+int NP_Load_test::save_load()
 {
     NP* a = NP::Make<int>(10,4) ;
     a->fillIndexFlat();
-    a->save(FOLD, "a.npy") ;
+    a->save("$FOLD/a.npy") ;
     std::cout << " a " << a->repr<int>() << std::endl ;
-
-
 
     NP* b = NP::Load("$FOLD/a.npy") ;
     std::cout << " b " << b->repr<int>() << std::endl ;
 
-    /*
+    return 0 ;
+}
+
+
+int NP_Load_test::load()
+{
     NP* c = NP::Load("$FOLD/c.npy") ;
     std::cout << " c " << ( c ? c->sstr() : "-" ) << std::endl ;
 
@@ -24,8 +32,19 @@ int main(int argc, char** argv)
 
     NP* e = NP::Load("$UNDEFINED") ;
     std::cout << " e " << ( e ? e->sstr() : "-" ) << std::endl ;
-    */
-
 
     return 0 ;
+}
+
+int NP_Load_test::load_hit()
+{
+    NP* h = NP::Load("$HITFOLD/hit.npy");
+    std::cout << " h " << ( h ? h->sstr() : "-" ) << std::endl ;
+    return 0 ;
+}
+
+
+int main()
+{
+    return NP_Load_test::load_hit();
 }
