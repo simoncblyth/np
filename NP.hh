@@ -7532,13 +7532,16 @@ inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static
     c->set_shape(comb_shape);
     if(VERBOSE) std::cout << "NP::Concatenate c " << c->desc() << std::endl ;
 
-    UINT offset_bytes = 0 ;
+    UINT offset_bytes = 0 ;   // uint64_t needed here to avoid clocking offset_bytes for large array handling
     for(unsigned i=0 ; i < aa.size() ; i++)
     {
         auto a = aa[i];
         UINT a_bytes = a->uarr_bytes() ;
         memcpy( c->data.data() + offset_bytes ,  a->data.data(),  a_bytes );
         offset_bytes += a_bytes ;
+        // clocking offset_bytes here (when used only 32 bit unsigned) resulted in the tail of the array
+        // being unfilled (left as zero) and the addressed portion of the array being overwritten
+        // potentially multiple times
     }
     return c ;
 }
