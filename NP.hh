@@ -2164,10 +2164,14 @@ inline void NP::_change_shape_ni(INT ni, bool data_resize)
 {
     unsigned ndim = shape.size() ;
     assert( ndim > 0 );
-    assert( ni <= shape[0] );
 
-    shape[0] = ni ;
-    size = NPS::size(shape);    // product of shape dimensions
+    if(!data_resize) // eg from NP::LoadSlice when the slice is larger than the array
+    {
+        assert( ni <= shape[0] );
+    }
+
+    shape[0] = std::min( ni, shape[0] ) ;       // slicing can only keep the same or reduce
+    size = NPS::size(shape);                    // product of shape dimensions
     if(data_resize) data.resize(size*ebyte) ;   // data is now just char
 }
 
@@ -7953,7 +7957,7 @@ inline void NP::load_data( std::ifstream* fp, const char* _sli )
     if(nodata && VERBOSE) std::cerr << "NP::load_data SKIP reading data as nodata:true : data.size() " << data.size() << "\n" ;
     if(nodata) return ;
 
-    if(LooksLikeSlideIndexStringIsEmpty(_sli) )  // eg nullptr OR "" OR "[]"
+    if(LooksLikeSliceIndexStringIsEmpty(_sli) )  // eg nullptr OR "" OR "[]"
     {
         fp->read(bytes(), arr_bytes() );
     }
