@@ -13,7 +13,10 @@ np_curl_test.cc
 #include <iostream>
 
 #include "NP.hh"
+
+#ifdef WITH_CURL
 #include "NP_CURL.h"
+#endif
 
 
 template<typename T>
@@ -28,7 +31,15 @@ void arr_dump(const NP* x, const char* sym, const char* name )
 
 int main(void)
 {
+
+#ifdef WITH_CURL
     NP* gs = NP::Load("$FOLD/gs.npy");
+    if(!gs)
+    {
+        std::cerr << "FAILED TO LOAD gs \n";
+        return 1 ;
+    }
+
     arr_dump<float>(gs, "gs", "init");
 
     for(int i=0 ; i < 10 ; i++)
@@ -49,6 +60,11 @@ int main(void)
     NP_CURL::Clear();
 
     return 0;
+#else
+    std::cerr << "NOT:WITH_CURL - YOU NEED TO REBUILD WITH NEW ENOUGH LIBCURL FOR THIS\n" ;
+    return 1;
+#endif
+
 }
 
 
