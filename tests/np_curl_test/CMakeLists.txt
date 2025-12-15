@@ -3,6 +3,21 @@ set(name np_curl_test)
 project(${name} LANGUAGES CXX)
 include(GNUInstallDirs)
 
+list(APPEND CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
+
+message("${name}.ENV{CMAKE_PREFIX_PATH} contents:")
+foreach(p $ENV{CMAKE_PREFIX_PATH})
+    message("   → ${p}")
+endforeach()
+
+message("${name}.CMAKE_PREFIX_PATH contents:")
+foreach(p ${CMAKE_PREFIX_PATH})
+    message("   → ${p}")
+endforeach()
+
+
+
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)  # use -std=c++17 instead of -std=gnu++17

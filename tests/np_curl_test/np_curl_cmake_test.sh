@@ -28,7 +28,7 @@ mkdir -p $bdir
 pushd $bdir
 
 
-export CMAKE_PREFIX_PATH=/home/blyth/miniconda3/envs/ok
+export CMAKE_PREFIX_PATH=red:green:blue:/home/blyth/miniconda3/envs/ok
 
 cmake $SDIR \
    -DCMAKE_BUILD_TYPE=Debug \
