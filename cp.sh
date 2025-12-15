@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 
 sysrap_names="np.h NP.hh NPU.hh NPFold.h NPX.h NP_CURL.h NP_CURL_Header.h NP_CURL_Upload.h NP_CURL_Download.h NP_nanobind.h"
 
