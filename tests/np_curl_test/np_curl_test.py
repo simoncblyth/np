@@ -8,7 +8,7 @@ if __name__ == '__main__':
     f = Fold.Load(symbol="f")
     print(repr(f))
 
-    assert np.all( f.ht000 == f.ht )  # curl on cmdline should give save hits as libcurl from the test with same gensteps
+    assert np.all( f.ht000 == f.ht000_cli )  # curl on cmdline should give save hits as libcurl from the test with same gensteps
 
 
 

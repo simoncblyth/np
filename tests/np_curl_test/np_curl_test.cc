@@ -28,11 +28,9 @@ void arr_dump(const NP* x, const char* sym, const char* name )
     std::cout << " " << sym << ".repr " << ( x ? x->repr<T>() : "-" ) << "\n" ;
 }
 
-
-int main(void)
-{
-
 #ifdef WITH_CURL
+int main()
+{
     NP* gs = NP::Load("$FOLD/gs.npy");
     if(!gs)
     {
@@ -45,7 +43,7 @@ int main(void)
     for(int i=0 ; i < 10 ; i++)
     {
        std::cout << "[-------------------- " << i << "\n" ;
-       gs->set_meta<int>("metacheck", i*100) ;
+       //gs->set_meta<int>("metacheck", i*100) ;
 
        NP* ht = NP_CURL::TransformRemote(gs,i);
        std::cout << "ht.meta\n" << ht->meta << "]\n" ;
@@ -60,12 +58,13 @@ int main(void)
     NP_CURL::Clear();
 
     return 0;
+}
 #else
+int main()
+{
     std::cerr << "NOT:WITH_CURL - YOU NEED TO REBUILD WITH NEW ENOUGH LIBCURL FOR THIS\n" ;
     return 1;
-#endif
-
 }
-
+#endif
 
 

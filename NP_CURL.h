@@ -5,15 +5,25 @@ NP_CURL.h : Remote array transformation over HTTP using libcurl
 
 libcurl based upload/download of NP.hh arrays to a remote HTTP API service.
 
-
 Start FastAPI endpoint::
 
-   /usr/local/env/fastapi_check/dev.sh
+   ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
+   (NOT THIS OLD ONE ANYMORE: /usr/local/env/fastapi_check/dev.sh)
 
 Make requests::
 
     ~/np/tests/np_curl_test/np_curl_test.sh
     LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## more verbosity
+
+
+WITHOUT_MAGIC
+   dtype and shape travel in headers,
+   only array data in primary
+
+default "WITH_MAGIC"
+   dtype and shape travel together with array data in the primary
+   headers only used for "optional (at one level)" metadata
+
 
 TODO
 ----
@@ -204,16 +214,17 @@ inline void NP_CURL::prepare_upload( NP* a, int index )
     long upload_size = 0 ;
 
 #ifdef WITHOUT_MAGIC
+    // DTYPE and SHAPE travel in headers NOT:BODY
     upload->size = a->arr_bytes();
     upload->buffer = (char*)a->bytes();
     upload->position = 0 ;
-    upload_size = upload->size ;     // just arr data in old approach
+    upload_size = upload->size ;          // just arr data in old approach
     std::string dtype = a->dtype_name() ; // eg float32 uint8 uint16 ..
     std::string shape = a->sstr();        // eg "(10, 4, 4, )"
     uhdr.prepare_upload( token, index, level, dtype.c_str(), shape.c_str() );
 #else
+    // default MAGIC approach tranports serialized array including both hdr and arr data
     a->update_headers();
-
     upload_size = a->serialize_bytes() ;  // both hdr and arr data
     uhdr.prepare_upload( token, index, level );
 #endif
