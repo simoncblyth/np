@@ -42,7 +42,7 @@ int main()
 
     for(int i=0 ; i < 10 ; i++)
     {
-       std::cout << "[-------------------- " << i << "\n" ;
+       std::cout << U::Log("[--------------------\n") ;
        //gs->set_meta<int>("metacheck", i*100) ;
 
        NP* ht = NP_CURL::TransformRemote(gs,i);
@@ -52,7 +52,7 @@ int main()
        ht->save(htname);
 
        arr_dump<float>(ht, "ht", htname);
-       std::cout << "]-------------------- " << i << "\n" ;
+       std::cout << U::Log("]--------------------\n") ;
     }
 
     NP_CURL::Clear();

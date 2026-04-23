@@ -13,22 +13,30 @@ Start FastAPI endpoint::
 Make requests::
 
     ~/np/tests/np_curl_test/np_curl_test.sh
-    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## more verbosity
+    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## LEVEL controls verbosity
 
+
+default NOT:WITHOUT_MAGIC "WITH_MAGIC"
+   dtype+shape+data+meta are serialized together and travel together
+   in the message body, only some optional(?) key value pairs travel
+   in the HTTP headers
 
 WITHOUT_MAGIC
-   dtype and shape travel in headers,
-   only array data in primary
-
-default "WITH_MAGIC"
-   dtype and shape travel together with array data in the primary
-   headers only used for "optional (at one level)" metadata
+   dtype and shape strings travel in HTTP headers,
+   only the array data travel in the message body
 
 
 TODO
 ----
 
-1. avoid duplication of memory for the download
+1. investigate if duplication of memory can be avoided for the download
+
+   * part of problem is need to decode part of the message body in order to know how
+     much memory to allocate
+
+   * HMM: could duplicate the small shape+dtype+meta in headers
+     to make it easier to know sizes before allocating for the body?
+
 2. stress test with large arrays to find memory leaks
 
 **/
@@ -40,6 +48,22 @@ TODO
 #include <cstring>
 
 #include <curl/curl.h>
+
+/**
+libcurl version requirement 8.12.1   (HexVersion: 0x080c01)
+
+Major: 8  (08 in hex)
+Minor: 12 (0c in hex)
+Patch: 1  (01 in hex)
+
+**/
+
+#if LIBCURL_VERSION_NUM < 0x080c01
+#error "NP_CURL.h libcurl version too old! NP_CURL requires 8.12.1 or higher. Check CMAKE_PREFIX_PATH."
+#endif
+
+
+
 
 #include "NP_CURL_Header.h"
 

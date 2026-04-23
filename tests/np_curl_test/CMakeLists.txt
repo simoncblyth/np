@@ -26,7 +26,6 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 
-message(STATUS "CURL library search paths: ${CMAKE_PREFIX_PATH}")
 find_package(CURL 8.12.1 QUIET)   # QUIET = don’t print "not found" yet
 
 if(CURL_FOUND)
