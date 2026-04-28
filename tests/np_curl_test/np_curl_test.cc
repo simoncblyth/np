@@ -40,12 +40,21 @@ int main()
 
     arr_dump<float>(gs, "gs", "init");
 
+    NP_CURL* nc = NP_CURL::Get();
+
+
     for(int i=0 ; i < 10 ; i++)
     {
        std::cout << U::Log("[--------------------\n") ;
        //gs->set_meta<int>("metacheck", i*100) ;
 
-       NP* ht = NP_CURL::TransformRemote(gs,i);
+       NP* ht = nc->transformRemote(gs,i);
+       if(!ht)
+       {
+           std::cerr << "NP_CURL::TransformRemote returned nullptr ht - is the server running ? \n" ;
+           return 1 ;
+       }
+
        std::cout << "ht.meta\n" << ht->meta << "]\n" ;
 
        const char* htname = U::Format("$FOLD/ht%0.3d.npy", i );

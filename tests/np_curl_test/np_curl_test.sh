@@ -10,13 +10,14 @@ adding flexible array shape handling and making into a realistic API::
 
 Build and start the endpoint "server"::
 
-   lo  ## env setup for opticks + miniconda-python?
+   lo  ## opticks env setup
+   lco ## miniconda activation required for fastapi binary
    ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
-   ~/env/tools/fastapi_check/dev.sh  ## NOT THIS OLD ONE
 
 Usage::
 
-   lo  ## need newer curl-config than default
+   ## lco  ## formerly stole miniconda curl-config - now using self build openssl + libcurl
+
    ~/np/tests/np_curl_test/np_curl_test.sh
    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh                ## more verbosity
    MULTIPART=0 LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh    ## switch off multipart which is enabled by default
@@ -61,13 +62,12 @@ EOU
 
 cd $(dirname $(realpath $BASH_SOURCE))
 
-defarg="info_chk_gcc_igs_run_cli_ana"
+defarg="env_info_chk_gcc_igs_run_cli_ana"
 arg=${1:-$defarg}
 
 name=np_curl_test
 script=$name.py
 
-#name=curl_mime_test
 
 bin=/tmp/$USER/np/$name
 mkdir -p $(dirname $bin)
@@ -78,14 +78,16 @@ endpoint=http://127.0.0.1:8000/simulate
 
 export NP_CURL_API_LEVEL=${LEVEL:-$level}
 export NP_CURL_API_URL=$endpoint
-
-tmp=/tmp/$USER/opticks
-export TMP=${TMP:-$tmp}
-export FOLD=$TMP/SEvt__createInputGenstep_configuredTest
+export FOLD=/data1/blyth/tmp/SEvt__createInputGenstep_configuredTest
 
 opt="-DWITH_MULTIPART"
 OPT=$opt
 [ "$MULTIPART" == "0" ] && OPT=""
+
+
+if [[ "$arg" =~ env|chk|gcc|run|dbg|ana ]]; then
+   source environment.sh
+fi
 
 if [ "${arg/info}" != "$arg" ]; then
    vv="BASH_SOURCE PWD name bin script opt OPT NP_CURL_API_LEVEL NP_CURL_API_URL tmp TMP FOLD"
@@ -97,6 +99,7 @@ if [ "${arg/chk}" != "$arg" ]; then
 
     checkfor="8.12.1"
     which curl-config
+    which curl
 
     curl-config --libs
     curl-config --cflags
@@ -140,7 +143,7 @@ if [ "${arg/dbg}" != "$arg" ]; then
 
    case $(uname) in
       Darwin) lldb $bin ;;
-      Linux)  gdb $bin ;;
+      Linux)  gdb -ex r --args $bin ;;
    esac
    [ $? -ne 0 ] && echo $BASH_SOURCE - dbg error && exit 3
 fi
@@ -190,11 +193,11 @@ if [ "${arg/cli}" != "$arg" ]; then
 fi
 
 if [ "${arg/pdb}" != "$arg" ]; then
-   ${IPYTHON:-ipython} -i --pdb $script
+   PYTHONPATH=../../.. ${IPYTHON:-ipython} -i --pdb $script
 fi
 
 if [ "${arg/ana}" != "$arg" ]; then
-   ${PYTHON:-python} $script
+   PYTHONPATH=../../.. ${PYTHON:-python} $script
 fi
 
 exit 0

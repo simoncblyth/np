@@ -26,7 +26,8 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 
-find_package(CURL 8.12.1 QUIET)   # QUIET = don’t print "not found" yet
+
+find_package(CURL 8.12.1 QUIET)
 
 if(CURL_FOUND)
     message(STATUS "Found suitable libcurl ${CURL_VERSION} (${CURL_LIBRARIES})")
