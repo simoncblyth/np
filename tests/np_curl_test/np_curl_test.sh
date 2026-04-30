@@ -97,7 +97,8 @@ fi
 
 if [ "${arg/chk}" != "$arg" ]; then
 
-    checkfor="8.12.1"
+    #checkfor="8.12.1"
+    checkfor="7.76.1"
     which curl-config
     which curl
 

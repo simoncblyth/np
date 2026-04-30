@@ -41,6 +41,7 @@ int main()
     arr_dump<float>(gs, "gs", "init");
 
     NP_CURL* nc = NP_CURL::Get();
+    std::cout << nc->desc();
 
 
     for(int i=0 ; i < 10 ; i++)

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <string>
+#include <cstring>
 
 struct NP_CURL_Header
 {
@@ -18,6 +21,9 @@ struct NP_CURL_Header
 
     struct curl_slist* headerlist ;
 
+    std::vector<std::string> response_header_lines ; // raw header lines from response
+    std::string header_buffer ; // buffer for partial header lines in callback
+
 
     size_t      c_length ;
     std::string c_type ;
@@ -30,9 +36,14 @@ struct NP_CURL_Header
     void prepare_upload(const char* token_, int index_, int level_=0, const char* dtype_=nullptr, const char* shape_=nullptr );
     void clear();
     void collect( const char* name, const char* value );
+    void collect_raw( const char* chunk, size_t len );  // collect raw header chunk for fallback
     void collect_json_content( char* buffer, size_t size );
+    void parse_response_headers();  // parse collected header lines into name/value pairs
     std::string sstr() const ;
     std::string desc() const ;
+
+    // Helper for header line buffering (called by collect_raw)
+    void process_header_buffer();
 
     static constexpr const char* x_opticks_token = "x-opticks-token" ;
     static constexpr const char* x_opticks_level = "x-opticks-level" ; // debug level integer
@@ -55,6 +66,9 @@ struct NP_CURL_Header
 
     static void Parse_SHAPE( std::vector<INT>& sh, const char* shape );
     static bool Expected_DTYPE(const char* dtype);
+
+    // Static callback for CURLOPT_HEADERFUNCTION (used for libcurl < 8.12.1 fallback)
+    static size_t collect_raw_static(char* buffer, size_t size, size_t nitems, void* userdata);
 };
 
 inline NP_CURL_Header::NP_CURL_Header( const char* name_ )
@@ -117,6 +131,8 @@ inline void NP_CURL_Header::clear()  // clears everything other than name
     c_length = 0 ;
     c_type.clear();
     content.clear();
+    response_header_lines.clear();
+    header_buffer.clear();
 
     curl_slist_free_all(headerlist);
     headerlist = nullptr ;
@@ -173,6 +189,118 @@ inline void NP_CURL_Header::collect( const char* name, const char* value )
     {
          c_type = value ;
     }
+}
+
+/**
+NP_CURL_Header::process_header_buffer
+--------------------------------------
+
+Helper to process complete header lines from the buffer.
+Handles CRLF, CR, and LF line endings.
+
+**/
+inline void NP_CURL_Header::process_header_buffer()
+{
+    size_t pos = 0;
+    while(pos < header_buffer.size())
+    {
+        // Find line ending: CRLF, CR, or LF
+        size_t eol = std::string::npos;
+        size_t crlf = header_buffer.find("\r\n", pos);
+        size_t cr = header_buffer.find('\r', pos);
+        size_t lf = header_buffer.find('\n', pos);
+
+        if(crlf != std::string::npos && crlf == std::min(crlf, std::min(cr, lf)))
+        {
+            eol = crlf;
+        }
+        else if(cr != std::string::npos && (lf == std::string::npos || cr < lf))
+        {
+            eol = cr;
+        }
+        else if(lf != std::string::npos)
+        {
+            eol = lf;
+        }
+
+        if(eol == std::string::npos) break;
+
+        if(eol > pos)
+        {
+            std::string line = header_buffer.substr(pos, eol - pos);
+            if(!line.empty())
+            {
+                response_header_lines.push_back(line);
+            }
+        }
+
+        // Skip line ending
+        if(eol + 1 < header_buffer.size() && header_buffer[eol] == '\r' && header_buffer[eol+1] == '\n')
+        {
+            pos = eol + 2;
+        }
+        else
+        {
+            pos = eol + 1;
+        }
+    }
+
+    // Keep any leftover partial line in buffer
+    if(pos > 0 && pos < header_buffer.size())
+    {
+        header_buffer = header_buffer.substr(pos);
+    }
+    else
+    {
+        header_buffer.clear();
+    }
+}
+
+inline void NP_CURL_Header::collect_raw( const char* chunk, size_t len )
+{
+    if(!chunk || len == 0) return;
+
+    header_buffer.append(chunk, len);
+    process_header_buffer();
+}
+
+inline void NP_CURL_Header::parse_response_headers()
+{
+    // Flush any remaining data in buffer (should be empty at end of headers)
+    if(!header_buffer.empty())
+    {
+        // Treat remaining as a line (might be missing final newline)
+        if(!header_buffer.empty())
+        {
+            response_header_lines.push_back(header_buffer);
+        }
+        header_buffer.clear();
+    }
+
+    for(const std::string& line : response_header_lines)
+    {
+        const char* l = line.c_str();
+        const char* colon = strchr(l, ':');
+        if(colon && colon > l)
+        {
+            std::string name(l, colon - l);
+            const char* value = colon + 1;
+            while(*value == ' ') value++;  // skip leading whitespace
+            collect(name.c_str(), value);
+        }
+    }
+    response_header_lines.clear();
+}
+
+inline size_t NP_CURL_Header::collect_raw_static(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+    size_t realsize = size * nitems;
+    NP_CURL_Header* hdr = static_cast<NP_CURL_Header*>(userdata);
+    if(hdr && realsize > 0)
+    {
+        hdr->collect_raw(buffer, realsize);
+    }
+    return realsize;
 }
 
 inline void NP_CURL_Header::collect_json_content( char* buffer, size_t size )
