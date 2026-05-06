@@ -11,12 +11,12 @@ adding flexible array shape handling and making into a realistic API::
 Build and start the endpoint "server"::
 
    lo  ## opticks env setup
-   lco ## miniconda activation required for fastapi binary
+   lco ## miniconda "ok" python virtual env activation required for "fastapi" binary
    ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
 
 Usage::
 
-   ## lco  ## formerly stole miniconda curl-config - now using self build openssl + libcurl
+   ## following  addition of handling for older libcurl - the default system libcurl can  be used
 
    ~/np/tests/np_curl_test/np_curl_test.sh
    LEVEL=1 ~/np/tests/np_curl_test/np_curl_test.sh                ## more verbosity

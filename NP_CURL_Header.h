@@ -36,14 +36,19 @@ struct NP_CURL_Header
     void prepare_upload(const char* token_, int index_, int level_=0, const char* dtype_=nullptr, const char* shape_=nullptr );
     void clear();
     void collect( const char* name, const char* value );
-    void collect_raw( const char* chunk, size_t len );  // collect raw header chunk for fallback
-    void collect_json_content( char* buffer, size_t size );
+
+
+    void collect_header_bytes_process(); // Helper for header line buffering (called by collect_header_bytes)
+    void collect_header_bytes( const char* chunk, size_t len );  // collect raw header chunk for fallback
+    // CURLOPT_HEADERFUNCTION callback used for libcurl < 8.12.1
+    static size_t CollectHeaderBytes(char* buffer, size_t size, size_t nitems, void* userdata);
     void parse_response_headers();  // parse collected header lines into name/value pairs
+
+
+    void collect_json_content( char* buffer, size_t size );
     std::string sstr() const ;
     std::string desc() const ;
 
-    // Helper for header line buffering (called by collect_raw)
-    void process_header_buffer();
 
     static constexpr const char* x_opticks_token = "x-opticks-token" ;
     static constexpr const char* x_opticks_level = "x-opticks-level" ; // debug level integer
@@ -67,8 +72,6 @@ struct NP_CURL_Header
     static void Parse_SHAPE( std::vector<INT>& sh, const char* shape );
     static bool Expected_DTYPE(const char* dtype);
 
-    // Static callback for CURLOPT_HEADERFUNCTION (used for libcurl < 8.12.1 fallback)
-    static size_t collect_raw_static(char* buffer, size_t size, size_t nitems, void* userdata);
 };
 
 inline NP_CURL_Header::NP_CURL_Header( const char* name_ )
@@ -192,15 +195,21 @@ inline void NP_CURL_Header::collect( const char* name, const char* value )
 }
 
 /**
-NP_CURL_Header::process_header_buffer
---------------------------------------
+NP_CURL_Header::collect_header_bytes_process
+---------------------------------------------
 
 Helper to process complete header lines from the buffer.
 Handles CRLF, CR, and LF line endings.
 
+1. while header_buffer bytes find eol and collect lines into response_header_lines
+2. Keep any leftover partial line in header_buffer
+
+
 **/
-inline void NP_CURL_Header::process_header_buffer()
+inline void NP_CURL_Header::collect_header_bytes_process()
 {
+    // 1. while header_buffer bytes find eol and collect lines into response_header_lines
+
     size_t pos = 0;
     while(pos < header_buffer.size())
     {
@@ -245,7 +254,9 @@ inline void NP_CURL_Header::process_header_buffer()
         }
     }
 
-    // Keep any leftover partial line in buffer
+
+    // 2. Keep any leftover partial line in buffer
+
     if(pos > 0 && pos < header_buffer.size())
     {
         header_buffer = header_buffer.substr(pos);
@@ -256,13 +267,46 @@ inline void NP_CURL_Header::process_header_buffer()
     }
 }
 
-inline void NP_CURL_Header::collect_raw( const char* chunk, size_t len )
+inline void NP_CURL_Header::collect_header_bytes( const char* chunk, size_t len )
 {
     if(!chunk || len == 0) return;
 
     header_buffer.append(chunk, len);
-    process_header_buffer();
+    collect_header_bytes_process();
 }
+
+/**
+NP_CURL_Header::CollectHeaderBytes
+------------------------------------
+
+Used from NP_CURL::prepare_download for older libcurl without NP_CURL_HAVE_NEXTHEADER
+
+**/
+
+
+inline size_t NP_CURL_Header::CollectHeaderBytes(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+    size_t realsize = size * nitems;
+    NP_CURL_Header* hdr = static_cast<NP_CURL_Header*>(userdata);
+    if(hdr && realsize > 0)
+    {
+        hdr->collect_header_bytes(buffer, realsize);
+    }
+    return realsize;
+}
+
+
+
+/**
+NP_CURL_Header::parse_response_headers
+--------------------------------------
+
+For older libcurl without NP_CURL_HAVE_NEXTHEADER this
+collects header key value pairs from the response_header_lines
+collected by the above NP_CURL_Header::CollectHeaderBytes callback.
+This is invoked at tail of NP_CURL::perform
+
+**/
 
 inline void NP_CURL_Header::parse_response_headers()
 {
@@ -292,16 +336,6 @@ inline void NP_CURL_Header::parse_response_headers()
     response_header_lines.clear();
 }
 
-inline size_t NP_CURL_Header::collect_raw_static(char* buffer, size_t size, size_t nitems, void* userdata)
-{
-    size_t realsize = size * nitems;
-    NP_CURL_Header* hdr = static_cast<NP_CURL_Header*>(userdata);
-    if(hdr && realsize > 0)
-    {
-        hdr->collect_raw(buffer, realsize);
-    }
-    return realsize;
-}
 
 inline void NP_CURL_Header::collect_json_content( char* buffer, size_t size )
 {
@@ -379,20 +413,8 @@ inline void NP_CURL_Header::Parse_SHAPE( std::vector<INT>& sh, const char* shape
 
 inline bool NP_CURL_Header::Expected_DTYPE(const char* dtype)
 {
-     // TODO: move this into NPU.hh
-     return    strcmp(dtype, "float32") == 0
-            || strcmp(dtype, "float64") == 0
-            || strcmp(dtype, "int64")   == 0
-            || strcmp(dtype, "int32")   == 0
-            || strcmp(dtype, "int16")   == 0
-            || strcmp(dtype, "int8")    == 0
-            || strcmp(dtype, "uint64")  == 0
-            || strcmp(dtype, "uint32")  == 0
-            || strcmp(dtype, "uint16")  == 0
-            || strcmp(dtype, "uint8")   == 0
-               ;
+     return dtype_convert::expected_noncomplex_dtype(dtype);
 }
-
 
 
 

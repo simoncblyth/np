@@ -8,7 +8,6 @@ libcurl based upload/download of NP.hh arrays to a remote HTTP API service.
 Start FastAPI endpoint::
 
    ~/opticks/CSGOptiX/tests/CSGOptiXService_FastAPI_test/CSGOptiXService_FastAPI_test.sh
-   (NOT THIS OLD ONE ANYMORE: /usr/local/env/fastapi_check/dev.sh)
 
 Make requests::
 
@@ -24,6 +23,21 @@ default NOT:WITHOUT_MAGIC "WITH_MAGIC"
 WITHOUT_MAGIC
    dtype and shape strings travel in HTTP headers,
    only the array data travel in the message body
+
+
+libcurl version of at least 7.76.1
+-----------------------------------
+
+libcurl version requirement 7.76.1   (HexVersion: 0x072c01)
+
+Major: 7  (07 in hex)
+Minor: 76 (2c in hex)
+Patch: 1  (01 in hex)
+
+When building with older libcurl (7.76.1 - 8.11.x) uses curl_easy_getinfo
+with CURLINFO_HEADER_LIST to iterate response headers.
+
+When building with newer libcurl (from 8.12.1) uses the simpler curl_easy_nextheader API.
 
 
 TODO
@@ -43,25 +57,10 @@ TODO
 
 #include <iomanip>
 #include <sstream>
-
 #include <cassert>
 #include <cstring>
 
 #include <curl/curl.h>
-
-/**
-libcurl version requirement 7.76.1   (HexVersion: 0x072c01)
-
-Major: 7  (07 in hex)
-Minor: 76 (2c in hex)
-Patch: 1  (01 in hex)
-
-The NP_CURL_Upload_1 and mime APIs (curl_mime_*) require 7.76.1.
-The curl_easy_nextheader API (used in perform()) requires 8.12.1.
-When building with older libcurl (7.76.1 - 8.11.x), falls back to using
-curl_easy_getinfo with CURLINFO_HEADER_LIST to iterate response headers.
-
-**/
 
 #if LIBCURL_VERSION_NUM < 0x072c01
 #error "NP_CURL.h libcurl version too old! NP_CURL requires 7.76.1 or higher. Check CMAKE_PREFIX_PATH."
@@ -73,8 +72,6 @@ curl_easy_getinfo with CURLINFO_HEADER_LIST to iterate response headers.
 #else
 #define NP_CURL_HAVE_NEXTHEADER 0
 #endif
-
-
 
 
 #include "NP_CURL_Header.h"
@@ -101,8 +98,8 @@ struct NP_CURL
     static constexpr const char* NP_CURL_API_LEVEL = "NP_CURL_API_LEVEL" ;
     static constexpr int         NP_CURL_API_LEVEL_DEFAULT = 0 ;
 
-    static constexpr const char* NP_CURL_API_MAX_RETRIES = "NP_CURL_API_MAX_RETRIES" ;
-    static constexpr int         NP_CURL_API_MAX_RETRIES_DEFAULT = 3 ;
+    static constexpr const char* NP_CURL_API_RETRY_MAX = "NP_CURL_API_RETRY_MAX" ;
+    static constexpr int         NP_CURL_API_RETRY_MAX_DEFAULT = 3 ;
 
     static constexpr const char* NP_CURL_API_RETRY_WAIT = "NP_CURL_API_RETRY_WAIT" ;
     static constexpr int         NP_CURL_API_RETRY_WAIT_DEFAULT = 2 ;  // seconds, fallback when no Retry-After header
@@ -111,9 +108,13 @@ struct NP_CURL
     const char*       url ;
     const char*       token ;
     int               level ;
+    int               retry_max ;
+    int               retry_wait ;
+
 
     CURL*              session;
     curl_mime*         mime ;
+
 
 #ifdef WITHOUT_MAGIC
     NP_CURL_Upload_1*  upload ;
@@ -128,8 +129,7 @@ struct NP_CURL
     CURLcode           curl_code ;
     long               http_code ;
     int                rc ;
-    int                max_retries ;
-    int                retry_wait ;
+
 
 
     static  NP_CURL* Get();
@@ -178,7 +178,7 @@ inline NP_CURL::NP_CURL()
     url(  U::GetEnv(NP_CURL_API_URL,   NP_CURL_API_URL_DEFAULT )),
     token(U::GetEnv(NP_CURL_API_TOKEN, NP_CURL_API_TOKEN_DEFAULT )),
     level(U::GetEnvInt(NP_CURL_API_LEVEL, NP_CURL_API_LEVEL_DEFAULT)),
-    max_retries(U::GetEnvInt(NP_CURL_API_MAX_RETRIES, NP_CURL_API_MAX_RETRIES_DEFAULT)),
+    retry_max(U::GetEnvInt(NP_CURL_API_RETRY_MAX, NP_CURL_API_RETRY_MAX_DEFAULT)),
     retry_wait(U::GetEnvInt(NP_CURL_API_RETRY_WAIT, NP_CURL_API_RETRY_WAIT_DEFAULT)),
     session(nullptr),
     mime(nullptr),
@@ -270,7 +270,7 @@ inline void NP_CURL::prepare_upload( NP* a, int index )
     std::string shape = a->sstr();        // eg "(10, 4, 4, )"
     uhdr.prepare_upload( token, index, level, dtype.c_str(), shape.c_str() );
 #else
-    // default MAGIC approach tranports serialized array including both hdr and arr data
+    // default MAGIC approach transports serialized array including both hdr and arr data
     a->update_headers();
     upload_size = a->serialize_bytes() ;  // both hdr and arr data
     uhdr.prepare_upload( token, index, level );
@@ -322,7 +322,7 @@ inline void NP_CURL::prepare_download()
 
 #if !NP_CURL_HAVE_NEXTHEADER
     // For older libcurl, also capture headers via header callback (for fallback path)
-    curl_easy_setopt(session, CURLOPT_HEADERFUNCTION, NP_CURL_Header::collect_raw_static);
+    curl_easy_setopt(session, CURLOPT_HEADERFUNCTION, NP_CURL_Header::CollectHeaderBytes );
     curl_easy_setopt(session, CURLOPT_HEADERDATA, &dhdr);
 #endif
 
@@ -334,7 +334,7 @@ inline void NP_CURL::perform()
 {
     if(level > 0) std::cout << "[NP_CURL::perform\n" ;
 
-    int retries_remaining = max_retries ;
+    int retries_remaining = retry_max ;
     bool retryable = false ;
 
     do {
@@ -344,7 +344,7 @@ inline void NP_CURL::perform()
 
 #if !NP_CURL_HAVE_NEXTHEADER
         // Re-setup header capture for fallback path (clear resets it)
-        curl_easy_setopt(session, CURLOPT_HEADERFUNCTION, NP_CURL_Header::collect_raw_static);
+        curl_easy_setopt(session, CURLOPT_HEADERFUNCTION, NP_CURL_Header::CollectHeaderBytes );
         curl_easy_setopt(session, CURLOPT_HEADERDATA, &dhdr);
 #endif
 
