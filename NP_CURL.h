@@ -25,8 +25,8 @@ WITHOUT_MAGIC
    only the array data travel in the message body
 
 
-libcurl version of at least 7.76.1
------------------------------------
+libcurl version of at least 7.76.1 (released April 14, 2021)
+-------------------------------------------------------------
 
 libcurl version requirement 7.76.1   (HexVersion: 0x072c01)
 
@@ -34,10 +34,15 @@ Major: 7  (07 in hex)
 Minor: 76 (2c in hex)
 Patch: 1  (01 in hex)
 
+libcurl 7.61.1 is widely available in system distributions
+such as RHEL 9 / AlmaLinux 9 / Rocky Linux 9 / Oracle Linux 9
+
 When building with older libcurl (7.76.1 - 8.11.x) uses curl_easy_getinfo
 with CURLINFO_HEADER_LIST to iterate response headers.
 
 When building with newer libcurl (from 8.12.1) uses the simpler curl_easy_nextheader API.
+
+
 
 
 TODO
