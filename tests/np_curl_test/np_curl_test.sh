@@ -170,9 +170,11 @@ EON
 
 if [ "${arg/cli}" != "$arg" ]; then
 
-    index=0
+    index=99
+    count=1000000
     level=0
     token=secret
+    meta=via-curl-cli
     htname=$(printf  "ht%0.3d_cli.npy" $index)
 
     curl \
@@ -183,6 +185,8 @@ if [ "${arg/cli}" != "$arg" ]; then
         -H "x-opticks-token: $token" \
         -H "x-opticks-level: $level" \
         -H "x-opticks-index: $index" \
+        -H "x-opticks-count: $count" \
+        -H "x-opticks-meta: $meta" \
         -F "upload=@$FOLD/gs.npy" \
         --output $FOLD/$htname \
         "$NP_CURL_API_URL"

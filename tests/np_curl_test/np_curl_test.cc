@@ -19,13 +19,15 @@ np_curl_test.cc
 #endif
 
 
+
 template<typename T>
 void arr_dump(const NP* x, const char* sym, const char* name )
 {
-    std::cout << name << "\n" ;
+    std::cout << "[arr_dump " << name << "\n" ;
     std::cout << " " << sym << ".sstr " << ( x ? x->sstr() : "-" ) << "\n" ;
     std::cout << " " << sym << ".desc " << ( x ? x->desc() : "-" ) << "\n" ;
     std::cout << " " << sym << ".repr " << ( x ? x->repr<T>() : "-" ) << "\n" ;
+    std::cout << "]arr_dump\n" ;
 }
 
 #ifdef WITH_CURL
@@ -40,29 +42,34 @@ int main()
 
     arr_dump<float>(gs, "gs", "init");
 
+
     NP_CURL* nc = NP_CURL::Get();
-    std::cout << nc->desc();
+
+    if(nc->level > 0) std::cout << nc->desc();
 
 
     for(int i=0 ; i < 10 ; i++)
     {
-       std::cout << U::Log("[--------------------\n") ;
+       if(nc->level > 0) std::cout << U::Log("[--------------------\n") ;
        //gs->set_meta<int>("metacheck", i*100) ;
 
-       NP* ht = nc->transformRemote(gs,i);
+       size_t index = i ;
+       size_t count = 100 ; // dummy value, could extract from gs but not easily at this level
+
+       NP* ht = nc->transformRemote(gs,index,count);
        if(!ht)
        {
            std::cerr << "NP_CURL::TransformRemote returned nullptr ht - is the server running ? \n" ;
            return 1 ;
        }
 
-       std::cout << "ht.meta\n" << ht->meta << "]\n" ;
+       if(nc->level > 0) std::cout << "ht.meta\n" << ht->meta << "]\n" ;
 
        const char* htname = U::Format("$FOLD/ht%0.3d.npy", i );
        ht->save(htname);
 
        arr_dump<float>(ht, "ht", htname);
-       std::cout << U::Log("]--------------------\n") ;
+       if(nc->level > 0) std::cout << U::Log("]--------------------\n") ;
     }
 
     NP_CURL::Clear();
