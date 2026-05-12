@@ -56,10 +56,10 @@ cli
    invoke the server with curl from commandline by uploading gensteps and downloading hits
 
 k6_load
-   create the small/medium/large input gensteps with::
+   * if get hang check vip-init-all-proxy which sets ALL_PROXY and the socks proxy
+   * initially must create small/medium/large.npy input gensteps with::
 
        ~/o/sysrap/tests/SEvt__createInputGenstep_configuredTest_SML.sh
-
 
 
 
@@ -216,9 +216,17 @@ if [[ "$arg" =~ k6_post ]]; then
 fi
 
 if [[ "$arg" =~ k6_load ]]; then
-   #opt=--verbose
-   opt=""
-   k6 run --vus 1 --iterations 10 $opt k6_load.js
+   #xtr=--verbose
+   xtr=""
+   vus=1
+   iter=10
+   XTR=${XTR:-$xtr}
+   VUS=${VUS:-$vus}
+   ITER=${ITER:-$iter}
+   qq="xtr XTR vus VUS iter ITER"
+   for q in $qq ; do printf "%30s : %s\n" "$q" "${!q}" ; done
+
+   k6 run --vus $VUS --iterations $ITER $XTR k6_load.js
    [ $? -ne 0 ] && echo $BASH_SOURCE k6_load error && exit 1
 fi
 

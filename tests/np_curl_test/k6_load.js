@@ -23,14 +23,17 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 
+// loading that may need : export ALL_PROXY=socks5h://127.0.0.1:8080
+import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
+
+
 // Create a custom counter
 const rateLimitCounter = new Counter('rate_limited_requests');
 
 // 1. Setup the directory from environment variable
 // Default to './data' if FOLD is not provided
 const foldDir = __ENV.FOLD || './data';
-const outfoldDir = __ENV.K6FOLD || '/tmp';
-
 
 // 1. Read the file content
 const smallMeta = open(`${foldDir}/small_meta.txt`);
@@ -117,9 +120,10 @@ export default function () {
 }
 
 
-
-
 export function handleSummary(data) {
+
+  const outfoldDir = __ENV.K6FOLD || '/tmp';
+
   const rateLimitCount = data.metrics.rate_limited_requests ? data.metrics.rate_limited_requests.values.count : 0;
   const totalRequests = data.metrics.http_reqs.values.count;
   const failureRate = ((rateLimitCount / totalRequests) * 100).toFixed(2);
@@ -138,18 +142,11 @@ export function handleSummary(data) {
   `);
 
   return {
-    'stdout': JSON.stringify(data), // Still print the standard summary
-    [`${outfoldDir}/summary.json`]: JSON.stringify(data), // Save full raw data to a file
+    'stdout': textSummary(data, { indent: ' ', enableColors: true }),
+    [`${outfoldDir}/summary.json`]: JSON.stringify(data),
+    [`${outfoldDir}/report.html`]: htmlReport(data),
   };
 }
-
-
-
-
-
-
-
-
 
 
 
