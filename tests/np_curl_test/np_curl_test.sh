@@ -55,6 +55,12 @@ xxd
 cli
    invoke the server with curl from commandline by uploading gensteps and downloading hits
 
+k6_load
+   create the small/medium/large input gensteps with::
+
+       ~/o/sysrap/tests/SEvt__createInputGenstep_configuredTest_SML.sh
+
+
 
 
 EOU
@@ -69,7 +75,10 @@ name=np_curl_test
 script=$name.py
 
 
-bin=/tmp/$USER/np/$name
+tmp=/tmp/$USER/np
+TMP=${TMP:-$tmp}
+
+bin=$TMP/$name
 mkdir -p $(dirname $bin)
 
 #level=1
@@ -79,6 +88,10 @@ endpoint=http://127.0.0.1:8000/simulate
 export NP_CURL_API_LEVEL=${LEVEL:-$level}
 export NP_CURL_API_URL=$endpoint
 export FOLD=/data1/blyth/tmp/SEvt__createInputGenstep_configuredTest
+
+export K6FOLD=$TMP/k6
+mkdir -p $K6FOLD
+
 
 opt="-DWITH_MULTIPART"
 OPT=$opt
@@ -90,7 +103,7 @@ if [[ "$arg" =~ env|chk|gcc|run|dbg|ana ]]; then
 fi
 
 if [ "${arg/info}" != "$arg" ]; then
-   vv="BASH_SOURCE PWD name bin script opt OPT NP_CURL_API_LEVEL NP_CURL_API_URL tmp TMP FOLD"
+   vv="BASH_SOURCE PWD name bin script opt OPT NP_CURL_API_LEVEL NP_CURL_API_URL tmp TMP FOLD K6FOLD"
    for v in $vv ; do printf "%30s : %s\n" "$v" "${!v}" ; done
 fi
 
@@ -196,6 +209,19 @@ if [ "${arg/cli}" != "$arg" ]; then
     echo ls -alst $FOLD/$htname
     ls -alst $FOLD/$htname
 fi
+
+if [[ "$arg" =~ k6_post ]]; then
+   k6 run --vus 1 --iterations 10 k6_post.js
+   [ $? -ne 0 ] && echo $BASH_SOURCE k6_post error && exit 1
+fi
+
+if [[ "$arg" =~ k6_load ]]; then
+   #opt=--verbose
+   opt=""
+   k6 run --vus 1 --iterations 10 $opt k6_load.js
+   [ $? -ne 0 ] && echo $BASH_SOURCE k6_load error && exit 1
+fi
+
 
 if [ "${arg/pdb}" != "$arg" ]; then
    PYTHONPATH=../../.. ${IPYTHON:-ipython} -i --pdb $script
