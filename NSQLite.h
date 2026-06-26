@@ -3,7 +3,7 @@
 NSQLite.h
 ===========
 
-Convenience wrapper structs for using sqlite3.h 
+Convenience wrapper structs for using sqlite3.h
 For usage examples see ~/np/tests/NSQLite_test.cc
 
 Background
@@ -44,7 +44,7 @@ struct NSQLiteStmt
 
     NSQLiteStmt(sqlite3* db, const char* sql) : db_ptr(db) {
         sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
-    }   
+    }
     ~NSQLiteStmt() { sqlite3_finalize(stmt); }
 
     void bind_param(int index, int val) { sqlite3_bind_int(stmt, index, val); }
@@ -64,11 +64,11 @@ struct NSQLiteStmt
     bool execute(Args&&... args) {
         if (!stmt) return false;
         sqlite3_reset(stmt);
-        
+
         int index = 1;
         (bind_param(index++, std::forward<Args>(args)), ...);
         // C++17 Fold Expression : specifically a "Unary Right Fold" using the comma operator
-        // essentially compiler yields the needed sequence of bind_param calls for 
+        // essentially compiler yields the needed sequence of bind_param calls for
         // each of the variadic arguments
 
         if (sqlite3_step(stmt) != SQLITE_DONE) {
@@ -167,7 +167,7 @@ inline void NSQLite::queryColumns(const char* sql)
             printf("col: %s\n", col);
         }
     }
-    sqlite3_finalize(stmt); 
+    sqlite3_finalize(stmt);
 }
 
 
