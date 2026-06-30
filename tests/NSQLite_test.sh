@@ -29,12 +29,14 @@ EOU
 
 name=NSQLite_test
 db=/tmp/db.sqlite3
+sql=~/j/opticks_monitoring/opticks_monitoring_schema.sql
+evt=/data1/blyth/tmp/GEOM/J26_1_1_opticks_Debug/CSGOptiXSMTest/ALL1_Debug_Philox_medium_scan_first_sreport/evsmry.npy
 bin=/tmp/$name
 
-defarg="info_gcc_run_check"
+defarg="info_gcc_run1_check1"
 arg=${1:-$defarg}
 
-vv="BASH_SOURCE PWD name db bin defarg arg"
+vv="BASH_SOURCE PWD name db sql evt bin defarg arg"
 
 cd $(dirname $(realpath $BASH_SOURCE))
 
@@ -51,15 +53,29 @@ if [ "${arg/clean}" != "$arg" ]; then
    rm -f $db
 fi
 
-if [ "${arg/run}" != "$arg" ]; then
+if [ "${arg/run0}" != "$arg" ]; then
    $bin $db
-   [ $? -ne 0 ] && echo $BASH_SOURCE - run error && exit 2
+   [ $? -ne 0 ] && echo $BASH_SOURCE - run0 error && exit 2
 fi
 
-if [ "${arg/check}" != "$arg" ]; then
+if [ "${arg/run1}" != "$arg" ]; then
+   $bin $db $sql $evt
+   [ $? -ne 0 ] && echo $BASH_SOURCE - run1 error && exit 2
+fi
+
+if [ "${arg/check0}" != "$arg" ]; then
    echo "select * from student ;" | sqlite3 -table $db
    [ $? -ne 0 ] && echo $BASH_SOURCE - check error && exit 2
 fi
+
+if [ "${arg/check1}" != "$arg" ]; then
+   echo "select * from opticks_events ;" | sqlite3 -table $db
+   [ $? -ne 0 ] && echo $BASH_SOURCE - check error && exit 2
+fi
+
+
+
+
 
 if [ "${arg/query}" != "$arg" ]; then
    sqlite3 $db
