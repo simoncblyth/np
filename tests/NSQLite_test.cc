@@ -95,6 +95,10 @@ int NSQLite_test::loadSchema(NSQLite* db, const char* _schema)
 NSQLite_test::loadEvent
 -----------------------
 
+THIS HAS BEEN RELOCATED TO sysrap/sreportdb.h
+
+TODO: once established over in sysrap - remove this
+
 
 **/
 
