@@ -74,6 +74,16 @@ struct NSQLiteStmt
         sqlite3_bind_int64(stmt, index, static_cast<sqlite3_int64>(seconds));
     }
 
+    // Helper Column Readers
+    int         get_column(int col, int*) {     return sqlite3_column_int(stmt, col); }
+    int64_t     get_column(int col, int64_t*) { return sqlite3_column_int64(stmt, col); }
+    double      get_column(int col, double*) {  return sqlite3_column_double(stmt, col); }
+    std::string get_column(int col, std::string*) {
+        const char* text = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
+        return text ? std::string(text) : std::string();
+    }
+
+
     template<typename... Args>
     bool execute(Args&&... args) {
         if (!stmt) return false;
@@ -85,12 +95,39 @@ struct NSQLiteStmt
         // essentially compiler yields the needed sequence of bind_param calls for
         // each of the variadic arguments
 
-        if (sqlite3_step(stmt) != SQLITE_DONE) {
-            std::cerr << "Execution failed: " << sqlite3_errmsg(db_ptr) << std::endl;
+        int rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "NSQLiteStmt::execute FAILED : " << sqlite3_errmsg(db_ptr) << std::endl;
             return false;
         }
         return true;
     }
+
+    template<typename T, typename... Args>
+    std::optional<T> query_scalar(Args&&... args)
+    {
+        if (!stmt) return std::nullopt;
+        sqlite3_reset(stmt);
+
+        // C++17 fold expression to bind variadic parameters
+        int index = 1;
+        (bind_param(index++, std::forward<Args>(args)), ...);
+
+        int rc = sqlite3_step(stmt);
+        if (rc == SQLITE_ROW) {
+            // Found a row! Read from column index 0 using our type-matching tag helper
+            T result = get_column(0, static_cast<T*>(nullptr));
+            sqlite3_reset(stmt); // Clean up state immediately
+            return result;
+        } else if (rc != SQLITE_DONE) {
+            std::cerr << "NSQLiteStmt::quert_scalar FAILED : " << sqlite3_errmsg(db_ptr) << std::endl;
+        }
+
+        sqlite3_reset(stmt);
+        return std::nullopt; // Zero rows found or execution failure
+    }
+
+
 };
 
 
