@@ -43,18 +43,30 @@ struct NSQLiteStmt
     sqlite3_stmt* stmt = nullptr;
     sqlite3* db_ptr = nullptr;
 
-    NSQLiteStmt(sqlite3* db, const char* sql) : db_ptr(db) {
-        sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    NSQLiteStmt(sqlite3* db, const char* sql) : db_ptr(db)
+    {
+        int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) std::cerr
+            << "NSQLiteStmt - SQL Preparation FAIL " << sqlite3_errmsg(db)
+            << "\n"
+            << "SQL Statement: " << sql
+            << "\n"
+            ;
     }
+
     ~NSQLiteStmt() { sqlite3_finalize(stmt); }
 
     void bind_param(int index, int val) { sqlite3_bind_int(stmt, index, val); }
+
     void bind_param(int index, int64_t val) {       sqlite3_bind_int64(stmt, index, val); }
     void bind_param(int index, sqlite3_int64 val) { sqlite3_bind_int64(stmt, index, val); }
-    void bind_param(int index, const char* val) { sqlite3_bind_text(stmt, index, val, -1, SQLITE_TRANSIENT); }
+
+    void bind_param(int index, const char* val) {        sqlite3_bind_text(stmt, index, val,         -1, SQLITE_TRANSIENT); }
     void bind_param(int index, const std::string& val) { sqlite3_bind_text(stmt, index, val.c_str(), -1, SQLITE_TRANSIENT); }
+
     void bind_param(int index, double val) { sqlite3_bind_double(stmt, index, val); }
     void bind_param(int index, float val) {  sqlite3_bind_double(stmt, index, static_cast<double>(val));}
+
     // 3. NEW: Time/Date Support (Converts to Unix Epoch Integer)
     void bind_param(int index, const std::chrono::system_clock::time_point& val) {
         auto duration = val.time_since_epoch();
