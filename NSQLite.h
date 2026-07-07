@@ -27,6 +27,8 @@ Find the header::
 #include <fstream>
 #include <stdio.h>
 #include <chrono>
+#include <optional>
+
 #include <sqlite3.h>
 
 struct OLD_NSQLiteStmt

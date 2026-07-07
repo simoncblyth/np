@@ -20,7 +20,7 @@ struct NSQLite_test
     static int loadSchema(NSQLite* db, const char* _schema);
     static int loadEvent( NSQLite* db, const char* _evsmry);
 
-    static int main(const char* _db, const char* _schema, const char* _evsmry);
+    static int main(const char* _dbfold, const char* _dbname, const char* _schema, const char* _evsmry);
 };
 
 int NSQLite_test::createTable(NSQLite* db){
@@ -187,9 +187,9 @@ int NSQLite_test::loadEvent(NSQLite* db, const char* _evsmry)
 }
 
 
-int NSQLite_test::main(const char* _db, const char* _schema, const char* _evsmry)
+int NSQLite_test::main(const char* _dbfold, const char* _dbname, const char* _schema, const char* _evsmry)
 {
-    NSQLite db(_db);
+    NSQLite db(_dbfold, _dbname);
 
     int rc = 0 ;
 
@@ -211,10 +211,11 @@ int NSQLite_test::main(const char* _db, const char* _schema, const char* _evsmry
 
 int main(int argc, char** argv)
 {
-    const char* _db     = argc > 1 ? argv[1] : "/tmp/NSLite_test.db" ;
-    const char* _schema = argc > 2 ? argv[2] : nullptr ;
-    const char* _evsmry  = argc > 3 ? argv[3] : nullptr ;
+    const char* _dbfold = argc > 1 ? argv[1] : "/tmp" ;
+    const char* _dbname = argc > 2 ? argv[2] : "NSLite_test.db" ;
+    const char* _schema = argc > 3 ? argv[3] : nullptr ;
+    const char* _evsmry  = argc > 4 ? argv[4] : nullptr ;
 
-    return NSQLite_test::main(_db, _schema, _evsmry );
+    return NSQLite_test::main(_dbfold, _dbname, _schema, _evsmry );
 }
 
