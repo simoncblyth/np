@@ -1,5 +1,4 @@
-// name=NPX_FromString_test ; gcc $name.cc -std=c++11 -lstdc++ -I.. -o /tmp/$name && /tmp/$name
-
+// ~/np/tests/NPX_FromString_test.sh
 #include "NPX.h"
 
 int main(int argc, char** argv)
