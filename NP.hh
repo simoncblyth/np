@@ -364,7 +364,6 @@ struct NP
     static NP* MakeSelectCopy_( const NP* src, const INT* items, INT num_items );
 
     static NP* MakeSelection( const NP* src, const NP* sel );  // sel expected to contain integer indices selecting items in src
-
     static int ParseSliceString(std::vector<INT>& idxx, const char* _sli );
 
     template<typename T>
@@ -405,6 +404,7 @@ struct NP
     static NP* LoadIfExists(const char* path);
     static NP* Load(const char* path);
     static NP* LoadSlice(const char* _path, const char* _sli);
+    static NP* LoadSelection(const char* _path, const std::vector<int64_t>& sel_indices );
 
 
     template<typename T> static NP* LoadThenSlice( const char* path, const char* _sel );
@@ -416,6 +416,7 @@ struct NP
 
 
     static NP* LoadSlice_(const char* path, const char* sli);
+    static NP* LoadSelection_(const char* path, const std::vector<int64_t>& sel_indices);
 
     static NP* Load(const char* dir, const char* name);
     static NP* Load(const char* dir, const char* reldir, const char* name);
@@ -651,9 +652,11 @@ struct NP
     static const char* PathWithNoDataPrefix(const char* path);
 
 
-    int load(const char* path, const char* sli );
+    int load(         const char* path, const char* sli );
+    int loadselection(const char* path, const std::vector<int64_t>& sel );
+    void _post_load_data();
 
-    std::ifstream* load_header(const char* _path, const char* _sli);
+    std::ifstream* load_header_base(const char* _path);
 
     static bool   HasChar( const char* buffer, size_t size, char q);
     static size_t FindChar(const char* buffer, size_t size, char q);
@@ -670,6 +673,9 @@ struct NP
 
     void load_data_sliced( std::ifstream* fp, const char* sli );
     void load_data_where(  std::ifstream* fp, const char* _sli );
+
+    template<typename I>
+    void load_data_indices( std::ifstream* fp, const I* indices, int64_t num_indices );
 
 
     int load_string_(  const char* path, const char* ext, std::string& str );
@@ -3469,7 +3475,6 @@ inline NP* NP::MakeSelection( const NP* src, const NP* sel )
 
 
 
-
 /**
 NP::ParseSliceString
 ------------------------
@@ -4433,6 +4438,9 @@ inline NP* NP::Load(const char* path_)
     return a ;
 }
 
+
+
+
 /**
 NP::LoadSlice
 ---------------
@@ -4485,6 +4493,28 @@ inline NP* NP::LoadSlice(const char* _path, const char* _sli)
     }
     return a ;
 }
+
+inline NP* NP::LoadSelection(const char* _path, const std::vector<int64_t>& sel_indices )
+{
+    const char* path = U::Resolve(_path);
+    if(path == nullptr) return nullptr ; // eg when _path starts with unsetenvvar "$TOKEN"
+    bool npy_ext = U::EndsWith(path, EXT) ;
+    if(!npy_ext) return nullptr ;
+
+    NP* a = nullptr ;
+    if(sel_indices.size() > 0)
+    {
+        a = NP::LoadSelection_(path, sel_indices);
+    }
+    else
+    {
+        a = NP::Load_(path);
+    }
+    return a ;
+}
+
+
+
 
 
 template<typename T>
@@ -4574,6 +4604,19 @@ inline NP* NP::LoadSlice_(const char* path, const char* sli)
     INT rc = a->load(path, sli) ;
     return rc == 0 ? a  : nullptr ;
 }
+
+
+inline NP* NP::LoadSelection_(const char* path, const std::vector<int64_t>& sel_indices)
+{
+    if(!path) return nullptr ;
+    NP* a = new NP() ;
+    INT rc = a->loadselection(path, sel_indices) ;
+    return rc == 0 ? a  : nullptr ;
+}
+
+
+
+
 
 
 
@@ -8627,24 +8670,61 @@ inline int NP::load(const char* _path, const char* _sli )
 {
     if(VERBOSE) std::cerr << "[ NP::load [" << ( _path ? _path : "-" ) << "]\n" ;
 
-    std::ifstream* fp = load_header(_path, _sli);
+    std::ifstream* fp = load_header_base(_path);
     if( fp == nullptr )
     {
         std::cerr << "NP::load Failed to load from path [" << ( _path ? _path : "-" ) << "]\n" ;
-        //std::raise(SIGINT);
-        return 1 ; // SIGINT might have a handler
+        return 1 ;
     }
+
+    bool no_slice = LooksLikeSliceIndexStringIsEmpty( _sli );
+    bool do_data_resize = !nodata && no_slice ; // when there is an active slice the data resize is deferred
+    decode_header(do_data_resize);
+
+
     load_data( fp, _sli );
     delete fp ;
 
-    const char* path = lpath.c_str();
-    load_meta( path );
-    load_names( path );
-    load_labels( path );
+    _post_load_data();
 
     if(VERBOSE) std::cerr << "] NP::load [" << ( _path ? _path : "-" ) << "]\n" ;
     return 0 ;
 }
+
+
+inline int NP::loadselection(const char* _path, const std::vector<int64_t>& sel )
+{
+    if(VERBOSE) std::cerr << "[ NP::loadselection [" << ( _path ? _path : "-" ) << "]\n" ;
+
+    std::ifstream* fp = load_header_base(_path);
+    if( fp == nullptr )
+    {
+        std::cerr << "NP::loadselection Failed to load from path [" << ( _path ? _path : "-" ) << "]\n" ;
+        return 1 ;
+    }
+
+    bool do_data_resize = false ; // when loading a selection of entries from file the data resize is deferred
+    decode_header(do_data_resize);
+
+    load_data_indices<int64_t>( fp, sel.data(), sel.size() );
+    delete fp ;
+
+    _post_load_data();
+
+    if(VERBOSE) std::cerr << "] NP::loadselection [" << ( _path ? _path : "-" ) << "]\n" ;
+    return 0 ;
+}
+
+
+
+inline void NP::_post_load_data()
+{
+    const char* path = lpath.c_str();
+    load_meta( path );
+    load_names( path );
+    load_labels( path );
+}
+
 
 inline int NP::load_from_buffer(const char* buffer, size_t size)
 {
@@ -8657,9 +8737,7 @@ inline int NP::load_from_buffer(const char* buffer, size_t size)
 
 
 
-
-
-inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
+inline std::ifstream* NP::load_header_base(const char* _path)
 {
     nodata = IsNoData(_path) ;  // _path starting with NODATA_PREFIX currently '@'
     const char* path = nodata ? _path + 1 : _path ;
@@ -8670,7 +8748,7 @@ inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
     std::ifstream* fp = new std::ifstream(path, std::ios::in|std::ios::binary);
     if(fp->fail())
     {
-        std::cerr << "NP::load_header std::ifstream FAIL for path [" << ( path ? path : "-" ) << "]\n" ;
+        std::cerr << "NP::load_header_base std::ifstream FAIL for path [" << ( path ? path : "-" ) << "]\n" ;
         delete fp ;
         return nullptr ;
     }
@@ -8678,13 +8756,10 @@ inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
     std::getline(*fp, _hdr );
     _hdr += '\n' ;
 
-    bool no_slice = LooksLikeSliceIndexStringIsEmpty( _sli );
-    bool do_data_resize = !nodata && no_slice ;
-    // when there is an active slice the data resize is deferred
-    decode_header(do_data_resize);
-
     return fp ;
 }
+
+
 
 inline size_t NP::load_header_from_buffer(const char* buffer, size_t size)
 {
@@ -8805,6 +8880,9 @@ inline void NP::load_data( std::ifstream* fp, const char* _sli )
 
 
 
+
+
+
 /**
 NP::load_data_sliced
 ----------------------
@@ -8885,15 +8963,17 @@ Example spec that would cause this to be called::
 
 inline void NP::load_data_where( std::ifstream* fp, const char* spec )
 {
+    // parse the spec to provide path and sli
     char* path = nullptr ;
     char* sli = nullptr ;
     bool with_suffix = LooksLikeSliceIndexStringSuffix(spec, &path, &sli );  // ends with eg "[0:5]"
 
+    // load and potentially slice the selection indices array
     NP* w = LoadSlice_(path, sli );
 
     if(VERBOSE)
     std::cout
-       << "NP::load_data_where\n"
+       << "[NP::load_data_where\n"
        << " spec {" << ( spec ? spec : "-" ) << "}\n"
        << " with_suffix " << ( with_suffix ? "YES" : "NO " ) << "\n"
        << " path {" << ( path ? path : "-" ) << "}\n"
@@ -8906,22 +8986,45 @@ inline void NP::load_data_where( std::ifstream* fp, const char* spec )
     assert( w->uifc == 'i' );
     assert( w->ebyte == 4 || w->ebyte == 8 );
     assert( w->shape.size() == 1 );
-
-    const int* ww4 = w->cvalues<int>();
-    const INT* ww8 = w->cvalues<INT>();
-
     INT wni = w->num_items() ;
+
+    if( w->ebyte == 4 )
+    {
+        const int32_t* ww4 = w->cvalues<int32_t>();
+        load_data_indices<int32_t>( fp, ww4, wni );
+    }
+    else if( w->ebyte == 8 )
+    {
+        const int64_t* ww8 = w->cvalues<int64_t>();
+        load_data_indices<int64_t>( fp, ww8, wni );
+    }
+
+
+    if(VERBOSE)
+    std::cout
+        << "]NP::load_data_where\n"
+        << " spec " << spec << "\n"
+        << "\n"
+        ;
+
+}
+
+
+
+template<typename I>
+inline void NP::load_data_indices( std::ifstream* fp, const I* indices, int64_t num_indices )
+{
     INT ni0 = shape[0] ;
 
     // count valid indices
     INT sliced_ni = 0 ;
-    for(INT i = 0 ; i < wni ; i++ )
+    for(INT i = 0 ; i < num_indices ; i++ )
     {
-        INT idx = w->ebyte == 4 ? ww4[i] : ww8[i] ;
+        INT idx = indices[i] ;
         bool valid_idx =  idx >= 0 && idx < ni0 ;
-        if(valid_idx) sliced_ni += 1 ;
+        if(!valid_idx) continue ;
+        sliced_ni += 1 ;
     }
-
 
     std::string sstr_0 = sstr();
     bool data_resize = true ;
@@ -8929,26 +9032,28 @@ inline void NP::load_data_where( std::ifstream* fp, const char* spec )
     std::string sstr_1 = sstr();
 
     // read only the slice specified items
-
     INT hdrsize = hdr_bytes() ;  // NB not same as  strlen(_hdr.c_str())
     INT itemsize = item_bytes();
 
     if(VERBOSE)
     std::cout
-        << "NP::load_data_where"
-        << " wni " << wni
+        << "NP::load_data_indices"
         << " ni0 " << ni0
         << " hdrsize " << hdrsize
         << " strlen(_hdr.c_str() " << strlen(_hdr.c_str())
         << " itemsize " << itemsize
         << "\n"
+        << " sstr_0 " << sstr_0 << "\n"
+        << " sstr_1 " << sstr_1 << "\n"
+        << " sliced_ni  " << sliced_ni << "\n"
+        << "\n"
         ;
 
 
     INT count = 0 ;
-    for(INT i = 0 ; i < wni ; i++ )
+    for(INT i = 0 ; i < num_indices ; i++ )
     {
-        INT idx = w->ebyte == 4 ? ww4[i] : ww8[i] ;
+        INT idx = indices[i] ;
         bool valid_idx =  idx >= 0 && idx < ni0 ;
         if(!valid_idx) continue ;
         fp->seekg( hdrsize + idx*itemsize );  // move file pointer to *idx* item
@@ -8956,19 +9061,7 @@ inline void NP::load_data_where( std::ifstream* fp, const char* spec )
         count += 1 ;
     }
     assert( count == sliced_ni );
-
-    if(VERBOSE)
-    std::cout
-        << "NP::load_data_where\n"
-        << " spec " << spec << "\n"
-        << " sstr_0 " << sstr_0 << "\n"
-        << " sstr_1 " << sstr_1 << "\n"
-        << " sliced_ni  " << sliced_ni << "\n"
-        << "\n"
-        ;
-
 }
-
 
 
 
