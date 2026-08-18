@@ -65,12 +65,35 @@ struct NP_slice
     T stop ;
     T step ;
 
+    bool contains(T i) const ;
     bool is_arange() const ;
     bool is_linspace() const ;
     bool is_match(const NP_slice<T>& other) const ;
     std::string desc() const ;
     int count() const ;
+    int parse(const char* _sli, bool dump );
+
 };
+
+
+template<typename T>
+inline bool NP_slice<T>::contains(T i) const
+{
+    if (step == 0) return false;
+
+    // 1. Check if 'i' lies within [start, stop) bound depending on step direction
+    if (step > 0)
+    {
+        if (i < start || i >= stop) return false;
+    }
+    else
+    {
+        if (i > start || i <= stop) return false;
+    }
+
+    // 2. Check if 'i' lands exactly on a step boundary
+    return (i - start) % step == 0;
+}
 
 template<typename T>
 inline bool NP_slice<T>::is_arange() const
@@ -111,6 +134,98 @@ inline int NP_slice<T>::count() const
     }
     return _count ;
 }
+
+template<typename T>
+inline int NP_slice<T>::parse(const char* _sli, bool dump )
+{
+    size_t len = _sli ? strlen(_sli) : 0 ;
+    if(len < 2) return 1 ;
+
+    const char* o = strstr(_sli, "[");
+    const char* c = strstr(_sli, "]");
+
+    if(o == nullptr) return 2 ;
+    if(c == nullptr) return 3 ;
+    if(c - o <= 0 ) return 4 ;
+
+    // copy starting from the char after the "[" up to the char before the "]"
+    char* sli = strndup(o+1, c - o - 1 );
+    if(dump) std::cout << "NP_slice::parse {" << sli << "}\n" ;
+
+    if(strlen(sli)>2 && sli[0] == ':' && sli[1] == ':' )  // eg "::2"
+    {
+        std::string s(sli+2);
+        std::istringstream iss(s);
+        T t ;
+        iss >> t ;
+
+        step = t ;
+    }
+    else if(strlen(sli)>2 && sli[0] == ':' && sli[1] != ':' ) // eg ":5"
+    {
+        std::string s(sli+1);
+        std::istringstream iss(s);
+        T t ;
+        iss >> t ;
+
+        stop = t ;
+    }
+    else if(strlen(sli)>0 && strstr(sli,":") == nullptr ) // eg "5" "50.5"
+    {
+        std::string s(sli);
+        std::istringstream iss(s);
+        T t ;
+        iss >> t ;
+
+        start = t ;
+        stop = t + T(1) ;
+        step = T(1) ;
+
+        // kludge to simplify giving single value within range/sli spec
+        // np.arange(100,101,1) == np.array([100])
+
+        if(dump) std::cout
+           << "NP_slice::parse.here"
+           << " sli {" << sli << "}"
+           << " start " << start
+           << " stop " << stop
+           << " step " << step
+           << "\n"
+           ;
+
+    }
+    else  // eg 1:10 1:10:2
+    {
+        char delim = ':' ;
+
+        std::stringstream ss;
+        ss.str(sli);
+        std::string s;
+        int count = 0 ;
+
+        while (std::getline(ss, s, delim))
+        {
+            std::istringstream iss(s);
+            T t ;
+            iss >> t ;
+
+            switch(count)
+            {
+               case 0: start = t ; break ;
+               case 1: stop  = t ; break ;
+               case 2: step  = t ; break ;
+            }
+            count++ ;
+        }
+    }
+    return 0 ;
+}
+
+
+
+
+
+
 
 
 struct NP
@@ -3683,10 +3798,10 @@ For example::
 
 **/
 
-inline bool NP::LooksLikeSliceIndexStringSuffix(const char* _sli, char** body, char** suffix ) //
+inline bool NP::LooksLikeSliceIndexStringSuffix(const char* _spec, char** body, char** suffix ) //
 {
-    if(!_sli) return false ;
-    bool has_suffix = U::prefix_suffix( body, suffix, "[",  _sli );
+    if(!_spec) return false ;
+    bool has_suffix = U::prefix_suffix( body, suffix, "[",  _spec );
     return has_suffix ;
 }
 
