@@ -13,6 +13,9 @@ struct NP_slice_test
     static int parse(const char* _sli);
     static int parse();
 
+    static int contains(const char* _sli);
+    static int contains();
+
     static int main();
 };
 
@@ -21,7 +24,8 @@ int NP_slice_test::main()
     int rc = 0 ;
     //rc += bnd();
     //rc += slice();
-    rc += parse();
+    //rc += parse();
+    rc += contains();
     return rc ;
 }
 
@@ -118,7 +122,6 @@ int NP_slice_test::parse(const char* _sli)
 
 int NP_slice_test::parse()
 {
-   bool dump = true ;
    int rc = 0 ;
    rc += parse("[:100]");
    rc += parse("[1:10]");
@@ -126,6 +129,41 @@ int NP_slice_test::parse()
    rc += parse("[::10]");
    return rc ;
 }
+
+int NP_slice_test::contains(const char* sli)
+{
+    NP_slice<int64_t> slice = {};
+    int rc = slice.parse(sli, true);
+    assert(rc == 0);
+
+    if(slice.is_unbounded()) slice.stop = 100 ;  // when sli does not specify stop it defaults to unbounded - so needs to set it for testing
+
+    int64_t num = 0 ;
+    for(int64_t i=0 ; i < slice.stop + 5  ; i++)
+    {
+        bool select = slice.contains(i);
+        if(select) num += 1 ;
+    }
+
+    int64_t cnt = slice.count();
+
+    std::cout
+       << " num:" << num
+       << " cnt:" << cnt
+       << "\n"
+       ;
+
+    return cnt == num ? 0 : 1 ;
+}
+
+int NP_slice_test::contains()
+{
+    int rc = 0 ;
+    rc += contains("[::2]");
+    rc += contains("[:1000000:10000]") ;
+    return rc ;
+}
+
 
 
 int main()
