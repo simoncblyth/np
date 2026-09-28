@@ -593,7 +593,13 @@ struct NP
     template<typename T>
     static NP* MakePConst( T dl, T dr, T vc );
 
+    template<typename T>
+    static NP* MakePRamp(int ni_, T dom0, T dom1, T val0, T val1);
 
+    static NP* MakePInverse(const NP* a);
+
+    template<typename... Args> static NP* MakePSum(Args ... args);  // PSum_ellipsis
+    static NP* MakePSum_(const std::vector<const NP*>& zz);
     static NP* MakePCopyStripZeroPadding(const NP* a);
 
 
@@ -4987,7 +4993,145 @@ inline NP* NP::MakePCopyStripZeroPadding(const NP* a) // static
     return b;
 }
 
+template<typename T>
+inline NP* NP::MakePRamp(int ni_, T dom0, T dom1, T val0, T val1) // static
+{
+    INT ni = ni_ ;
+    INT nj = 2 ;
 
+    NP* a = NP::Make<T>(ni, nj) ;
+    T* aa = a->values<T>();
+
+    for(INT i=0 ; i < ni ; i++)
+    {
+        T frac = T(i)/T(ni-1);
+        aa[nj*i + 0] = dom0 + frac*(dom1 - dom0) ;
+        aa[nj*i + 1] = val0 + frac*(val1 - val0) ;
+    }
+    return a ;
+
+
+}
+
+inline NP* NP::MakePInverse(const NP* a) // static
+{
+    assert( a->ebyte == 4 || a->ebyte == 8  );
+    assert( a && a->is_pshaped() );
+    INT ni = a->shape[0] ;
+    INT nj = a->shape[1] ;
+    assert( nj == 2 && ni > 1 );
+
+    NP* b = MakeLike(a);
+
+    if( a->ebyte == 4 )
+    {
+        const float* aa = a->cvalues<float>();
+        float* bb = b->values<float>();
+        float one(1.f);
+
+        for(INT i=0 ; i < ni ; i++)
+        {
+            float dom = aa[i*nj + 0];
+            float val = aa[i*nj + 1];
+            bb[i*nj + 0] = dom ;
+            bb[i*nj + 1] = val == 0.f ? 0.f : one/val ;
+        }
+    }
+    else if ( a->ebyte == 8 )
+    {
+        const double* aa = a->cvalues<double>();
+        double* bb = b->values<double>();
+        double one(1.);
+
+        for(INT i=0 ; i < ni ; i++)
+        {
+            double dom = aa[i*nj + 0];
+            double val = aa[i*nj + 1];
+            bb[i*nj + 0] = dom ;
+            bb[i*nj + 1] = val == 0. ? 0. : one/val ;
+        }
+    }
+    return b ;
+}
+
+
+
+template<typename... Args> inline NP* NP::MakePSum(Args ... args)  // PSum_ellipsis
+{
+    std::vector<const NP*> aa = {args...};
+    return MakePSum_(aa);
+}
+
+inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
+{
+    assert( zz.size() > 0 );
+    const NP* z0 = zz[0];
+    assert( z0 && z0->is_pshaped() );
+    INT ni = z0->shape[0] ;
+    INT nj = z0->shape[1] ;
+    assert( ni > 1 && nj == 2);
+
+    const char* dtype0 = z0->dtype ;
+    INT ebyte0 = z0->ebyte ;
+
+    for(size_t z=1 ; z < zz.size() ; z++)
+    {
+        const NP* a = zz[z];
+        bool dtype_expect = strcmp( a->dtype, z0->dtype ) == 0  ;
+        if(!dtype_expect) std::cerr << "NP::MakePSum : input arrays must all have same dtype " << std::endl;
+        assert( dtype_expect );
+
+        assert( a->ebyte == z0->ebyte );
+        assert( a->shape.size() == 2 );
+        assert( a->shape[0] == z0->shape[0] );
+        assert( a->shape[1] == z0->shape[1] );
+
+        INT domain_mismatch = 0;
+        if( a->ebyte == 4 )
+        {
+            const float* vv = z0->cvalues<float>();
+            const float* aa = a->cvalues<float>();
+            for(INT i=0 ; i < ni ; i++) if(aa[nj*i + 0] != vv[nj*i+0]) domain_mismatch += 1 ;
+        }
+        else if( a->ebyte == 8 )
+        {
+            const double* vv = z0->cvalues<double>();
+            const double* aa = a->cvalues<double>();
+            for(INT i=0 ; i < ni ; i++) if(aa[nj*i + 0] != vv[nj*i+0]) domain_mismatch += 1 ;
+        }
+        assert( domain_mismatch == 0 );
+    }
+
+    NP* sum = NP::MakeLike(z0);
+
+    for(size_t z=0 ; z < zz.size() ; z++)
+    {
+        const NP* a = zz[z];
+        if( a->ebyte == 4 )
+        {
+            const float* aa = a->cvalues<float>();
+            float* ss = sum->values<float>();
+
+            for(INT i=0 ; i < ni ; i++)
+            {
+                if(z == 0) ss[i*nj + 0] = aa[i*nj + 0] ;  // copy domain
+                ss[i*nj + 1] += aa[i*nj + 1] ;            // accumulate values
+            }
+
+        }
+        else if( a->ebyte == 8 )
+        {
+            const double* aa = a->cvalues<double>();
+            double* ss = sum->values<double>();
+            for(INT i=0 ; i < ni ; i++)
+            {
+                if(z == 0) ss[i*nj + 0] = aa[i*nj + 0] ;  // copy domain
+                ss[i*nj + 1] += aa[i*nj + 1] ;            // accumulate values
+            }
+        }
+    }
+    return sum ;
+}
 
 
 
