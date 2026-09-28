@@ -598,6 +598,12 @@ struct NP
 
     static NP* MakePInverse(const NP* a);
 
+
+    template<typename T>
+    static NP* MakePRatio_(const NP* a, const NP* b);
+    static NP* MakePRatio( const NP* a, const NP* b);
+
+
     template<typename... Args> static NP* MakePSum(Args ... args);  // PSum_ellipsis
     static NP* MakePSum_(const std::vector<const NP*>& zz);
     static NP* MakePCopyStripZeroPadding(const NP* a);
@@ -5053,6 +5059,60 @@ inline NP* NP::MakePInverse(const NP* a) // static
     }
     return b ;
 }
+
+
+
+
+template<typename T>
+inline NP* NP::MakePRatio_(const NP* a, const NP* b) // static
+{
+    assert( a && a->is_pshaped() );
+    assert( b && b->is_pshaped() );
+    assert( a->ebyte == b->ebyte );
+    assert( a->shape == b->shape );
+
+    INT ni = a->shape[0] ;
+    INT nj = a->shape[1] ;
+    assert( nj == 2 && ni > 1 );
+
+    NP* c = MakeLike(a);
+
+    const T* aa = a->cvalues<T>();
+    const T* bb = b->cvalues<T>();
+    T* cc = c->values<T>();
+
+    for(INT i=0 ; i < ni ; i++)
+    {
+        T a_dom = aa[i*nj + 0];
+        T b_dom = bb[i*nj + 0];
+        T& c_dom = cc[i*nj + 0];
+        assert( a_dom == b_dom );
+        c_dom = a_dom;
+
+        T a_val = aa[i*nj + 1];
+        T b_val = bb[i*nj + 1];
+        T& c_val = cc[i*nj + 1];
+        c_val = a_val / b_val ;
+    }
+    return c ;
+}
+
+inline NP* NP::MakePRatio(const NP* a, const NP* b) // static
+{
+    assert( a->ebyte == b->ebyte );
+    assert( a->ebyte == 4 || a->ebyte == 8  );
+    NP* c = nullptr ;
+    if( a->ebyte == 4 )
+    {
+        c = NP::MakePRatio_<float>(a, b);
+    }
+    else if ( a->ebyte == 8 )
+    {
+        c = NP::MakePRatio_<double>(a, b);
+    }
+    return c ;
+}
+
 
 
 

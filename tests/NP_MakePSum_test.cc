@@ -1,3 +1,5 @@
+// ~/np/tests/NP_MakePSum_test.sh
+
 #include "NPFold.h"
 
 int main()
@@ -17,6 +19,10 @@ int main()
     NP* ib = NP::MakePInverse(b);
     NP* ic = NP::MakePInverse(c);
 
+    NP* ra = NP::MakePRatio( a, s );
+    NP* rb = NP::MakePRatio( b, s );
+    NP* rc = NP::MakePRatio( c, s );
+
 
     NPFold* fold = new NPFold ;
     fold->add("a", a);
@@ -28,6 +34,11 @@ int main()
     fold->add("ia", ia);
     fold->add("ib", ib);
     fold->add("ic", ic);
+
+    fold->add("ra", ra);
+    fold->add("rb", rb);
+    fold->add("rc", rc);
+
 
     fold->save("$FOLD");
 
