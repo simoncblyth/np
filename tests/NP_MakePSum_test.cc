@@ -23,6 +23,8 @@ int main()
     NP* rb = NP::MakePRatio( b, s );
     NP* rc = NP::MakePRatio( c, s );
 
+    NP* rs = NP::MakePStack(ra,rb,rc);
+
 
     NPFold* fold = new NPFold ;
     fold->add("a", a);
@@ -38,6 +40,7 @@ int main()
     fold->add("ra", ra);
     fold->add("rb", rb);
     fold->add("rc", rc);
+    fold->add("rs", rs);
 
 
     fold->save("$FOLD");

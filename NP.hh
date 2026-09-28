@@ -605,7 +605,12 @@ struct NP
 
 
     template<typename... Args> static NP* MakePSum(Args ... args);  // PSum_ellipsis
-    static NP* MakePSum_(const std::vector<const NP*>& zz);
+    template<typename... Args> static NP* MakePStack(Args ... args);  // PStack_ellipsis
+
+    static bool AllSameShapeAndDomain(const std::vector<const NP*>& zz);
+    static NP* MakePSum_(  const std::vector<const NP*>& zz);
+    static NP* MakePStack_(const std::vector<const NP*>& zz);
+
     static NP* MakePCopyStripZeroPadding(const NP* a);
 
 
@@ -5122,7 +5127,16 @@ template<typename... Args> inline NP* NP::MakePSum(Args ... args)  // PSum_ellip
     return MakePSum_(aa);
 }
 
-inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
+template<typename... Args> inline NP* NP::MakePStack(Args ... args)  // PStack_ellipsis
+{
+    std::vector<const NP*> aa = {args...};
+    return MakePStack_(aa);
+}
+
+
+
+
+inline bool NP::AllSameShapeAndDomain(const std::vector<const NP*>& zz) // static
 {
     assert( zz.size() > 0 );
     const NP* z0 = zz[0];
@@ -5133,6 +5147,8 @@ inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
 
     const char* dtype0 = z0->dtype ;
     INT ebyte0 = z0->ebyte ;
+
+    INT mismatch = 0;
 
     for(size_t z=1 ; z < zz.size() ; z++)
     {
@@ -5146,21 +5162,38 @@ inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
         assert( a->shape[0] == z0->shape[0] );
         assert( a->shape[1] == z0->shape[1] );
 
-        INT domain_mismatch = 0;
         if( a->ebyte == 4 )
         {
             const float* vv = z0->cvalues<float>();
             const float* aa = a->cvalues<float>();
-            for(INT i=0 ; i < ni ; i++) if(aa[nj*i + 0] != vv[nj*i+0]) domain_mismatch += 1 ;
+            for(INT i=0 ; i < ni ; i++) if(aa[nj*i + 0] != vv[nj*i+0]) mismatch += 1 ;
         }
         else if( a->ebyte == 8 )
         {
             const double* vv = z0->cvalues<double>();
             const double* aa = a->cvalues<double>();
-            for(INT i=0 ; i < ni ; i++) if(aa[nj*i + 0] != vv[nj*i+0]) domain_mismatch += 1 ;
+            for(INT i=0 ; i < ni ; i++) if(aa[nj*i + 0] != vv[nj*i+0]) mismatch += 1 ;
         }
-        assert( domain_mismatch == 0 );
     }
+    assert( mismatch == 0 );
+    return mismatch == 0 ;
+}
+
+
+
+
+
+
+
+inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
+{
+    bool compatible = AllSameShapeAndDomain(zz);
+    assert(compatible);
+
+    const NP* z0 = zz[0];
+    INT ni = z0->shape[0] ;
+    INT nj = z0->shape[1] ;
+    assert( ni > 1 && nj == 2);
 
     NP* sum = NP::MakeLike(z0);
 
@@ -5177,7 +5210,6 @@ inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
                 if(z == 0) ss[i*nj + 0] = aa[i*nj + 0] ;  // copy domain
                 ss[i*nj + 1] += aa[i*nj + 1] ;            // accumulate values
             }
-
         }
         else if( a->ebyte == 8 )
         {
@@ -5192,6 +5224,54 @@ inline NP* NP::MakePSum_(const std::vector<const NP*>& zz) // static
     }
     return sum ;
 }
+
+
+/**
+NP::MakePStack_
+----------------
+
+For property arrays with the same domain stack values together,
+for example with 4 arrays of shape (761,2) combine the values
+into an array of shape (761,4) where the domain is assumed
+standard enough to be treated implicitly.
+
+**/
+
+
+inline NP* NP::MakePStack_(const std::vector<const NP*>& zz) // static
+{
+    bool compatible = AllSameShapeAndDomain(zz);
+    assert(compatible);
+
+    const NP* z0 = zz[0];
+    INT ni = z0->shape[0] ;
+    INT nj = zz.size();
+    NP* hstack = new NP(z0->dtype, ni, nj );
+
+    for(INT i=0 ; i < ni ; i++)
+    {
+        for(INT j=0 ; j < nj ; j++)
+        {
+            const NP* a = zz[j];
+            if( z0->ebyte == 4 )
+            {
+                 const float* aa = a->cvalues<float>();
+                 float* kk = hstack->values<float>();
+                 kk[i*nj+j] = aa[i*2+1];
+            }
+            else if( z0->ebyte == 8 )
+            {
+                 const double* aa = a->cvalues<double>();
+                 double* kk = hstack->values<double>();
+                 kk[i*nj+j] = aa[i*2+1];
+            }
+        }
+    }
+    return hstack ;
+}
+
+
+
 
 
 
