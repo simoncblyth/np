@@ -596,6 +596,7 @@ struct NP
     template<typename T>
     static NP* MakePRamp(int ni_, T dom0, T dom1, T val0, T val1);
 
+    static NP* MakePLikeWithValue(const NP* a, double value);
     static NP* MakePInverse(const NP* a);
 
 
@@ -5020,9 +5021,41 @@ inline NP* NP::MakePRamp(int ni_, T dom0, T dom1, T val0, T val1) // static
         aa[nj*i + 1] = val0 + frac*(val1 - val0) ;
     }
     return a ;
-
-
 }
+
+
+
+inline NP* NP::MakePLikeWithValue(const NP* a, double value) // static
+{
+    assert( a->is_pshaped()) ;
+    INT ni = a->shape[0] ;
+    INT nj = a->shape[1] ;
+    NP* b = NP::MakeLike(a)
+
+    if( a->ebyte == 4 )
+    {
+        const float* aa = a->cvalues<float>();
+        float* bb = b->values<float>();
+        for(INT i=0 ; i < ni ; i++)
+        {
+            bb[nj*i + 0] = aa[nj*i + 0] ;
+            bb[nj*i + 1] = value ;
+        }
+    }
+    else if( a->ebyte == 8)
+    {
+        const double* aa = a->cvalues<double>();
+        double* bb = b->values<double>();
+        for(INT i=0 ; i < ni ; i++)
+        {
+            bb[nj*i + 0] = aa[nj*i + 0] ;
+            bb[nj*i + 1] = value ;
+        }
+    }
+    return b ;
+}
+
+
 
 inline NP* NP::MakePInverse(const NP* a) // static
 {
