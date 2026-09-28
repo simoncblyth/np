@@ -5030,7 +5030,7 @@ inline NP* NP::MakePLikeWithValue(const NP* a, double value) // static
     assert( a->is_pshaped()) ;
     INT ni = a->shape[0] ;
     INT nj = a->shape[1] ;
-    NP* b = NP::MakeLike(a)
+    NP* b = NP::MakeLike(a);
 
     if( a->ebyte == 4 )
     {
