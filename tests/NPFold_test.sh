@@ -12,8 +12,8 @@ name=NPFold_test
 export FOLD=/tmp/$USER/np/$name
 mkdir -p $FOLD
 
-#export TESTFOLD=/data1/blyth/tmp/GEOM/J26_4_1_opticks_Debug_g411/CSGOptiXSMTest/ALL1_Release_Philox_medium_evt/A000
-export TESTFOLD=/data1/blyth/tmp/GEOM/J26_4_1_opticks_Debug_g411/CSGOptiXSMTest/ALL1_Debug_Philox_medium_evt/A000
+export TESTFOLD=/data1/blyth/tmp/GEOM/J26_4_1_opticks_Debug_g411/CSGOptiXSMTest/ALL1_Release_Philox_medium_evt/A000
+#export TESTFOLD=/data1/blyth/tmp/GEOM/J26_4_1_opticks_Debug_g411/CSGOptiXSMTest/ALL1_Debug_Philox_medium_evt/A000
 
 
 bin=$FOLD/$name
